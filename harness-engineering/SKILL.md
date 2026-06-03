@@ -1,6 +1,6 @@
 ---
 name: harness-engineering
-description: Use when choosing the current harness engineering layer, sequencing work across layers, resuming from a project queue, or interpreting continue/what next for work that may move between facts, brief, architecture, ADR, contract, implementation, verification, and review.
+description: Use when choosing the current harness engineering layer, mapping local governance skills to the explicit layer progression, sequencing work across layers, resuming from a project queue, interpreting continue/what next, or routing optional companion skills such as superpowers:*.
 ---
 
 # Harness Engineering
@@ -10,6 +10,28 @@ description: Use when choosing the current harness engineering layer, sequencing
 用 harness engineering 把一个想法逐层推进到可验证的实现。每一层都必须产出稳定证据，并作为下一层的输入。
 
 不要因为实现看起来很明显就跳层。如果当前层缺少可持久化的产物，应停留在当前层，先补齐缺失产物。
+
+## Layer Progression Source Of Truth
+
+The canonical ordering of local harness governance skills is in `references/layer-progression.md`.
+
+Read it when:
+
+- Choosing the current or next harness layer.
+- Deciding which local skill owns a workflow.
+- Resuming from NEXT, TODO, backlog, checkpoint, or queue files.
+- Writing or reviewing a queue item with a `Layer:` field.
+- A task may skip from idea, facts, architecture, ADR, or contract directly into implementation.
+
+Do not infer precedence from folder order, plugin order, or the order of skills shown in the current session.
+
+## Companion Skill Routing
+
+When choosing a harness layer, check whether relevant companion skills are available in the current skill list.
+
+Companion skills are optional unless a project rule or user request explicitly marks them as required. If a companion skill is unavailable, disclose that it is unavailable and continue with the local fallback.
+
+Read `references/superpowers-routing.md` when the task touches brainstorming, implementation planning, debugging, TDD, verification, code review, skill writing, worktree setup, parallel execution, or any workflow that appears to overlap with `superpowers:*`.
 
 ## 层级链路
 

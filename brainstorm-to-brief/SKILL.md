@@ -1,6 +1,6 @@
 ---
 name: brainstorm-to-brief
-description: Use when a raw idea, vague goal, product concept, feature request, PoC thought, or process change needs option exploration, scope, non-goals, risks, and success criteria before it becomes a stable brief.
+description: Use when a raw idea, vague goal, product concept, feature request, PoC thought, or process change needs option exploration, scope, non-goals, risks, and success criteria before it becomes a stable brief, including after optional companion brainstorming via superpowers:brainstorming.
 ---
 
 # Brainstorm To Brief

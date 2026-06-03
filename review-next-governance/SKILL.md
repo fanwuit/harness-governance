@@ -1,6 +1,6 @@
 ---
 name: review-next-governance
-description: Use when finishing verified work, reporting completion, updating project queues, deciding next steps, recording risks, handling blocked or not-now items, or preventing conclusions from remaining only in chat.
+description: Use when finishing verified work, reporting completion, updating project queues, deciding next steps, recording risks, handling blocked or not-now items, or preventing conclusions from remaining only in chat, including after optional companion verification via superpowers:verification-before-completion.
 ---
 
 # Review Next Governance
@@ -84,6 +84,8 @@ Verification -> Review / Next
 ```
 
 项目已有格式时，优先遵循项目格式。
+
+`Layer:` 应使用 `harness-engineering/references/layer-progression.md` 中定义的标准层级标签。若当前层级不明确，先用 `harness-engineering` 判断，不要临时发明新层级名。跨多个层级的任务应先记录当前阻塞层；后续层级只写在 notes、risk 或 done-when 说明里。
 
 ## 完成级别
 

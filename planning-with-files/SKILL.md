@@ -1,6 +1,6 @@
 ---
 name: planning-with-files
-description: Use for complex multi-step tasks that lack an existing project queue, NEXT.md, harness checkpoint, or repository-specific planning system. Creates task_plan.md, findings.md, and progress.md for persistent working memory and session recovery. Do not use when a project already defines NEXT.md or harness-engineering queue rules unless the user explicitly asks for file-based planning.
+description: Use for complex multi-step tasks that need durable file-backed planning and lack an existing project queue, NEXT.md, harness checkpoint, or repository-specific planning system, including when superpowers:writing-plans is unavailable or persistence is needed. Do not use when project queue rules already apply unless explicitly requested.
 ---
 
 # Planning with Files

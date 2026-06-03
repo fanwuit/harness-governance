@@ -11,6 +11,8 @@ description: Use before entering implementation or writing product code, especia
 
 这个 gate 是 target-entry gate，不是每个小改动都要重复执行的流程。某个 target 已经通过 readiness gate 后，该 target 内的小 bug fix 和小 feature 可以直接遵守已有规则、lint、测试和验证命令推进。
 
+这个小改动例外不适用于新的外部集成、持久化状态、public contract 变更、新 runtime/dependency、跨 target 行为或新的关键失败模式。用户说“快点做”“直接实现”不等于 throwaway prototype，也不能绕过 readiness。
+
 ## 核心规则
 
 在 target-local gate 通过前，不要写正式产品实现代码。
@@ -52,7 +54,8 @@ description: Use before entering implementation or writing product code, especia
 
 2. ADR 或 decision state
    - 长期技术选择或边界选择已有 ADR。
-   - 如果不需要 ADR，有稳定说明解释原因。
+   - 如果不需要 ADR，有稳定、可复核的说明解释原因。
+   - 聊天中的临时同意不能替代长期边界、持久化、部署、所有权或 public contract 的 decision state。
 
 3. Contract evidence
    - 即将实现的行为已有 API/schema/example/fixture/probe/check。
@@ -97,6 +100,7 @@ description: Use before entering implementation or writing product code, especia
 - 使用现有 target rules、lint、tests 和 verification commands。
 - 不要重新创建 architecture、ADR、lint 或 test baseline。
 - 行为受影响时补充或更新聚焦测试。
+- 新外部集成、持久化、public contract、跨 target 行为或新关键失败模式不属于“小改动”。
 - 只有 scope 扩大或跨 readiness boundary 时，才回到本 gate。
 
 如果任一必需项缺失：

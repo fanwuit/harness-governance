@@ -1,12 +1,12 @@
 ---
 name: debugging-checklist
-description: Provide a concise debugging checklist for a junior developer or human handoff. Do not use as the primary agent debugging workflow when superpowers:systematic-debugging or another project-specific debugging workflow is available.
+description: Use when a junior developer, human handoff, or lightweight fallback output needs a concise debugging checklist. Do not use as the primary active bug-fixing workflow; when superpowers:systematic-debugging is unavailable, active agents should follow a separate reproduce/observe/isolate/fix/verify fallback.
 ---
 
 # Debugging Checklist
 
 ## Purpose
-Provide a systematic debugging checklist for a human reader, junior developer, or handoff note. This is not the primary agent debugging workflow when a stronger workflow skill such as `superpowers:systematic-debugging` is available.
+Provide a systematic debugging checklist for a human reader, junior developer, or handoff note. This is not the primary active bug-fixing workflow. When `superpowers:systematic-debugging` is unavailable, active agents should follow the routing fallback in `harness-engineering/references/superpowers-routing.md`: reproduce, observe, isolate, fix, and verify; use this skill only to produce lightweight checklist or handoff output.
 
 ## Inputs to request
 - Repro steps and frequency.
