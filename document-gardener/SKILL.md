@@ -1,6 +1,6 @@
 ---
 name: document-gardener
-description: Use when repository documentation, plans, ADRs, queues, indexes, generated docs, checks, or agent instructions may be stale, conflicting, missing from navigation, or drifting from current code and verified project state.
+description: Use when repository documentation, plans, ADRs, queues, indexes, generated docs, checks, skill inventories, skill routing docs, or agent instructions may be stale, conflicting, missing from navigation, or drifting from current code and verified project state.
 ---
 
 # Document Gardener
@@ -16,6 +16,7 @@ Use this workflow when any of these appear:
 - Entry documents disagree about current phase, scope, architecture, or status.
 - New, moved, or deleted Markdown files are not reflected in the document map or navigation.
 - New schemas, examples, fixtures, probes, checks, or wrappers are not registered in the expected index or standard check entry.
+- New, disabled, renamed, or materially changed skills are not reflected in skill inventory docs, routing references, or `agents/openai.yaml` expectations.
 - ADRs, briefs, readiness gates, local agent rules, and queue files conflict.
 - A queue says work is done, ready, blocked, or not-now in a way that no stable artifact supports.
 - Documentation still repeats a conclusion that later code, checks, ADRs, or fixtures have disproved.

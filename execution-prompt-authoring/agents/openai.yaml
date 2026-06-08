@@ -1,0 +1,4 @@
+interface:
+  display_name: "执行提示词编写"
+  short_description: "生成可审计的多代理执行提示词包"
+  default_prompt: "Use $execution-prompt-authoring to turn this approved gate list into a reviewable execution prompt pack."

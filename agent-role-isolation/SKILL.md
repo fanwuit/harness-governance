@@ -39,6 +39,7 @@ If two or more roles are involved, apply this workflow. If the project has stric
 2. Create a planner handoff before implementation.
    - Include objective, non-goals, owner files or subsystems, success criteria, forbidden shortcuts, verification commands, and stop conditions.
    - Keep it short enough for a fresh agent to execute without chat history.
+   - If the handoff must become prompts for multiple fresh workers, parallel subagent audits, a controller, or an integrator, use `execution-prompt-authoring` to produce an auditable prompt pack before execution.
 
 3. Fix tests or contracts before implementation when behavior is not already covered.
    - Prefer existing test/check style.

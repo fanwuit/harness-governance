@@ -47,6 +47,20 @@ Read `references/change-packet-model.md` when:
 
 Do not create a change packet for a small single-layer edit, a simple command, a one-off answer, or a task whose context is already fully captured by an existing ADR, contract, queue item, or checkpoint.
 
+## Execution Prompt Pack Routing
+
+Use `execution-prompt-authoring` after a plan, gate list, ready queue item, change packet, or role-isolated workflow is already approved and the next problem is prompt packaging for execution.
+
+Route to `execution-prompt-authoring` when:
+
+- Fresh `codex exec` workers need self-contained prompts.
+- Subagents may audit in parallel but must not implement.
+- Controller, worker, auditor, and integrator responsibilities need separation.
+- Shared queue, checkpoint, verification record, or doc-map updates need serialized ownership.
+- Human approval points must be explicit before execution starts.
+
+Do not use execution prompt authoring to approve product scope, skip readiness, or replace task packets. If the plan is not approved or the current layer is unclear, finish the relevant harness layer first.
+
 ## 层级链路
 
 ```text

@@ -61,6 +61,7 @@ Fact Discovery is conditional and can interrupt any layer when an unknown would 
 | `harness-engineering` | Router and layer selector; use before choosing a layer or interpreting continue/what next. |
 | `planning-with-files` | Persistence fallback when no project queue, NEXT.md, checkpoint, or repo planning system exists. |
 | `autonomous-ready-loop` | Execution mode for ready queues; it selects work but must still respect the layer map. |
+| `execution-prompt-authoring` | Prompt-pack authoring and audit for approved plans, gate lists, change packets, role-isolated workflows, fresh workers, subagent audits, and integrator handoffs; it is not a harness layer and does not approve scope. |
 | `harness-status-dashboard` | Status/reporting view over queues, verification freshness, and long-running runs. |
 | `document-gardener` | Documentation and queue hygiene after artifacts move, drift, or conflict. |
 | `agent-mistake-guard` | Guardrail capture when repeated AI mistakes need durable prevention. |
@@ -76,8 +77,10 @@ Execution modes do not create new harness layers. They decide how work at the cu
 | `manual` | Current chat or session | Human is actively steering, or the task is small enough to finish in one session. | Do not treat chat-only results as durable artifacts. |
 | `autonomous` | Queue-driven fresh `codex exec` workers | Work should continue across short workers from NEXT, TODO, backlog, issue queues, or checkpoints. | Do not bypass layer progression, readiness gates, checkpointing, or autonomous stop markers. |
 | `subagent-driven` | Inside one implementation session or autonomous worker | Current layer is `implementation`, readiness has passed, and implementation task packets are complete. | Do not consume raw NEXT, TODO, backlog, or checkpoint ready items directly. |
+| `prompt-pack-authoring` | Approved work that needs self-contained execution prompts | A plan, gate list, queue item, change packet, or role-isolated workflow needs controller, worker, auditor, or integrator prompts before execution. | Do not treat prompt packs as scope approval, readiness evidence, or final verification. |
 
 `autonomous-ready-loop` is an execution mode for selecting and running ready layer work. `superpowers:subagent-driven-development` is an implementation execution mode used only after readiness and packetization.
+`execution-prompt-authoring` prepares the prompts and execution matrix for workers, subagent audits, controllers, and integrators; it does not create a new harness layer.
 
 ## Transition Rules
 

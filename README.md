@@ -4,7 +4,7 @@
 
 ## 总览
 
-- 启用的非 system skills：21 个。
+- 启用的非 system skills：22 个。
 - 额外存在 `gh-fix-ci`，但入口文件是 `SKILL.disabled.md`，当前不作为启用 skill 自动触发。
 - 这些 skills 偏流程、边界、契约和治理，不是某个编程语言或框架的代码片段库。
 
@@ -47,6 +47,7 @@ Idea
 | 错误沉淀 | `agent-mistake-guard` | 把重复 agent 错误沉淀为短小 guardrail，必要时升级成机械检查。 | 是 |
 | 代码质量漂移 | `code-quality-drift-guard` | 检查孤儿脚本、孤儿 wrapper、命名漂移、重复 helper、文件膨胀和未引用候选。 | 是 |
 | 文件化计划 | `planning-with-files` | 用 `task_plan.md`、`findings.md`、`progress.md` 做持久计划、进度记录和上下文恢复。 | 是 |
+| 执行提示词编写 | `execution-prompt-authoring` | 把已确认的计划、gate、队列项或 change packet 转成可审计的 controller、worker、subagent audit 和 integrator prompt pack。 | 是 |
 | Skill 透明度 | `skill-use-transparency` | 要求说明选择了哪个 skill、为什么触发、是否成功读取 `SKILL.md`、是否完整执行。 | 是 |
 | 代码库导览 | `codebase-orientation` | 给陌生仓库快速梳理模块、入口、运行/测试命令和安全入门任务。 | 是 |
 | 调试交接 | `debugging-checklist` | 输出轻量调试 checklist，用于人类或初级开发者 handoff。 | 是 |
@@ -99,8 +100,13 @@ Idea
 
 - `references/layer-progression.md`
 - `references/superpowers-routing.md`
+- `references/change-packet-model.md`
 
 用于判断当前层级、下一步和与可选 companion skills 的关系。
+
+### `execution-prompt-authoring`
+
+用于把已确认的 plan、gate list、NEXT ready、change packet 或 role-isolated workflow 转成可审计执行提示词包，明确 controller、subagent audit、fresh `codex exec` worker、integrator、共享文件串行规则、验证命令、停止 marker 和人工审批点。
 
 ## 未启用但存在
 
@@ -127,6 +133,7 @@ Idea
 - 完成后用 `review-next-governance` 更新队列、风险和下一步。
 - 长时间自治推进时，使用 `autonomous-ready-loop` 和 `harness-status-dashboard`。
 - 文档、队列、索引或治理规则漂移时，使用 `document-gardener`。
+- 已确认的多 worker、多角色或 change packet 需要落成可审计执行提示词时，使用 `execution-prompt-authoring`。
 
 ## 当前覆盖重点与缺口
 
