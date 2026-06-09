@@ -1,4 +1,4 @@
 interface:
   display_name: "Harness Visualization"
-  short_description: "Show harness layer, ready queue, runner, and verification status"
-  default_prompt: "Use $harness-visualization to generate a read-only status dashboard from queue, checkpoint, task packet, and runner records."
+  short_description: "Initialize or show harness status"
+  default_prompt: "Use $harness-visualization init to bootstrap status config, then generate a read-only dashboard from queue, checkpoint, task packet, and runner records."

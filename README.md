@@ -146,6 +146,8 @@ Idea
 
 脚本默认只读扫描目标项目的 `NEXT.md`、`docs/changes/*/tasks.md`、`.harness/run-checkpoint.md` 和 `.harness/codex-exec-invocations.ndjson`，输出终端文本；使用 `--format json` 可供 agent、TUI 或 Web UI 消费；使用 `--write-md` / `--write-json` 可写入目标项目 `.harness/status.md` 和 `.harness/status.json`。使用 `--init` 可生成 `.harness/harness-status.config.json`，用于覆盖 queue、change root、checkpoint、invocation log 和 status 输出路径。它只负责可见性，不推进队列、不替代 gate 或 verification。
 
+提示词入口支持 `$harness-visualization init`：初始化目标项目 status config，刷新 `.harness/status.md` / `.harness/status.json`，并报告缺失状态源。
+
 ## 未启用但存在
 
 ### `gh-fix-ci`

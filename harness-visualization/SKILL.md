@@ -1,6 +1,6 @@
 ---
 name: harness-visualization
-description: Use when a project needs a read-only harness status view, ready queue progress summary, task packet checklist summary, autonomous runner marker audit, checkpoint visibility, or machine-readable status JSON for agents or dashboards.
+description: Use when a project needs to initialize harness visualization, bootstrap harness status config, generate a read-only harness status view, summarize ready queue progress, summarize task packet checklists, audit autonomous runner markers, inspect checkpoint visibility, or produce machine-readable status JSON for agents or dashboards.
 ---
 
 # Harness Visualization
@@ -23,6 +23,15 @@ node harness-visualization/scripts/harness-status.mjs --repo <project>
 node harness-visualization/scripts/harness-status.mjs --repo <project> --format json
 node harness-visualization/scripts/harness-status.mjs --repo <project> --write-md --write-json
 ```
+
+## Prompt Triggers
+
+当用户写 `$harness-visualization init`、`use harness-visualization init`、`初始化 harness visualization` 或类似请求时：
+
+1. 先遵守 `harness-engineering` 入口路由。
+2. 在目标项目运行 `harness-status.mjs --repo <project> --init`。
+3. 再运行 `harness-status.mjs --repo <project> --write-md --write-json` 生成当前状态。
+4. 只报告缺失的状态源；不要伪造 `NEXT.md` ready 项、change packet、checkpoint 或 invocation log。
 
 默认读取：
 
