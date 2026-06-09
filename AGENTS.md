@@ -55,6 +55,7 @@ Routing decision: harness-engineering owns entry routing; companion workflows ru
 
 中文友好：
 - 自定义skill，除保留必要英文外，必须中文友好
+- git commit信息，除保留必要英文外，必须中文友好
 
 ## Skill 文档同步
 

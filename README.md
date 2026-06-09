@@ -4,7 +4,7 @@
 
 ## 总览
 
-- 启用的非 system skills：23 个。
+- 启用的非 system skills：25 个。
 - 额外存在 `gh-fix-ci`，但入口文件是 `SKILL.disabled.md`，当前不作为启用 skill 自动触发。
 - 这些 skills 偏流程、边界、契约和治理，不是某个编程语言或框架的代码片段库。
 
@@ -54,11 +54,13 @@ Idea
 | 契约优先 | `contract-first-development` | 在实现前固定 schema、example、fixture、probe、check、失败路径和验证命令。 | 是 |
 | 契约膨胀控制 | `contract-growth-control` | 防止一直补 ADR/schema/check/readiness 而不进入最小实现切片。 | 是 |
 | 实现细节时机 | `implementation-detail-timing` | 判断类名、模块名、字段、表、迁移、依赖规则等应在哪个层级固定。 | 是 |
+| 实现入口 | `governed-implementation-entry` | 在写实现代码前记录 Implementation Entry Record，固定当前层级、target、scope、contract evidence、readiness、packetization、verification、Review / Next 和 stop conditions。 | 是 |
 | 实现准入 | `implementation-readiness-gate` | 进入 target 实现前检查架构、ADR、contract、lint、测试 baseline、验证命令和本地 agent 规则。 | 是 |
 | 角色隔离 | `agent-role-isolation` | 分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier，降低自测自收和范围膨胀风险。 | 是 |
 | 验证收口 | `review-next-governance` | 完成后更新 NEXT/backlog/blocked/not-now，记录验证证据、剩余风险和下一步。 | 是 |
 | 自治执行 | `autonomous-ready-loop` | 用外部 runner 反复启动短 `codex exec` worker，按 ready 队列推进并写 checkpoint。 | 是 |
 | 状态仪表 | `harness-status-dashboard` | 汇总 ready、target、contract、runner marker、验证新鲜度、漂移和是否需要人工输入。 | 是 |
+| 可视化状态 | `harness-visualization` | 从 NEXT、change packet、checkpoint 和 invocation log 生成只读 text/markdown dashboard 与 JSON 状态，展示 layer、ready、task packet、runner 和 verification。 | 是 |
 | 文档治理 | `document-gardener` | 审计和修正文档、ADR、队列、索引、检查注册与当前代码/验证状态之间的漂移。 | 是 |
 | 错误沉淀 | `agent-mistake-guard` | 把重复 agent 错误沉淀为短小 guardrail，必要时升级成机械检查。 | 是 |
 | 代码质量漂移 | `code-quality-drift-guard` | 检查孤儿脚本、孤儿 wrapper、命名漂移、重复 helper、文件膨胀和未引用候选。 | 是 |
@@ -134,6 +136,16 @@ Idea
 
 用于把已确认的 plan、gate list、NEXT ready、change packet 或 role-isolated workflow 转成可审计执行提示词包，明确 controller、subagent audit、fresh `codex exec` worker、integrator、共享文件串行规则、验证命令、停止 marker 和人工审批点。
 
+### `harness-visualization`
+
+提供通用 harness 状态可视化脚本：
+
+- `scripts/harness-status.mjs`
+- `tests/harness-status.test.mjs`
+- `tests/fixtures/sample-repo/`
+
+脚本默认只读扫描目标项目的 `NEXT.md`、`docs/changes/*/tasks.md`、`.harness/run-checkpoint.md` 和 `.harness/codex-exec-invocations.ndjson`，输出终端文本；使用 `--format json` 可供 agent、TUI 或 Web UI 消费；使用 `--write-md` / `--write-json` 可写入目标项目 `.harness/status.md` 和 `.harness/status.json`。它只负责可见性，不推进队列、不替代 gate 或 verification。
+
 ## 未启用但存在
 
 ### `gh-fix-ci`
@@ -160,7 +172,7 @@ Idea
 - 新 API、schema、CLI、fixture、外部行为或失败路径，应先用 `contract-first-development`。
 - 进入产品实现前，按 target 使用 `implementation-readiness-gate`。
 - 完成后用 `review-next-governance` 更新队列、风险和下一步。
-- 长时间自治推进时，使用 `autonomous-ready-loop` 和 `harness-status-dashboard`。
+- 长时间自治推进时，使用 `autonomous-ready-loop`、`harness-status-dashboard` 和 `harness-visualization`，分别负责执行循环、状态判断和可读/JSON 仪表输出。
 - 文档、队列、索引或治理规则漂移时，使用 `document-gardener`。
 - 写、审计或迁移 API/doc 生成链路上的代码注释时，使用 `doc-comment-policy`。
 - 已确认的多 worker、多角色或 change packet 需要落成可审计执行提示词时，使用 `execution-prompt-authoring`。
@@ -173,6 +185,7 @@ Idea
 - 契约优先和实现准入。
 - 文档、队列、状态和错误沉淀。
 - 长任务自治执行和 checkpoint。
+- harness layer、ready 队列、task packet、runner marker 和 verification 的只读可视化输出。
 - 代码质量漂移的轻量检查思路。
 - 代码文档注释的语言原生格式选择和防忘落地思路。
 - companion workflow 抢入口的机械检查和本地 skill 自守层。
@@ -180,6 +193,7 @@ Idea
 当前明显较少的方向：
 
 - 具体前端 UI 实作专项。
+- 完整 TUI / Web 控制台；当前只提供通用 text/markdown/JSON 状态层。
 - 后端框架、数据库迁移、认证授权等领域专项。
 - 已启用的 CI 修复专项。
 - 特定语言生态的重构、测试或性能分析专项。
