@@ -3,6 +3,10 @@ name: review-next-governance
 description: Use when finishing verified work, reporting completion, updating project queues, deciding next steps, recording risks, handling blocked or not-now items, or preventing conclusions from remaining only in chat, including after optional companion verification via superpowers:verification-before-completion.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Review Next Governance
 
 ## 概览

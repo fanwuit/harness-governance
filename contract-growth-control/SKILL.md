@@ -3,6 +3,10 @@ name: contract-growth-control
 description: Use when a project using contract-first, harness engineering, ADR/schema/example/check workflows, or autonomous agents risks over-contracting; decide whether to add another contract artifact, move to implementation, mark blocked, or ask for human confirmation.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Contract Growth Control
 
 ## Purpose

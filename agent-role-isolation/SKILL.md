@@ -3,6 +3,10 @@ name: agent-role-isolation
 description: Use when a task involves task decomposition, planning, TDD, test writing, contract writing, implementation, review, verification, or when the user requires separation between planner/tester/implementer/reviewer roles to avoid AI self-confirmation, self-satisfaction, or tests being shaped by the same agent that writes the implementation.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Agent Role Isolation
 
 ## Overview

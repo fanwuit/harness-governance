@@ -3,6 +3,10 @@ name: implementation-detail-timing
 description: Use before fixing implementation details such as class names, file names, package/module names, function names, DTO/schema fields, database tables, migrations, entities, member variables, or layer dependency enforcement. Use when moving from Architecture, Contract, or Readiness into Implementation, auditing existing code that may have fixed details too early, or selecting architecture/layer validation tools such as ArchUnit, ESLint boundaries, dependency-cruiser, NetArchTest, Semgrep, or CodeQL.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Implementation Detail Timing
 
 ## 目的

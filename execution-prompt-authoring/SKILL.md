@@ -3,6 +3,10 @@ name: execution-prompt-authoring
 description: Use when Codex needs to turn an approved plan, gate list, queue item, change packet, or role-isolated workflow into a reviewable execution prompt pack for subagents, codex exec workers, autonomous-ready-loop runners, and integrators, including explicit rules for what may run in parallel, what must run in fresh codex exec sessions, what must be serialized, and what needs AI or human audit before execution.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Execution Prompt Authoring
 
 ## 概览

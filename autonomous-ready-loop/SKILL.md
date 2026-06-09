@@ -3,6 +3,10 @@ name: autonomous-ready-loop
 description: Use when Codex should run a project task queue autonomously through fresh short codex exec sessions, avoid context-window buildup, create checkpoint/handoff files, run until a project boundary rather than a fixed chat context, add or adapt an external runner, or define stop conditions for unattended ready-loop execution across NEXT.md, TODO.md, issue queues, or similar ready queues.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Autonomous Ready Loop
 
 使用本 skill 建立或运行一个外部 harness：它反复启动新的短会话 `codex exec` worker，而不是让单个聊天线程承载全部历史。长期记忆必须来自仓库文件，而不是上一轮聊天上下文。

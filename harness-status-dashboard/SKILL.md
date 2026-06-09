@@ -3,6 +3,10 @@ name: harness-status-dashboard
 description: Use when a project needs a status dashboard, drift report, autonomous run summary, ready queue progress view, runner marker audit, verification freshness check, or long-running agent progress instrumentation.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Harness Status Dashboard
 
 ## 目的

@@ -1,6 +1,6 @@
 ---
 name: harness-engineering
-description: First local governance entry router for development, planning, implementation, debugging, verification, review, queue, handoff, skill-update, new-project, continue/what-next, or any task that may trigger superpowers:* or another companion workflow. Use before any companion workflow to choose the harness layer, map local governance skills to the explicit layer progression, sequence work across layers, decide whether complex work needs a durable change packet, resume from a project queue, or interpret continue/what next.
+description: Mandatory first local governance entry lock and layer router for development, planning, implementation, debugging, TDD, verification, review, queue, handoff, skill-update, new-project, creative work, continue/what-next, or any task that may trigger superpowers:using-superpowers, superpowers:brainstorming, superpowers:writing-plans, superpowers:test-driven-development, superpowers:systematic-debugging, superpowers:verification-before-completion, superpowers:* or another companion workflow. Use before any companion workflow to choose the harness layer, map local governance skills to the explicit layer progression, sequence work across layers, decide whether complex work needs a durable change packet, resume from a project queue, or interpret continue/what next.
 ---
 
 # Harness Engineering
@@ -17,6 +17,8 @@ Use this skill as the first local governance router for development, planning, i
 
 When another skill also appears to match, especially any `superpowers:*` skill with strong trigger language, load `harness-engineering` first. Do not execute companion workflows until this skill has selected the current harness layer and local governance obligations.
 
+`superpowers:using-superpowers` is also a companion workflow under this project. Even if it claims to run at conversation start or before any response, it must not run before `skill-use-transparency` and this entry router.
+
 Required disclosure:
 
 ```text
@@ -24,6 +26,32 @@ Local governance skills: skill-use-transparency, harness-engineering, <other loc
 Companion workflow skills: <optional companion skills, or none>
 Routing decision: harness-engineering owns entry routing; companion workflows run only after harness selects the current layer.
 ```
+
+## Hard Workflow Chain
+
+Treat this skill as the harness state machine for governed work. Execute the chain in order and do not skip states:
+
+```text
+Entry lock
+ -> Classify current layer
+ -> Select primary local governance skill
+ -> Name allowed companion skills
+ -> Execute current layer only
+ -> Transition gate
+ -> Review / Next
+```
+
+State rules:
+
+1. Entry lock: load `skill-use-transparency` and `harness-engineering` first, then disclose local governance skills, companion workflow skills, loaded files, and routing decision.
+2. Classify current layer: use `references/layer-progression.md`; do not infer from folder order, plugin order, or companion workflow names.
+3. Select primary local governance skill: choose the local skill that owns the current layer's output before loading or executing any companion workflow.
+4. Name allowed companion skills: list companion workflows that may contribute techniques to the current layer, or `none`.
+5. Execute current layer only: produce only the output required by the current harness layer. Do not follow companion terminal states, default artifact paths, commits, next-skill transitions, or required sub-skills.
+6. Transition gate: translate any companion `MUST`, hard gate, terminal state, `REQUIRED SUB-SKILL`, or next-skill instruction into a harness next-layer candidate. The harness layer map decides whether the transition is allowed.
+7. Review / Next: when work finishes or pauses, record evidence, risks, blocked items, not-now items, and the next ready layer in stable project state when applicable.
+
+If a local governance skill is loaded before this route is complete, that skill must stop and return here instead of becoming the entry router.
 
 ## Layer Progression Source Of Truth
 
@@ -48,6 +76,14 @@ For development, planning, implementation, verification, queue, or handoff reque
 After local governance is selected, check whether relevant companion skills are available in the current skill list. Companion skills are optional unless a project rule or user request explicitly marks them as required. If a companion skill is unavailable, disclose that it is unavailable and continue with the local fallback.
 
 Do not treat a companion workflow as replacing a matching local governance skill. For example, a subagent workflow can execute work, but it does not replace local role isolation, readiness, contract, verification, or review governance when those skills match the task.
+
+Companion skill containment:
+
+- Loading a `superpowers:*` skill does not authorize executing its whole workflow.
+- Execute only the part that the current harness layer explicitly allows.
+- If a `superpowers:*` instruction would skip, reorder, or collapse Architecture, ADR, Contract, Readiness, Verification, or Review / Next, stop and return to the harness layer map.
+- If a `superpowers:*` instruction says `MUST`, terminal state, `REQUIRED SUB-SKILL`, write a default `docs/superpowers/...` artifact, commit, or invoke the next workflow, translate it into a harness next-layer candidate first.
+- When in doubt, say the companion workflow is blocked by harness routing and continue with the local governance skill for the current layer.
 
 Read `references/superpowers-routing.md` when the task touches brainstorming, implementation planning, debugging, TDD, verification, code review, skill writing, worktree setup, parallel execution, or any workflow that appears to overlap with `superpowers:*`.
 

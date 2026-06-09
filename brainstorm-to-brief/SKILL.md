@@ -3,6 +3,10 @@ name: brainstorm-to-brief
 description: Use when a raw idea, vague goal, product concept, feature request, PoC thought, or process change needs option exploration, scope, non-goals, risks, and success criteria before it becomes a stable brief, including after optional companion brainstorming via superpowers:brainstorming.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Brainstorm To Brief
 
 ## 概览
@@ -59,6 +63,29 @@ Idea -> Brainstorming -> Brief
 5. 输出 Brief 草案
    - 把讨论结果整理成稳定输入。
    - brief 应能直接交给 Architecture、ADR、Contract 或 Implementation 层使用。
+
+## Companion 能力借用
+
+当 harness 当前层级是 `brainstorming` 时，可以把 `superpowers:brainstorming` 当作 companion capability 使用，但本 skill 仍是本地 owner。
+
+可借用：
+
+- 探索项目上下文。
+- 一次只问一个问题。
+- 给出 2 到 3 个方案及取舍。
+- 做 scope decomposition。
+- 需要视觉比较时使用 visual companion。
+- 设计时关注边界、组件、数据流、错误处理和测试。
+
+必须拦截：
+
+- 不接受 `superpowers:brainstorming` 的 terminal state。
+- 不自动 invoke `superpowers:writing-plans`。
+- 不自动写 `docs/superpowers/specs/...`。
+- 不自动 commit。
+- 不跳过 Brief、Architecture、ADR、Contract 或 Readiness。
+
+输出必须回到 harness：`Brainstorming` 层产出方案、风险、非目标和 Brief 草案，再由 harness transition gate 判断下一层。
 
 ## Brief 模板
 

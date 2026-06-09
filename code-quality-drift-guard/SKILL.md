@@ -3,6 +3,10 @@ name: code-quality-drift-guard
 description: Use when a project needs lightweight guardrails for code quality drift, unused files, orphan scripts, duplicate helpers, naming drift, file-size growth, or implementation sprawl during autonomous coding.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Code Quality Drift Guard
 
 ## 目的

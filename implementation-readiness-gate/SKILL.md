@@ -3,6 +3,10 @@ name: implementation-readiness-gate
 description: Use before entering implementation or writing product code, especially when a task moves from Contract to Implementation, starts coding in a Java/Vue/.NET/Worker/frontend/backend target, creates a new app/service/package, or an autonomous loop selects an implementation-ready item. Checks target-local architecture boundaries, ADR/decision state, contracts, lint/format baselines, unit tests, integration/contract tests, verification commands, and local AGENTS.md before allowing code changes.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Implementation Readiness Gate
 
 把这个 skill 作为 `Contract` 进入 `Implementation` 之前的强制准入门。

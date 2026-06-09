@@ -3,6 +3,10 @@ name: document-gardener
 description: Use when repository documentation, plans, ADRs, queues, indexes, generated docs, checks, skill inventories, skill routing docs, or agent instructions may be stale, conflicting, missing from navigation, or drifting from current code and verified project state.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Document Gardener
 
 ## Overview

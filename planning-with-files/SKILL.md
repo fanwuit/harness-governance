@@ -3,6 +3,10 @@ name: planning-with-files
 description: Use for complex multi-step tasks that need durable file-backed planning and lack an existing project queue, NEXT.md, harness checkpoint, or repository-specific planning system, including when superpowers:writing-plans is unavailable or persistence is needed. Do not use when project queue rules already apply unless explicitly requested.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Planning with Files
 
 Work like Manus: Use persistent markdown files as your "working memory on disk." This skill is for tasks without an existing repository planning or queue system. If the project already has `NEXT.md`, harness checkpoint files, or explicit queue rules, follow those first unless the user explicitly requests this file-based planning workflow.

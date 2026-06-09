@@ -3,6 +3,10 @@ name: architecture-boundary-design
 description: Use when an existing brief or agreed direction needs system boundaries, responsibilities, data flow, ownership, runtime/deployment boundaries, component separation, or ADR candidate discovery before contracts or implementation.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Architecture Boundary Design
 
 ## 概览

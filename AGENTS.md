@@ -10,7 +10,9 @@
 - `harness-engineering` 拥有最高入口路由权。
 - 在 `harness-engineering` 完成当前 layer 判断前，不得执行任何 `superpowers:*` 或其他 companion workflow。
 - `superpowers:*` 只能作为 companion workflow，必须等 harness 选定本地治理 layer 后再决定是否使用。
+- `superpowers:using-superpowers` 也属于 companion workflow；即使它声明 starting any conversation / before ANY response，也不能早于 `skill-use-transparency` 和 `harness-engineering`。
 - 如果 companion skill 的描述包含 MUST、before any creative work、TDD、verification 等强触发词，也不能越过 harness 入口路由。
+- companion workflow 的 terminal state、REQUIRED SUB-SKILL、next-skill transition 只能被翻译成 harness 下一层候选，不能直接执行。
 - 路由说明必须区分：
   - Local governance skills
   - Companion workflow skills

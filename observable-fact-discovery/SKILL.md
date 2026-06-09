@@ -3,6 +3,10 @@ name: observable-fact-discovery
 description: Use when a concrete unknown about existing behavior, external capability, third-party integration, logs, fixtures, probes, runtime evidence, or real samples must be investigated and recorded as reviewable facts before it can guide later layers.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Observable Fact Discovery
 
 ## 概览

@@ -3,6 +3,10 @@ name: adr-writing
 description: Use when an already-identified architectural decision, technology choice, contract boundary, deployment model, data ownership rule, tradeoff, rejected alternative, or long-lived project rule must be recorded as an ADR or decision note.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # ADR Writing
 
 ## 概览

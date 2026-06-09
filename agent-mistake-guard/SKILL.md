@@ -3,6 +3,10 @@ name: agent-mistake-guard
 description: Use when creating, updating, or applying a concise project guardrail that prevents AI agents from repeating known mistakes; 当用户要求维护 AI 不重复犯错文档、anti-repeat rules、经验教训、prompt/context 膨胀控制，或把重复 agent 错误沉淀为项目规则/检查脚本时使用。
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Agent Mistake Guard
 
 使用本 skill，把重复出现的 agent 错误从聊天记忆迁移到项目内稳定、短小、可复用的护栏文档中。
@@ -65,6 +69,7 @@ Guardrail:
 
 - 静默使用 skill / tool，没有说明为什么触发。
 - 文件读取失败、乱码或缺字后，仍声称完整执行 workflow。
+- 让 companion skill（例如 `superpowers:*`）的完整 workflow 取代 harness layer map、local governance skill、readiness gate 或 review/next。
 - 用户说“继续/下一步”时，没有先读项目队列。
 - 把 probe / PoC 跑通误报为 product-ready。
 - 参考外部项目代码前，没有记录事实、假设、推断和所有权边界。

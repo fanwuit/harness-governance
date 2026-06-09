@@ -3,6 +3,10 @@ name: debugging-checklist
 description: Use when a junior developer, human handoff, or lightweight fallback output needs a concise debugging checklist. Do not use as the primary active bug-fixing workflow; when superpowers:systematic-debugging is unavailable, active agents should follow a separate reproduce/observe/isolate/fix/verify fallback.
 ---
 
+## Harness Precondition
+
+应用本 skill 前，先确认 `harness-engineering` 已经完成当前 layer 和本地治理义务判断。若尚未完成，停止本 skill，返回 `harness-engineering`；不要让本 skill 充当入口路由。
+
 # Debugging Checklist
 
 ## Purpose
