@@ -194,7 +194,7 @@ function parseQueueMarkdown(content, queuePath = 'NEXT.md') {
     }
 
     if (!current) continue;
-    const fieldMatch = line.match(/^\s*([A-Za-z][A-Za-z /-]*):\s*(.+?)\s*$/);
+    const fieldMatch = line.match(/^\s*(?:[-*]\s*)?([A-Za-z][A-Za-z /-]*):\s*(.+?)\s*$/);
     if (!fieldMatch) continue;
 
     const key = normalizeFieldName(fieldMatch[1]);

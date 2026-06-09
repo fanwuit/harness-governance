@@ -181,9 +181,9 @@ test('numbered scheduler queue items match documented NEXT examples', async () =
       [
         '## Active Queue',
         '1. [ready] Contract check',
-        '   Layer: contract',
+        '   - Layer: contract',
         '2) [active] Verification pass',
-        '   Layer: verification',
+        '   - Layer: verification',
         '',
       ].join('\n'),
       'utf8',
@@ -195,7 +195,9 @@ test('numbered scheduler queue items match documented NEXT examples', async () =
     assert.equal(status.readySummary.ready, 1);
     assert.equal(status.readySummary.active, 1);
     assert.equal(status.readyItems[0].title, 'Contract check');
+    assert.equal(status.readyItems[0].layer, 'contract');
     assert.equal(status.readyItems[1].layer, 'verification');
+    assert.equal(status.currentLayer, 'verification');
   } finally {
     await rm(tempRepo, { recursive: true, force: true });
   }
