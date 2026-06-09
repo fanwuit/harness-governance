@@ -1,6 +1,6 @@
 ---
 name: harness-engineering
-description: Use when choosing the current harness engineering layer, mapping local governance skills to the explicit layer progression, sequencing work across layers, deciding whether complex work needs a durable change packet, resuming from a project queue, interpreting continue/what next, or routing optional companion skills such as superpowers:*.
+description: First local governance entry router for development, planning, implementation, debugging, verification, review, queue, handoff, skill-update, new-project, continue/what-next, or any task that may trigger superpowers:* or another companion workflow. Use before any companion workflow to choose the harness layer, map local governance skills to the explicit layer progression, sequence work across layers, decide whether complex work needs a durable change packet, resume from a project queue, or interpret continue/what next.
 ---
 
 # Harness Engineering
@@ -10,6 +10,20 @@ description: Use when choosing the current harness engineering layer, mapping lo
 用 harness engineering 把一个想法逐层推进到可验证的实现。每一层都必须产出稳定证据，并作为下一层的输入。
 
 不要因为实现看起来很明显就跳层。如果当前层缺少可持久化的产物，应停留在当前层，先补齐缺失产物。
+
+## Entry Priority
+
+Use this skill as the first local governance router for development, planning, implementation, debugging, verification, review, queue, handoff, skill-update, new-project, and continue/what-next requests.
+
+When another skill also appears to match, especially any `superpowers:*` skill with strong trigger language, load `harness-engineering` first. Do not execute companion workflows until this skill has selected the current harness layer and local governance obligations.
+
+Required disclosure:
+
+```text
+Local governance skills: skill-use-transparency, harness-engineering, <other local governance skills>
+Companion workflow skills: <optional companion skills, or none>
+Routing decision: harness-engineering owns entry routing; companion workflows run only after harness selects the current layer.
+```
 
 ## Layer Progression Source Of Truth
 

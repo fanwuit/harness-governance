@@ -1,3 +1,30 @@
+## Skill 入口优先级
+
+每次开始处理用户请求时，先选择并读取：
+
+- `skill-use-transparency`
+- `harness-engineering`
+
+对新项目、开发、规划、实现、调试、验证、review、继续、下一步、队列、handoff、skill 更新等请求：
+
+- `harness-engineering` 拥有最高入口路由权。
+- 在 `harness-engineering` 完成当前 layer 判断前，不得执行任何 `superpowers:*` 或其他 companion workflow。
+- `superpowers:*` 只能作为 companion workflow，必须等 harness 选定本地治理 layer 后再决定是否使用。
+- 如果 companion skill 的描述包含 MUST、before any creative work、TDD、verification 等强触发词，也不能越过 harness 入口路由。
+- 路由说明必须区分：
+  - Local governance skills
+  - Companion workflow skills
+  - Routing decision
+
+Routing decision 模板：
+
+```text
+Local governance skills: skill-use-transparency, harness-engineering, <other local governance skills>
+Companion workflow skills: <optional companion skills, or none>
+Loaded SKILL.md files: <success/failure list>
+Routing decision: harness-engineering owns entry routing; companion workflows run only after harness selects the current layer.
+```
+
 ## Skill 使用透明度
 
 当 agent 判断是否使用 skill 时，必须显式说明选择结果。

@@ -10,6 +10,8 @@
 
 ## 核心链路
 
+`harness-engineering` 是开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求的优先入口路由。它先判断本地治理层级和义务，再决定是否使用 companion workflow。任何 `superpowers:*` 或其他 companion workflow 看起来适用时，都不能越过 `harness-engineering`。
+
 `harness-engineering` 定义了主要工程层级：
 
 ```text
@@ -30,7 +32,7 @@ Idea
 
 | 能力域 | Skills | 功能 | 是否启用 |
 |---|---|---|---|
-| Harness 总流程 | `harness-engineering` | 判断当前层级、下一层级和本地治理 skill 的顺序，防止从想法或事实发现直接跳到无契约实现。 | 是 |
+| Harness 总流程 | `harness-engineering` | 优先入口路由；判断当前层级、下一层级和本地治理 skill 的顺序，防止 companion workflow 抢入口或从想法/事实发现直接跳到无契约实现。 | 是 |
 | 需求收敛 | `brainstorm-to-brief` | 把模糊想法收敛成 brief，固定目标、非目标、方案取舍、风险、成功标准和下一层。 | 是 |
 | 事实发现 | `observable-fact-discovery` | 把未知行为、日志、fixture、probe、外部能力调查成可复查事实，区分事实、假设和推断。 | 是 |
 | 架构边界 | `architecture-boundary-design` | 从 brief 推出组件职责、数据流、运行时/部署边界、ADR 候选和 contract 候选。 | 是 |
@@ -103,7 +105,7 @@ Idea
 - `references/superpowers-routing.md`
 - `references/change-packet-model.md`
 
-用于判断当前层级、下一步和与可选 companion skills 的关系。与 `superpowers:*` 等 companion workflow 重叠时，先选择并读取匹配的本地 governance skills，由本地 skill 决定层级、边界、角色隔离、准入、契约、验证和 review/next 义务；companion workflow 只在治理规则明确后辅助执行。规则不依赖具体安装目录，应使用当前会话暴露的 skill 名称和路径。
+用于判断当前层级、下一步和与可选 companion skills 的关系。开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求必须优先选择并读取 `harness-engineering`。与 `superpowers:*` 等 companion workflow 重叠时，先由本地 skill 决定层级、边界、角色隔离、准入、契约、验证和 review/next 义务；companion workflow 只在治理规则明确后辅助执行。规则不依赖具体安装目录，应使用当前会话暴露的 skill 名称和路径。
 
 ### `execution-prompt-authoring`
 
@@ -126,8 +128,9 @@ Idea
 
 ## 使用建议
 
-- 新想法或范围不清时，从 `brainstorm-to-brief` 开始。
-- 任何 `superpowers:*` 或其他 companion workflow 看起来适用时，先检查当前 skill 列表中是否有匹配的本地 governance skill；不要因为 companion workflow 功能相似就跳过本地 skill。
+- 每次处理开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求时，先用 `harness-engineering` 做入口路由。
+- 新想法或范围不清时，由 `harness-engineering` 先路由到当前层，再进入 `brainstorm-to-brief` 等本地 skill。
+- 任何 `superpowers:*` 或其他 companion workflow 看起来适用时，先选择并读取 `harness-engineering`；不要因为 companion workflow 的 MUST 描述或功能相似就跳过本地治理入口。
 - 行为未知时，先用 `observable-fact-discovery` 固定事实。
 - 涉及多个组件或边界时，进入 `architecture-boundary-design`，必要时再写 `adr-writing`。
 - 新 API、schema、CLI、fixture、外部行为或失败路径，应先用 `contract-first-development`。
