@@ -6,6 +6,18 @@ Do not assume `superpowers:*` skills exist in the target environment.
 
 Before routing to a companion workflow, check the current skill list for matching local governance skills. Local governance skills own layer, boundary, role isolation, readiness, contract, verification, and review/next decisions. `superpowers:*` skills are companion execution workflows, not replacements for matching local governance skills.
 
+## Entry Gate
+
+For development, planning, implementation, verification, queue, or handoff requests, route through `harness-engineering` before any `superpowers:*` workflow. This includes empty projects, demos, small games, simple feature requests, and "continue" / "next" requests.
+
+If `superpowers:using-superpowers` also appears to match because of a broad session-start rule, treat it as a companion check only. It may be loaded when required, but it does not own entry routing and must not trigger `superpowers:brainstorming`, `superpowers:writing-plans`, TDD, debugging, verification, or branch-finish workflows until harness has selected the current layer.
+
+If a project-level instruction makes harness entry mandatory, that instruction takes precedence over broad companion-skill entry rules. In that case, disclose:
+
+```text
+Routing decision: harness-engineering owns entry routing; superpowers:* is companion-only until harness routing completes.
+```
+
 Do not hardcode a user's skill directory. Use the skill paths exposed in the current session or the active environment's skill discovery mechanism.
 
 For each routed workflow:
