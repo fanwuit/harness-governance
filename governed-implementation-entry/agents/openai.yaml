@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governed Implementation Entry"
+  short_description: "Require a durable implementation entry record before coding."
+  default_prompt: "Use governed-implementation-entry before changing product code."
