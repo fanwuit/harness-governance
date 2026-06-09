@@ -1,5 +1,5 @@
 # Tasks
 
 - [x] Define status JSON shape
-- [x] Parse ready queue fields
+- [x] Parse scheduler queue fields
 - [ ] Emit markdown dashboard

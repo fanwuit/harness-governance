@@ -25,6 +25,7 @@ const DEFAULT_PROJECT_CONFIG = Object.freeze({
   checkpoint: '.harness/run-checkpoint.md',
   invocationLog: '.harness/codex-exec-invocations.ndjson',
   changes: 'docs/changes',
+  archive: 'docs/changes/archive',
   statusMd: '.harness/status.md',
   statusJson: '.harness/status.json',
 });
@@ -74,6 +75,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === '--changes') {
       options.changes = next;
+      index += 1;
+    } else if (arg === '--archive') {
+      options.archive = next;
       index += 1;
     } else if (arg === '--status-md') {
       options.statusMd = next;
@@ -135,6 +139,7 @@ async function resolveStatusOptions(options = {}) {
     checkpoint: options.checkpoint,
     invocationLog: options.invocationLog,
     changes: options.changes,
+    archive: options.archive,
     statusMd: options.statusMd,
     statusJson: options.statusJson,
   });
@@ -175,7 +180,7 @@ function parseQueueMarkdown(content, queuePath = 'NEXT.md') {
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    const itemMatch = line.match(/^\s*(?:[-*]\s*)?\[([^\]]+)\]\s+(.+?)\s*$/);
+    const itemMatch = line.match(/^\s*(?:(?:[-*]|\d+[.)])\s*)?\[([^\]]+)\]\s+(.+?)\s*$/);
     if (itemMatch) {
       current = {
         status: normalizeStatus(itemMatch[1]),
@@ -207,7 +212,7 @@ function parseQueueMarkdown(content, queuePath = 'NEXT.md') {
   }));
 }
 
-function summarizeReady(items) {
+function summarizeQueue(items) {
   const summary = { total: items.length, ready: 0, active: 0, blocked: 0, done: 0, other: 0 };
   for (const item of items) {
     if (Object.prototype.hasOwnProperty.call(summary, item.status)) {
@@ -219,13 +224,22 @@ function summarizeReady(items) {
   return summary;
 }
 
+function isSchedulerStatus(status) {
+  return status === 'ready' || status === 'active';
+}
+
+function splitQueueItems(items) {
+  const schedulerItems = items.filter((item) => isSchedulerStatus(item.status));
+  const legacyDoneItems = items.filter((item) => item.status === 'done');
+  const nonSchedulerQueueItems = items.filter((item) => !isSchedulerStatus(item.status));
+  return { schedulerItems, legacyDoneItems, nonSchedulerQueueItems };
+}
+
 function inferCurrentLayer(items) {
   const active = items.find((item) => item.status === 'active' && item.layer);
   if (active) return active.layer;
   const ready = items.find((item) => item.status === 'ready' && item.layer);
   if (ready) return ready.layer;
-  const blocked = items.find((item) => item.status === 'blocked' && item.layer);
-  if (blocked) return blocked.layer;
   const any = items.find((item) => item.layer);
   return any ? any.layer : 'unknown';
 }
@@ -279,11 +293,18 @@ async function pathExists(dirPath) {
   }
 }
 
-async function discoverChangeDirs(repoPath, readyItems, changesRootPath) {
+function isPathInside(childPath, parentPath) {
+  const relative = path.relative(parentPath, childPath);
+  return relative === '' || Boolean(relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+async function discoverChangeDirs(repoPath, schedulerItems, changesRootPath, archiveRootPath) {
   const found = new Map();
-  for (const item of readyItems) {
+  const archiveRoot = path.resolve(repoPath, archiveRootPath);
+  for (const item of schedulerItems) {
     if (!item.change) continue;
     const absolute = path.resolve(repoPath, item.change);
+    if (isPathInside(absolute, archiveRoot)) continue;
     found.set(absolute, item.change);
   }
 
@@ -293,6 +314,7 @@ async function discoverChangeDirs(repoPath, readyItems, changesRootPath) {
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       const absolute = path.join(changesRoot, entry.name);
+      if (isPathInside(absolute, archiveRoot)) continue;
       found.set(absolute, path.relative(repoPath, absolute).replace(/\\/g, '/'));
     }
   }
@@ -300,9 +322,9 @@ async function discoverChangeDirs(repoPath, readyItems, changesRootPath) {
   return [...found.entries()].map(([absolute, relative]) => ({ absolute, relative }));
 }
 
-async function readTaskPackets(repoPath, readyItems, changesRootPath, warnings) {
+async function readTaskPackets(repoPath, schedulerItems, changesRootPath, archiveRootPath, warnings) {
   const packets = [];
-  const dirs = await discoverChangeDirs(repoPath, readyItems, changesRootPath);
+  const dirs = await discoverChangeDirs(repoPath, schedulerItems, changesRootPath, archiveRootPath);
 
   for (const dir of dirs) {
     const tasksPath = path.join(dir.absolute, 'tasks.md');
@@ -317,6 +339,55 @@ async function readTaskPackets(repoPath, readyItems, changesRootPath, warnings) 
   }
 
   return packets;
+}
+
+async function discoverArchivedDirs(repoPath, archiveRootPath) {
+  const archiveRoot = path.resolve(repoPath, archiveRootPath);
+  if (!(await pathExists(archiveRoot))) return [];
+
+  const entries = await readdir(archiveRoot, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const absolute = path.join(archiveRoot, entry.name);
+      return {
+        absolute,
+        relative: path.relative(repoPath, absolute).replace(/\\/g, '/'),
+      };
+    });
+}
+
+async function readArchivedPackets(repoPath, archiveRootPath, warnings) {
+  const packets = [];
+  const dirs = await discoverArchivedDirs(repoPath, archiveRootPath);
+
+  for (const dir of dirs) {
+    const tasksPath = path.join(dir.absolute, 'tasks.md');
+    const content = await readText(tasksPath);
+    if (!content) {
+      warnings.push(`Archived packet has no tasks.md: ${dir.relative}`);
+      continue;
+    }
+    const packet = parseTaskMarkdown(content, path.relative(repoPath, tasksPath).replace(/\\/g, '/'));
+    packet.changePath = dir.relative;
+    packet.archived = true;
+    packets.push(packet);
+  }
+
+  return packets;
+}
+
+function summarizePackets(packets) {
+  return packets.reduce(
+    (summary, packet) => ({
+      packets: summary.packets + 1,
+      total: summary.total + packet.total,
+      done: summary.done + packet.done,
+      pending: summary.pending + packet.pending,
+      active: summary.active + packet.active,
+    }),
+    { packets: 0, total: 0, done: 0, pending: 0, active: 0 },
+  );
 }
 
 function parseCheckpoint(content, checkpointPath) {
@@ -399,16 +470,30 @@ function summarizeVerification(checkpoint, invocations) {
 
 export async function buildStatus(options = {}) {
   const resolved = await resolveStatusOptions(options);
-  const { repoPath, queue, checkpoint, invocationLog, changes } = resolved;
+  const { repoPath, queue, checkpoint, invocationLog, changes, archive } = resolved;
   const warnings = [];
 
   const queuePath = path.join(repoPath, queue);
   const queueContent = await readText(queuePath);
   if (!queueContent) warnings.push(`Queue file not found: ${queue}`);
-  const readyItems = parseQueueMarkdown(queueContent, queue);
+  const queueItems = parseQueueMarkdown(queueContent, queue);
+  const { schedulerItems, legacyDoneItems, nonSchedulerQueueItems } = splitQueueItems(queueItems);
 
-  const currentLayer = inferCurrentLayer(readyItems);
-  const taskPackets = await readTaskPackets(repoPath, readyItems, changes, warnings);
+  if (legacyDoneItems.length > 0) {
+    warnings.push(
+      `Queue contains ${legacyDoneItems.length} completed item(s); move done history to ${archive}. Preserved in legacyDoneItems.`,
+    );
+  }
+  const legacyNonDoneItems = nonSchedulerQueueItems.filter((item) => item.status !== 'done');
+  if (legacyNonDoneItems.length > 0) {
+    warnings.push(
+      `Queue contains ${legacyNonDoneItems.length} non-scheduler item(s); limit ${queue} to ready/active items and move blocked/not-now state elsewhere.`,
+    );
+  }
+
+  const currentLayer = inferCurrentLayer(schedulerItems);
+  const taskPackets = await readTaskPackets(repoPath, schedulerItems, changes, archive, warnings);
+  const archivedPackets = await readArchivedPackets(repoPath, archive, warnings);
   const checkpointData = parseCheckpoint(await readText(path.join(repoPath, checkpoint)), checkpoint);
   if (!checkpointData.found) warnings.push(`Checkpoint not found: ${checkpoint}`);
 
@@ -429,14 +514,21 @@ export async function buildStatus(options = {}) {
       checkpoint,
       invocationLog,
       changes,
+      archive,
       statusMd: resolved.statusMd,
       statusJson: resolved.statusJson,
     },
     currentLayer,
     layerTimeline: buildLayerTimeline(currentLayer),
-    readySummary: summarizeReady(readyItems),
-    readyItems,
+    queueSummary: summarizeQueue(queueItems),
+    readySummary: summarizeQueue(schedulerItems),
+    archiveSummary: summarizePackets(archivedPackets),
+    queueItems,
+    readyItems: schedulerItems,
+    legacyDoneItems,
+    nonSchedulerQueueItems,
     taskPackets,
+    archivedPackets,
     runner: {
       checkpoint: checkpointData,
       invocationLog,
@@ -469,14 +561,14 @@ export function formatMarkdown(status) {
     `Harness: ${timeline}`,
     `Current layer: ${status.currentLayer}`,
     '',
-    '## Ready Queue',
+    '## Scheduler Queue',
     '',
-    `Total: ${status.readySummary.total}; ready: ${status.readySummary.ready}; active: ${status.readySummary.active}; blocked: ${status.readySummary.blocked}; done: ${status.readySummary.done}; other: ${status.readySummary.other}`,
+    `Scheduler total: ${status.readySummary.total}; ready: ${status.readySummary.ready}; active: ${status.readySummary.active}; full queue total: ${status.queueSummary.total}`,
     '',
   ];
 
   if (status.readyItems.length === 0) {
-    lines.push('- No queue items found.');
+    lines.push('- No scheduler items found.');
   } else {
     for (const item of status.readyItems) {
       const details = [
@@ -488,12 +580,34 @@ export function formatMarkdown(status) {
     }
   }
 
+  lines.push('', '## Done Archive', '');
+  if (status.archivedPackets.length === 0) {
+    lines.push('- No archived packets found.');
+  } else {
+    lines.push(`- Packets: ${status.archiveSummary.packets}; tasks: ${status.archiveSummary.done}/${status.archiveSummary.total}`);
+    for (const packet of status.archivedPackets) {
+      lines.push(`- [${packet.done}/${packet.total}] ${packet.tasksPath}`);
+    }
+  }
+
   lines.push('', '## Task Packets', '');
   if (status.taskPackets.length === 0) {
     lines.push('- No task packets found.');
   } else {
     for (const packet of status.taskPackets) {
       lines.push(`- [${packet.done}/${packet.total}] ${packet.tasksPath}`);
+    }
+  }
+
+  if (status.nonSchedulerQueueItems.length > 0) {
+    lines.push('', '## Legacy Queue Records', '');
+    for (const item of status.nonSchedulerQueueItems) {
+      const details = [
+        item.layer ? `Layer: ${item.layer}` : null,
+        item.change ? `Change: ${item.change}` : null,
+        item.packetization ? `Packetization: ${item.packetization}` : null,
+      ].filter(Boolean).join('; ');
+      lines.push(`- [${item.status}] ${item.title}${details ? ` (${details})` : ''}`);
     }
   }
 
@@ -523,9 +637,9 @@ export function formatText(status) {
   const lines = [
     `Harness status for ${status.repo}`,
     `Current layer: ${status.currentLayer}`,
-    `Ready queue: total=${status.readySummary.total} ready=${status.readySummary.ready} active=${status.readySummary.active} blocked=${status.readySummary.blocked} done=${status.readySummary.done} other=${status.readySummary.other}`,
+    `Scheduler queue: total=${status.readySummary.total} ready=${status.readySummary.ready} active=${status.readySummary.active} fullQueue=${status.queueSummary.total}`,
     '',
-    'Ready items:',
+    'Scheduler items:',
   ];
 
   if (status.readyItems.length === 0) {
@@ -541,12 +655,34 @@ export function formatText(status) {
     }
   }
 
+  lines.push('', 'Done archive:');
+  if (status.archivedPackets.length === 0) {
+    lines.push('- none');
+  } else {
+    lines.push(`- packets=${status.archiveSummary.packets} tasks=${status.archiveSummary.done}/${status.archiveSummary.total}`);
+    for (const packet of status.archivedPackets) {
+      lines.push(`- [${packet.done}/${packet.total}] ${packet.tasksPath}`);
+    }
+  }
+
   lines.push('', 'Task packets:');
   if (status.taskPackets.length === 0) {
     lines.push('- none');
   } else {
     for (const packet of status.taskPackets) {
       lines.push(`- [${packet.done}/${packet.total}] ${packet.tasksPath}`);
+    }
+  }
+
+  if (status.nonSchedulerQueueItems.length > 0) {
+    lines.push('', 'Legacy queue records:');
+    for (const item of status.nonSchedulerQueueItems) {
+      const details = [
+        item.layer ? `layer=${item.layer}` : null,
+        item.change ? `change=${item.change}` : null,
+        item.packetization ? `packetization=${item.packetization}` : null,
+      ].filter(Boolean).join(' ');
+      lines.push(`- [${item.status}] ${item.title}${details ? ` (${details})` : ''}`);
     }
   }
 
@@ -574,6 +710,7 @@ Options:
   --checkpoint <path>        Checkpoint file relative to repo. Defaults to .harness/run-checkpoint.md.
   --invocation-log <path>    Invocation ndjson relative to repo. Defaults to .harness/codex-exec-invocations.ndjson.
   --changes <path>           Change packet root relative to repo. Defaults to docs/changes.
+  --archive <path>           Done packet archive root relative to repo. Defaults to docs/changes/archive.
   --status-md <path>         Markdown output path relative to repo. Defaults to .harness/status.md.
   --status-json <path>       JSON output path relative to repo. Defaults to .harness/status.json.
   --format <text|json|markdown>

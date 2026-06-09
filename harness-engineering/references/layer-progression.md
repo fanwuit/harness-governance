@@ -51,7 +51,7 @@ Fact Discovery is conditional and can interrupt any layer when an unknown would 
 | `readiness` | `implementation-readiness-gate` | `implementation-detail-timing`, `contract-growth-control` | Target-local boundaries, contracts, verification commands, AGENTS.md rules, and baseline checks are known. |
 | `implementation` | `implementation-readiness-gate` | `code-quality-drift-guard`, `agent-mistake-guard` | Code/config changes that stay inside approved boundaries and satisfy existing contracts. |
 | `verification` | `review-next-governance` | `code-quality-drift-guard`, `harness-status-dashboard` | Fresh evidence from tests, checks, probes, screenshots, traces, or explicit failure records. |
-| `review-next` | `review-next-governance` | `document-gardener`, `harness-status-dashboard`, `autonomous-ready-loop` | Done, active ready queue, blocked items, not-now items, risks, and evidence are written to stable state. |
+| `review-next` | `review-next-governance` | `document-gardener`, `harness-status-dashboard`, `autonomous-ready-loop` | Done archive, scheduler ready queue, blocked items, not-now items, risks, and evidence are written to stable state. |
 
 ## Cross-Cutting Skills
 

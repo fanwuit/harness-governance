@@ -1,7 +1,3 @@
-[done] Define status schema
-Layer: contract
-Change: docs/changes/harness-visualization/
-
 [active] Parse runner records
 Layer: implementation
 Change: docs/changes/harness-visualization/
@@ -12,7 +8,3 @@ Evidence: contracts.md#status-json
 Layer: verification
 Change: docs/changes/harness-visualization/
 Packetization: ready
-
-[blocked] Build TUI view
-Layer: implementation
-Stop: needs a separate interface decision

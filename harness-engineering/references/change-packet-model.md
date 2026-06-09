@@ -36,6 +36,13 @@ docs/changes/
     tasks.md
     contracts.md
     verification.md
+  archive/
+    <YYYY-MM-DD>-<change-id>/
+      proposal.md
+      design.md
+      tasks.md
+      contracts.md
+      verification.md
 ```
 
 If the project already has another durable task packet convention, adapt this model to that convention instead of creating a competing source of truth.
@@ -85,7 +92,7 @@ Rules:
 - `active` means work is in progress at the stated layer.
 - `blocked` must state the missing evidence, decision, contract, or external condition.
 - `done` means the packet goal is satisfied, but archive may still be pending.
-- `archived` means stable conclusions were copied or linked back to official project sources.
+- `archived` means stable conclusions were copied or linked back to official project sources and the packet has moved under `docs/changes/archive/<YYYY-MM-DD>-<change-id>/` or the project's equivalent archive.
 
 ## Archive Rules
 
@@ -99,6 +106,12 @@ Before marking a packet archived, check whether stable conclusions need to be re
 
 If a conclusion stays only inside the packet, the packet is not archived.
 
+Keep the scheduler queue lean during archive:
+
+- Remove completed `[done]` items from `NEXT.md`; do not use the scheduler as a history log.
+- Keep only executable `[ready]` items in `NEXT.md`, with at most a short-lived `[active]` item while a runner owns work.
+- Preserve completed history in the archive directory or in the project's official issue/done record before deleting or moving old queue text.
+
 ## Queue Integration
 
 Queue items may point to a packet instead of repeating context:
@@ -110,7 +123,7 @@ Change: docs/changes/public-projection-contract/
 Evidence: contracts.md#fixtures
 ```
 
-The queue remains the scheduler. The packet remains the context holder.
+The queue remains the scheduler. The packet remains the context holder. Completed packets leave the scheduler and move to the archive; historical done facts must not be dropped during that move.
 
 ## Common Mistakes
 

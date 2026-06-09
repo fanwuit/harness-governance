@@ -27,7 +27,7 @@ Verification -> Review / Next
 - 刚跑完测试、检查、probe、截图或人工验证。
 - 发现了新的后续工作、风险或阻塞项。
 - 用户问“接下来做什么”“继续”“现在应该做什么”。
-- 需要更新 NEXT、backlog、queue、Done、Blocked 或 Not Now。
+- 需要更新 NEXT scheduler、done archive、backlog、queue、Blocked 或 Not Now。
 - PoC 或 ADR 结论不能只留在聊天里。
 
 如果只是纯问答且没有改变项目状态，可以不更新队列，但仍应说明判断依据。
@@ -47,7 +47,9 @@ Verification -> Review / Next
    - Not Now：明确不进入当前阶段的事项。
 
 3. 更新稳定位置
-   - 优先写入项目已有的 NEXT、backlog、roadmap 或 issue。
+   - `NEXT.md` 或等价 active queue 只作为 scheduler，保留可执行 `[ready]`，必要时只允许短暂 `[active]`。
+   - 已完成事项不要长期留在 `NEXT.md`；复杂 change packet 移到 `docs/changes/archive/<YYYY-MM-DD>-<change-id>/`，并把稳定结论同步回 ADR、schema、verification、README 或项目索引。
+   - blocked / not-now 不要混入 ready scheduler；优先写入项目已有 issue、backlog、roadmap，或 `.harness/blocked.md` / `.harness/not-now.md`。
    - 新发现不要只留在聊天里。
    - 如果项目有 doc-map 或文档索引，新增文档后同步登记。
 
@@ -63,14 +65,11 @@ Verification -> Review / Next
    - 说明剩余风险或未做事项。
    - 说明下一步，但不要把未验证结论说成完成。
 
-## 队列字段建议
+## 队列与归档建议
 
-通用队列可以使用以下分组：
+通用队列应保持为 scheduler，而不是历史记录。推荐 `NEXT.md` 只放当前可调度项：
 
 ```markdown
-## Done In Current Phase
-- 已完成且有证据支持的事项。
-
 ## Active Queue
 1. [ready] 可以直接执行的下一步。
    - Layer: 当前层级。
@@ -79,13 +78,15 @@ Verification -> Review / Next
    - Completion level: 目标完成级别。
    - Evidence: 当前已有证据。
    - Done when: 完成条件。
-
-## Blocked
-- 被外部条件阻塞的事项，以及解除阻塞需要什么。
-
-## Not Now
-- 当前阶段明确不做的事项。
 ```
+
+runner 认领任务时可以短暂写 `[active]`，但完成后应从 scheduler 移出。已完成历史进入 done archive 或项目长期记录：
+
+```text
+docs/changes/archive/<YYYY-MM-DD>-<change-id>/
+```
+
+如果完成事项没有 change packet，写入项目已有 issue/roadmap/done 记录；不要为了消除队列噪声而丢掉已完成事实、验证证据或决策链接。
 
 项目已有格式时，优先遵循项目格式。
 

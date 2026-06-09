@@ -149,7 +149,7 @@ Review / Next
 | Contract | 把行为变成可机械检查的契约。 | schema、API 形态、fixture、example、probe、check 脚本。 | 成功路径和关键失败路径都可以被验证。 |
 | Implementation | 只实现已有边界和契约支撑的内容。 | 代码、配置、迁移脚本。 | 实现满足契约，且没有扩大范围。 |
 | Verification | 用新鲜证据证明结论。 | 测试输出、检查输出、截图、trace、diff。 | 相关检查通过，或失败原因被如实记录。 |
-| Review / Next | 把本轮结果反馈回项目状态。 | NEXT 队列、完成摘要、blocked/not-now 记录。 | 已完成事项、剩余风险和下一步动作都可被后续读取。 |
+| Review / Next | 把本轮结果反馈回项目状态。 | NEXT scheduler、done archive、blocked/not-now 记录。 | 已完成事项、剩余风险和下一步动作都可被后续读取。 |
 
 ## 过层检查
 

@@ -1,6 +1,6 @@
 ---
 name: harness-visualization
-description: Use when a project needs to initialize harness visualization, bootstrap harness status config, generate a read-only harness status view, summarize ready queue progress, summarize task packet checklists, audit autonomous runner markers, inspect checkpoint visibility, or produce machine-readable status JSON for agents or dashboards.
+description: Use when a project needs to initialize harness visualization, bootstrap harness status config, generate a read-only harness status view, summarize scheduler queue progress, preserve legacy done records, summarize done archive and task packet checklists, audit autonomous runner markers, inspect checkpoint visibility, or produce machine-readable status JSON for agents or dashboards.
 ---
 
 # Harness Visualization
@@ -39,15 +39,18 @@ node harness-visualization/scripts/harness-status.mjs --repo <project> --write-m
 - Checkpoint：`.harness/run-checkpoint.md`
 - Invocation log：`.harness/codex-exec-invocations.ndjson`
 - Change packets：`docs/changes/*/tasks.md`
+- Done archive：`docs/changes/archive/*/tasks.md`
 - Config：`.harness/harness-status.config.json`
 
 ## Status Contract
 
 Dashboard 必须至少显示：
 
-- Current layer：从 active/ready queue item 的 `Layer:` 推断。
-- Ready queue：`[ready]`、`[active]`、`[blocked]`、`[done]` 数量和条目。
-- Task packets：change packet `tasks.md` checkbox 完成度。
+- Current layer：从 scheduler queue 中 `[active]` / `[ready]` item 的 `Layer:` 推断。
+- Scheduler queue：`NEXT.md` 中当前可调度的 `[ready]` 和短暂 `[active]` 数量与条目。
+- Legacy queue records：旧队列里残留的 `[done]`、`[blocked]`、not-now 或其他非 scheduler 状态，必须保留显示并给出迁移 warning，不能静默丢弃。
+- Task packets：活跃 change packet `tasks.md` checkbox 完成度，不把 archive 当作当前 packet。
+- Done archive：`docs/changes/archive/<YYYY-MM-DD>-<change-id>/tasks.md` 完成历史摘要。
 - Runner：最近 marker、轮次、退出码、checkpoint stop reason。
 - Verification：最近验证摘要，以及缺失/失败/stale warning。
 - Warnings：缺失 queue、缺失 task packet、无 checkpoint、无法解析的 invocation log。
@@ -56,8 +59,9 @@ Dashboard 必须至少显示：
 
 通用 layer 负责解析、刷新和展示；业务项目只提供状态源：
 
-- 在 `NEXT.md` 或等价队列中为条目写 `Layer:`、`Change:`、`Packetization:`、`Evidence:`。
+- 在 `NEXT.md` 或等价队列中只保留可执行 `[ready]`，必要时保留短暂 `[active]`，并为条目写 `Layer:`、`Change:`、`Packetization:`、`Evidence:`。
 - 复杂任务使用 `docs/changes/<id>/tasks.md` checkbox 记录 packet 进度。
+- 完成后的复杂任务移动到 `docs/changes/archive/<YYYY-MM-DD>-<id>/`，让 dashboard 从 archive 读取 done 历史；迁移前旧 `NEXT.md` 的 `[done]` 仍会显示为 legacy records。
 - autonomous runner 每轮写 `.harness/run-checkpoint.md` 和 `.harness/codex-exec-invocations.ndjson`。
 - 路径不符合默认约定时，运行 `--init` 后只改 `.harness/harness-status.config.json`。
 - 人看 `.harness/status.md`，agent 或后续 TUI/Web UI 读 `.harness/status.json`。
@@ -74,7 +78,8 @@ Dashboard 必须至少显示：
 
 | Mistake | Correction |
 |---|---|
-| 只显示 pass/fail | 同时显示 layer、ready、packet、runner marker 和 verification。 |
+| 只显示 pass/fail | 同时显示 layer、scheduler queue、done archive、packet、runner marker 和 verification。 |
 | dashboard 自动改 NEXT | 只报告 warning；由 agent 或人按治理流程更新队列。 |
+| 把 `[done]` 长期留在 NEXT | 保留显示为 legacy record，并迁移到 `docs/changes/archive/` 或项目 done 记录。 |
 | 每个项目重写解析逻辑 | 复用脚本输出 JSON，让项目 UI 消费统一状态。 |
 | 缺失 checkpoint 仍声称无人值守安全 | 标记 warning，并要求 runner 补持久记录。 |
