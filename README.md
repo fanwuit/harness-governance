@@ -5,7 +5,6 @@
 ## 总览
 
 - 启用的非 system skills：25 个。
-- 额外存在 `gh-fix-ci`，但入口文件是 `SKILL.disabled.md`，当前不作为启用 skill 自动触发。
 - 这些 skills 偏流程、边界、契约和治理，不是某个编程语言或框架的代码片段库。
 - change packet 只吸收 OpenSpec-like artifact discipline：标准 proposal/design/tasks/contracts/verification 资产形态、contract delta 表达和机械检查；OpenSpec 不是 dependency、入口或兼容目标。
 
@@ -76,7 +75,6 @@ Idea
 | 代码库导览 | `codebase-orientation` | 给陌生仓库快速梳理模块、入口、运行/测试命令和安全入门任务。 | 是 |
 | 调试交接 | `debugging-checklist` | 输出轻量调试 checklist，用于人类或初级开发者 handoff。 | 是 |
 | 外部技术文档 | `find-docs` | 用 Context7 查询非 OpenAI 技术文档和 API 示例；OpenAI/Codex 问题依赖外部/system `openai-docs`，缺失时说明不可用并使用 official OpenAI docs fallback。 | 是 |
-| CI 修复 | `gh-fix-ci` | 使用 GitHub CLI 检查 PR checks 和 GitHub Actions 失败日志；当前入口为 `SKILL.disabled.md`。 | 否 |
 
 ## 重要资产
 
@@ -194,23 +192,6 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 
 `check:all` 串联 routing guardrail、Node test suites、change packet 检查和本轮 Implementation Entry Record 检查。仓库仍不引入 npm 依赖，脚本只使用 Node.js、Python 和 PowerShell。
 
-## 未启用但存在
-
-### `gh-fix-ci`
-
-目录存在，但使用 `SKILL.disabled.md`，所以当前不是启用 skill。
-
-禁用 skill 可以保留 `agents/openai.yaml`、assets、scripts 和 LICENSE 作为待启用资产；任何 discovery 或 marketplace 同步逻辑必须先确认入口文件是 `SKILL.md`，不能只因为 manifest 存在就把 disabled skill 当成已启用。
-
-它的说明显示目标能力是：
-
-- 使用 GitHub CLI 检查 PR checks。
-- 聚焦 GitHub Actions 失败日志。
-- 摘要失败上下文。
-- 先提出修复计划，得到明确批准后再实现。
-
-如果需要启用，应先确认它是否仍符合当前 skill 规范，再把入口恢复为 `SKILL.md` 并验证其脚本和权限边界。
-
 ## 使用建议
 
 - 每次处理开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求时，先用 `harness-engineering` 做入口路由。
@@ -247,7 +228,7 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 - 具体前端 UI 实作专项。
 - 完整 TUI / Web 控制台；当前只提供通用 text/markdown/JSON 状态层。
 - 后端框架、数据库迁移、认证授权等领域专项。
-- 已启用的 CI 修复专项。
+- CI 修复专项。
 - 特定语言生态的重构、测试或性能分析专项。
 - 不提供 OpenSpec 安装、命令兼容、`openspec/` 目录读写、apply/archive 自动执行。
 
