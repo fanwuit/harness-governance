@@ -168,6 +168,10 @@ If you can answer these, your context management is solid:
 - Quick lookups
 - Repositories with `NEXT.md`, harness-engineering queue rules, or another explicit planning/checkpoint workflow, unless the user explicitly asks for this skill
 
+## Carrier Decision
+
+如果任务也可能使用 project queue、change packet、execution prompt pack 或 task packet，先读取 `harness-engineering/references/planning-carrier-decision.md`，选择唯一主 source of truth。不要同时创建 queue、planning files 和 change packet 来表达同一个任务；必要时只在次要载体中放链接。
+
 ## Templates
 
 Copy these templates to start:

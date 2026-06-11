@@ -123,6 +123,10 @@ Route to `execution-prompt-authoring` when:
 
 Do not use execution prompt authoring to approve product scope, skip readiness, or replace task packets. If the plan is not approved or the current layer is unclear, finish the relevant harness layer first.
 
+## Planning Carrier Routing
+
+Read `references/planning-carrier-decision.md` when a task could be represented by more than one carrier: project queue, planning files, change packet, execution prompt pack, or implementation task packet. Choose one primary source of truth and link from the others instead of duplicating state.
+
 ## 层级链路
 
 完整顺序以 `references/layer-progression.md` 为唯一 source of truth：

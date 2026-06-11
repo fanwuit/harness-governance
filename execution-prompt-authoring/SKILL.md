@@ -70,6 +70,8 @@ blocked-missing-packet: 缺少自包含 packet、owner files、验证命令或 s
 
 不要把“能并行审计”等同于“能并行实现”。只要会修改同一工作树、同一共享状态文件、同一 contract/test 文件，默认不可并行实现。
 
+需要更细的并行判定时，读取 `references/parallel-execution-matrix.md`。该 reference 固定 safe parallel work、serialized work、Integrator rules、prompt fields 和 worktree guidance。
+
 ## Prompt 编写规则
 
 每段 prompt 必须自包含，并写清：

@@ -7,6 +7,7 @@
 - 启用的非 system skills：25 个。
 - 这些 skills 偏流程、边界、契约和治理，不是某个编程语言或框架的代码片段库。
 - change packet 只吸收 OpenSpec-like artifact discipline：标准 proposal/design/tasks/contracts/verification 资产形态、contract delta 表达和机械检查；OpenSpec 不是 dependency、入口或兼容目标。
+- Superpowers 只吸收工程动作：brainstorming、TDD、systematic debugging、completion evidence、review feedback、planning/execution checkpoints、parallel agents、worktree/branch finish discipline；不吸收流程主权、默认 artifact 路径或自动分支动作。
 
 ## 核心链路
 
@@ -51,17 +52,17 @@ Idea
 | 能力域 | Skills | 功能 | 是否启用 |
 |---|---|---|---|
 | Harness 总流程 | `harness-engineering` | 优先入口锁和硬状态机；判断当前层级、下一层级和本地治理 skill 的顺序，防止 companion workflow 抢入口或从想法/事实发现直接跳到无契约实现。 | 是 |
-| 需求收敛 | `brainstorm-to-brief` | 把模糊想法收敛成 brief，固定目标、非目标、方案取舍、风险、成功标准和下一层；可借用 `superpowers:brainstorming` 的提问、方案比较、scope decomposition 和 visual companion 技巧，但不接受其 terminal state。 | 是 |
-| 事实发现 | `observable-fact-discovery` | 把未知行为、日志、fixture、probe、外部能力调查成可复查事实，区分事实、假设和推断。 | 是 |
+| 需求收敛 | `brainstorm-to-brief` | 把模糊想法收敛成 brief，固定目标、非目标、方案取舍、风险、成功标准和下一层；可借用 `superpowers:brainstorming` 的提问、方案比较、scope decomposition 和 visual companion 技巧，并提供本地 brainstorming 模板，但不接受其 terminal state。 | 是 |
+| 事实发现 | `observable-fact-discovery` | 把未知行为、日志、fixture、probe、外部能力调查成可复查事实，区分事实、假设和推断；主动排障时提供 reproduce / observe / isolate / hypothesis / fix-verify fact workflow。 | 是 |
 | 架构边界 | `architecture-boundary-design` | 从 brief 推出组件职责、数据流、运行时/部署边界、ADR 候选和 contract 候选。 | 是 |
 | 决策记录 | `adr-writing` | 记录长期架构决策、技术选择、备选方案、后果、约束和验证方式。 | 是 |
-| 契约优先 | `contract-first-development` | 在实现前固定 schema、example、fixture、probe、check、失败路径和验证命令。 | 是 |
+| 契约优先 | `contract-first-development` | 在实现前固定 schema、example、fixture、probe、check、失败路径和验证命令；把 red / green / refactor 映射为 Contract -> Implementation -> Verification 的本地 TDD contract cycle。 | 是 |
 | 契约膨胀控制 | `contract-growth-control` | 防止一直补 ADR/schema/check/readiness 而不进入最小实现切片。 | 是 |
 | 实现细节时机 | `implementation-detail-timing` | 判断类名、模块名、字段、表、迁移、依赖规则等应在哪个层级固定。 | 是 |
 | 实现入口 | `governed-implementation-entry` | 在写实现代码前记录 Implementation Entry Record；它是进入 product implementation 的 mechanical credential，固定当前层级、target、scope、contract evidence、readiness、packetization、verification、Review / Next 和 stop conditions。 | 是 |
 | 实现准入 | `implementation-readiness-gate` | 进入 target 实现前检查架构、ADR、contract、lint、测试 baseline、验证命令和本地 agent 规则。 | 是 |
-| 角色隔离 | `agent-role-isolation` | 分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier，降低自测自收和范围膨胀风险。 | 是 |
-| 验证收口 | `review-next-governance` | 完成后更新 NEXT scheduler、done archive、backlog、blocked/not-now，记录验证证据、剩余风险和下一步。 | 是 |
+| 角色隔离 | `agent-role-isolation` | 分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier，降低自测自收和范围膨胀风险；并行工作必须先有 execution matrix 和 Integrator 审计边界。 | 是 |
+| 验证收口 | `review-next-governance` | 完成后更新 NEXT scheduler、done archive、backlog、blocked/not-now，记录 completion evidence、review feedback、branch finish 边界、剩余风险和下一步。 | 是 |
 | 自治执行 | `autonomous-ready-loop` | 用外部 runner 反复启动短 `codex exec` worker，按 ready 队列推进并写 checkpoint。 | 是 |
 | 状态仪表 | `harness-status-dashboard` | 汇总 scheduler ready、done archive、target、contract、runner marker、验证新鲜度、漂移和是否需要人工输入；dashboard 负责解释/诊断，不默认复制 report 脚本。 | 是 |
 | 可视化状态 | `harness-visualization` | 默认实现：从 NEXT scheduler、done archive、change packet、checkpoint 和 invocation log 生成只读 text/markdown dashboard、CLI 紧凑面板与 JSON 状态，展示 layer、ready、archive、task packet checklist、runner 和 verification。 | 是 |
@@ -69,8 +70,8 @@ Idea
 | 错误沉淀 | `agent-mistake-guard` | 把重复 agent 错误沉淀为短小 guardrail，必要时升级成机械检查。 | 是 |
 | 代码质量漂移 | `code-quality-drift-guard` | 检查孤儿脚本、孤儿 wrapper、命名漂移、重复 helper、文件膨胀和未引用候选。 | 是 |
 | 文档注释规范 | `doc-comment-policy` | 标准化类、接口、方法、函数、参数和返回值的语言原生 doc comment，避免“功能/入参/出参”模板破坏生成文档。 | 是 |
-| 文件化计划 | `planning-with-files` | 用 `task_plan.md`、`findings.md`、`progress.md` 做持久计划、进度记录和上下文恢复。 | 是 |
-| 执行提示词编写 | `execution-prompt-authoring` | 把已确认的计划、gate、队列项或 change packet 转成可审计的 controller、worker、subagent audit 和 integrator prompt pack。 | 是 |
+| 文件化计划 | `planning-with-files` | 用 `task_plan.md`、`findings.md`、`progress.md` 做持久计划、进度记录和上下文恢复；与 queue、change packet、execution prompt pack、task packet 之间通过 carrier decision 防止多套 source of truth。 | 是 |
+| 执行提示词编写 | `execution-prompt-authoring` | 把已确认的计划、gate、队列项或 change packet 转成可审计的 controller、worker、subagent audit 和 integrator prompt pack，并提供 parallel execution matrix。 | 是 |
 | Skill 透明度 | `skill-use-transparency` | 要求说明选择了哪个 skill、为什么触发、是否成功读取 `SKILL.md`、是否完整执行。 | 是 |
 | 代码库导览 | `codebase-orientation` | 给陌生仓库快速梳理模块、入口、运行/测试命令和安全入门任务。 | 是 |
 | 调试交接 | `debugging-checklist` | 输出轻量调试 checklist，用于人类或初级开发者 handoff。 | 是 |
@@ -138,6 +139,7 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - `references/layer-progression.md`
 - `references/superpowers-routing.md`
 - `references/change-packet-model.md`
+- `references/planning-carrier-decision.md`
 - `templates/change-packet/proposal.md`
 - `templates/change-packet/design.md`
 - `templates/change-packet/tasks.md`
@@ -150,6 +152,8 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - `tests/change-packet.test.mjs`
 
 用于判断当前层级、下一步和与可选 companion skills 的关系。开发、规划、实现、调试、TDD、验证、review、队列、handoff、skill 更新、新项目、creative work 和继续/下一步请求必须优先选择并读取 `harness-engineering`。与 `superpowers:*` 等 companion workflow 重叠时，先由本地 skill 决定层级、边界、角色隔离、准入、契约、验证和 review/next 义务；companion workflow 只在治理规则明确后辅助执行。
+
+`references/planning-carrier-decision.md` 用于在 project queue、planning files、change packet、execution prompt pack 和 task packet 之间选择唯一主 source of truth。
 
 change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposal.md`、`design.md`、`tasks.md`、`contracts.md` 和 `verification.md`。`contracts.md` 固定 `Current behavior`、`Proposed behavior / contract delta`、`Acceptance checks` 和 `Failure cases`，但文档说明不能替代可执行 schema、fixture、probe、check 或 acceptance test。
 
@@ -167,6 +171,19 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 ### `execution-prompt-authoring`
 
 用于把已确认的 plan、gate list、NEXT ready、change packet 或 role-isolated workflow 转成可审计执行提示词包，明确 controller、subagent audit、fresh `codex exec` worker、integrator、共享文件串行规则、验证命令、停止 marker 和人工审批点。
+
+- `references/parallel-execution-matrix.md`：固定 safe parallel work、serialized work、Integrator rules、prompt fields 和 worktree guidance，防止把并行审计误当并行实现。
+
+### Superpowers 技术动作本地化
+
+这些 reference 只吸收工程动作，不改变 harness owner：
+
+- `brainstorm-to-brief/references/brainstorming-template.md`：一问一答、方案比较、scope decomposition 和 brief-ready 输出。
+- `contract-first-development/references/tdd-contract-cycle.md`：red / green / refactor 到 Contract / Implementation / Verification 的映射。
+- `observable-fact-discovery/references/debugging-fact-workflow.md`：reproduce、observe、isolate、hypothesis、fix / verify 排障证据链。
+- `review-next-governance/references/completion-review-branch.md`：completion evidence、review feedback、requesting review 和 branch finish 边界。
+- `harness-engineering/references/planning-carrier-decision.md`：project queue、planning files、change packet、execution prompt pack、task packet 载体决策。
+- `execution-prompt-authoring/references/parallel-execution-matrix.md`：parallel agents、Integrator 和 worktree guidance。
 
 ### `harness-visualization`
 
@@ -219,6 +236,7 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 - 长任务自治执行和 checkpoint。
 - harness layer、scheduler ready 队列、done archive、task packet checklist、runner marker 和 verification 的只读可视化输出与 CLI/对话紧凑状态面板。
 - OpenSpec-like artifact discipline 的本地化吸收：change packet 模板、contract delta 结构、packet 初始化与机械检查。
+- Superpowers engineering discipline 的本地化吸收：brainstorming 模板、TDD contract cycle、debugging fact workflow、completion evidence、review feedback、planning carrier decision、parallel execution matrix 和 branch finish boundary。
 - 代码质量漂移的轻量检查思路。
 - 代码文档注释的语言原生格式选择和防忘落地思路。
 - companion workflow 抢入口的机械检查和本地 skill 自守层。

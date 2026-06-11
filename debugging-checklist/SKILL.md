@@ -12,6 +12,8 @@ description: Use when a junior developer, human handoff, or lightweight fallback
 ## Purpose
 Provide a systematic debugging checklist for a human reader, junior developer, or handoff note. This is not the primary active bug-fixing workflow. When `superpowers:systematic-debugging` is unavailable, active agents should follow the routing fallback in `harness-engineering/references/superpowers-routing.md`: reproduce, observe, isolate, fix, and verify; use this skill only to produce lightweight checklist or handoff output.
 
+For active agent debugging, prefer `observable-fact-discovery/references/debugging-fact-workflow.md`; this skill should summarize or hand off that workflow, not replace it.
+
 ## Inputs to request
 - Repro steps and frequency.
 - Environment details and recent changes.

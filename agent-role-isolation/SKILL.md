@@ -47,6 +47,7 @@ If a companion workflow already uses subagents, reviewers, or TDD helpers, still
    - Include objective, non-goals, owner files or subsystems, success criteria, forbidden shortcuts, verification commands, and stop conditions.
    - Keep it short enough for a fresh agent to execute without chat history.
    - If the handoff must become prompts for multiple fresh workers, parallel subagent audits, a controller, or an integrator, use `execution-prompt-authoring` to produce an auditable prompt pack before execution.
+   - When parallel work is proposed, require an execution matrix from `execution-prompt-authoring/references/parallel-execution-matrix.md` before any file-changing work starts.
 
 3. Fix tests or contracts before implementation when behavior is not already covered.
    - Prefer existing test/check style.
@@ -83,6 +84,13 @@ Task:
 - Verification:
 - Stop conditions:
 ```
+
+## Parallel Role Boundary
+
+- Parallel agents may audit, explore, or design independent tests when owner files do not conflict.
+- Shared files, shared contracts, queue/checkpoint state, README, package scripts, and the same source/test file must be serialized.
+- The Integrator role must review worker outputs, verification, and owner-file boundaries before merging results.
+- Parallel execution is an execution mode only; it does not replace contract, readiness, verification, or Review / Next.
 
 ## Completion Bar
 

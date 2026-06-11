@@ -65,6 +65,15 @@ Verification -> Review / Next
    - 说明剩余风险或未做事项。
    - 说明下一步，但不要把未验证结论说成完成。
 
+## Completion / Review / Branch Finish
+
+声明完成、处理评审反馈、请求 review 或收尾分支前，读取 `references/completion-review-branch.md`。该 reference 固定：
+
+- completion evidence：命令、结果、新鲜度、覆盖范围、剩余风险和 skipped 原因。
+- review feedback：分类 actionable / unclear / disagreed / not-now，先查证再改。
+- requesting review：说明 reviewer 应重点看什么，不把自写测试通过当最终验收。
+- branch finish：只作为 Review / Next 的可选执行动作，不自动 merge / push / open PR。
+
 ## 队列与归档建议
 
 通用队列应保持为 scheduler，而不是历史记录。推荐 `NEXT.md` 只放当前可调度项：

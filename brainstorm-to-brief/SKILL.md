@@ -68,6 +68,8 @@ Idea -> Brainstorming -> Brief
 
 当 harness 当前层级是 `brainstorming` 时，可以把 `superpowers:brainstorming` 当作 companion capability 使用，但本 skill 仍是本地 owner。
 
+需要把 companion brainstorming 技巧落成可复用 brief 时，读取 `references/brainstorming-template.md`。该 reference 固定一问一答、方案对比、scope decomposition、禁止导入外部 artifact、以及 brief-ready 输出检查。
+
 可借用：
 
 - 探索项目上下文。

@@ -18,6 +18,8 @@ If `superpowers:using-superpowers` also appears to match because of a broad sess
 
 When the current harness layer allows a companion workflow, import only the companion techniques that produce the current layer's required output. Ignore companion terminal states, required sub-skills, default artifact paths, commits, and next-workflow transitions unless the harness layer map explicitly approves them.
 
+Local absorption principle: borrow engineering moves, not workflow ownership. Every borrowed move must name the local owner skill, allowed technique, forbidden import, stable evidence, and verification path.
+
 Adapter rules:
 
 1. Convert companion `MUST`, hard gate, terminal state, `REQUIRED SUB-SKILL`, or "invoke next skill" language into a harness next-layer candidate.
@@ -57,7 +59,20 @@ For each routed workflow:
 3. If available, use it as a companion workflow only for the current harness layer's allowed output.
 4. If unavailable, say it is unavailable and use the local fallback.
 5. Ignore companion terminal states or hard gates that would advance to a later harness layer before local governance approves that transition.
-6. Stop only when the harness route, not the companion route, is explicitly marked `required`.
+6. Treat stop/required language as binding only when it comes from the harness route; companion-only stop/required language is advisory until translated through the harness transition gate.
+
+## Local Absorption Map
+
+| Borrowed technique | Local owner | Stable evidence |
+|---|---|---|
+| One-question brainstorming and option comparison | `brainstorm-to-brief` | Brief-ready output using `references/brainstorming-template.md` |
+| Red / green / refactor discipline | `contract-first-development` | Contract artifact, failing/passing command, Implementation Entry Record |
+| Systematic debugging steps | `observable-fact-discovery` | Repro, observed facts, isolation, hypothesis result, fix verification |
+| Completion evidence before claims | `review-next-governance` | Completion Evidence record |
+| Review feedback handling | `review-next-governance` / `agent-role-isolation` | Review Feedback record and verification |
+| Plan execution checkpoints | `harness-engineering` / `planning-with-files` | Chosen carrier from `planning-carrier-decision.md` |
+| Parallel agent coordination | `execution-prompt-authoring` / `agent-role-isolation` | Execution matrix and Integrator checks |
+| Worktree / branch finish discipline | `review-next-governance` | Branch Finish record and explicit user/project approval for commit/push |
 
 ## Routing Matrix
 

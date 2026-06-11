@@ -69,6 +69,16 @@ Contract -> Implementation -> Verification
 
 这个结构只负责说明 contract delta。它不能替代可执行 schema、fixture、probe、check 或 acceptance test；如果只能使用 documentation invariant，必须说明为什么无法机械验证。
 
+## TDD Contract Cycle
+
+当任务适合 red / green / refactor，读取 `references/tdd-contract-cycle.md`。本地映射规则：
+
+- Red：先写会失败的 contract artifact 或测试，并记录失败证据。
+- Green：只实现让 contract/test 通过的最小切片，进入产品实现前仍必须有 Implementation Entry Record。
+- Refactor：验证通过后只做局部整理，不扩大 contract delta。
+
+TDD discipline 不能替代 readiness、Implementation Entry Record 或 Review / Next；测试通过也不能单独批准实现完成。
+
 ## 工作流程
 
 1. 定义行为

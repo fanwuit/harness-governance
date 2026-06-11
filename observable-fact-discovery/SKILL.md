@@ -36,6 +36,18 @@ description: Use when a concrete unknown about existing behavior, external capab
 7. 标注置信度：高表示有机械证据或多源交叉验证；中表示有单一直接证据；低表示只有间接线索。
 8. 决定下一层：事实足够后，明确进入 Brief、Architecture、ADR、Contract、Implementation 或 Review / Next。
 
+## Debugging Fact Workflow
+
+遇到 bug、测试失败或运行时异常，且需要主动排障时，读取 `references/debugging-fact-workflow.md`。该 workflow 把排障拆成：
+
+- Reproduce：记录稳定复现或无法复现的证据。
+- Observe：记录错误、日志、输入输出和环境。
+- Isolate：缩小最小失败边界并找工作对照样例。
+- Hypothesis：一次只验证一个假设。
+- Fix / Verify：修复后回到 verification 和 Review / Next。
+
+不要先猜修；如果事实不足，停在 Fact Discovery 或标记 blocked。
+
 ## Fact Record 模板
 
 ```markdown
