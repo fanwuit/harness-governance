@@ -46,6 +46,29 @@ Contract -> Implementation -> Verification
 
 优先选择能被机器执行的产物。文档说明不能替代可执行检查，除非该行为确实无法机械验证。
 
+## Contract Delta 推荐结构
+
+当任务使用 change packet，或需要表达“当前行为 -> 目标行为”的增量时，在 `contracts.md` 或 contract plan 中固定以下结构：
+
+```markdown
+## Current behavior
+当前可观察行为、已有 schema / fixture / probe / check，或明确缺口。
+
+## Proposed behavior / contract delta
+本次变更对行为契约的增量。
+
+## Contract artifacts
+新增或更新的 schema/example/fixture/probe/check/acceptance test 路径。
+
+## Acceptance checks
+可以机械运行的验收检查。
+
+## Failure cases
+关键失败路径和断言方式。
+```
+
+这个结构只负责说明 contract delta。它不能替代可执行 schema、fixture、probe、check 或 acceptance test；如果只能使用 documentation invariant，必须说明为什么无法机械验证。
+
 ## 工作流程
 
 1. 定义行为

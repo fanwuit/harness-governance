@@ -101,6 +101,14 @@ Read `references/change-packet-model.md` when:
 
 Do not create a change packet for a small single-layer edit, a simple command, a one-off answer, or a task whose context is already fully captured by an existing ADR, contract, queue item, or checkpoint.
 
+For native packet creation and hygiene checks, use:
+
+- `templates/change-packet/` for `proposal.md`, `design.md`, `tasks.md`, `contracts.md`, and `verification.md`.
+- `scripts/init-change-packet.mjs <change-id>` to initialize `docs/changes/<change-id>/`.
+- `scripts/check-change-packet.mjs [packet-path-or-id ...]` to check packet structure.
+
+These assets borrow OpenSpec-like artifact discipline only. They do not create or consume `openspec/` and they do not apply or archive changes automatically.
+
 ## Execution Prompt Pack Routing
 
 Use `execution-prompt-authoring` after a plan, gate list, ready queue item, change packet, or role-isolated workflow is already approved and the next problem is prompt packaging for execution.

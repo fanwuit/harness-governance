@@ -47,6 +47,29 @@ docs/changes/
 
 If the project already has another durable task packet convention, adapt this model to that convention instead of creating a competing source of truth.
 
+OpenSpec is only a reference source for artifact discipline. Do not create or read `openspec/changes/*`, do not require OpenSpec installation, and do not expose `openspec init/update/apply/archive` as this harness model.
+
+## Native Templates
+
+Use the bundled templates when a complex task needs a packet:
+
+```text
+harness-engineering/templates/change-packet/
+  proposal.md
+  design.md
+  tasks.md
+  contracts.md
+  verification.md
+```
+
+Initialize a packet with:
+
+```text
+node harness-engineering/scripts/init-change-packet.mjs <change-id>
+```
+
+The script writes `docs/changes/<change-id>/` using the native templates. It does not create `openspec/`, does not apply changes, and does not archive completed work.
+
 ## File Responsibilities
 
 | File | Responsibility |
@@ -58,6 +81,18 @@ If the project already has another durable task packet convention, adapt this mo
 | `verification.md` | Commands, evidence, failures, freshness, screenshots, traces, and remaining risk. |
 
 Keep each file short. Move stable conclusions into the long-lived project sources instead of letting the packet become permanent documentation.
+
+## Contract Delta Shape
+
+In `contracts.md`, use these sections:
+
+- `Current behavior`
+- `Proposed behavior / contract delta`
+- `Contract artifacts`
+- `Acceptance checks`
+- `Failure cases`
+
+This borrows the useful part of spec delta thinking while keeping the output in the Contract layer. `contracts.md` can describe the delta, but it does not replace executable schema, fixture, probe, check script, acceptance test, or an explicitly justified documentation invariant.
 
 ## Layer Relationship
 
@@ -93,6 +128,31 @@ Rules:
 - `blocked` must state the missing evidence, decision, contract, or external condition.
 - `done` means the packet goal is satisfied, but archive may still be pending.
 - `archived` means stable conclusions were copied or linked back to official project sources and the packet has moved under `docs/changes/archive/<YYYY-MM-DD>-<change-id>/` or the project's equivalent archive.
+
+## Mechanical Packet Check
+
+Run:
+
+```text
+node harness-engineering/scripts/check-change-packet.mjs [packet-path-or-id ...]
+```
+
+or through the root wrapper:
+
+```text
+npm run check:packets
+```
+
+The checker enforces only mechanical packet hygiene:
+
+- required files exist: `proposal.md`, `design.md`, `tasks.md`, `contracts.md`, `verification.md`;
+- `tasks.md` contains a checkbox checklist;
+- `contracts.md` declares a contract artifact or an explicit blocked reason;
+- `verification.md` records a command, result, or unable-to-verify reason;
+- every `Status:` value is one of `draft`, `ready`, `active`, `blocked`, `done`, `archived`;
+- archived packets link stable conclusions back to ADR, README, contract, verification, queue, or project index.
+
+Passing the checker does not approve implementation. Readiness and the Implementation Entry Record still decide whether implementation can proceed.
 
 ## Archive Rules
 

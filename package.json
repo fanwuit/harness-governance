@@ -2,7 +2,8 @@
   "scripts": {
     "test": "node --test harness-visualization/tests/*.test.mjs autonomous-ready-loop/tests/*.test.mjs harness-engineering/tests/*.test.mjs planning-with-files/tests/*.test.mjs governed-implementation-entry/tests/*.test.mjs",
     "check:routing": "python harness-engineering/scripts/check-routing-guardrails.py",
+    "check:packets": "node harness-engineering/scripts/check-change-packet.mjs",
     "check:entry-record": "node governed-implementation-entry/scripts/check-entry-record.mjs cc-gpt整改记录.md",
-    "check:all": "npm run check:routing && npm test && npm run check:entry-record"
+    "check:all": "npm run check:routing && npm test && npm run check:packets && npm run check:entry-record"
   }
 }

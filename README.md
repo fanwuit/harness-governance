@@ -7,6 +7,7 @@
 - 启用的非 system skills：25 个。
 - 额外存在 `gh-fix-ci`，但入口文件是 `SKILL.disabled.md`，当前不作为启用 skill 自动触发。
 - 这些 skills 偏流程、边界、契约和治理，不是某个编程语言或框架的代码片段库。
+- change packet 只吸收 OpenSpec-like artifact discipline：标准 proposal/design/tasks/contracts/verification 资产形态、contract delta 表达和机械检查；OpenSpec 不是 dependency、入口或兼容目标。
 
 ## 核心链路
 
@@ -139,10 +140,20 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - `references/layer-progression.md`
 - `references/superpowers-routing.md`
 - `references/change-packet-model.md`
+- `templates/change-packet/proposal.md`
+- `templates/change-packet/design.md`
+- `templates/change-packet/tasks.md`
+- `templates/change-packet/contracts.md`
+- `templates/change-packet/verification.md`
 - `scripts/check-routing-guardrails.py`
+- `scripts/init-change-packet.mjs`
+- `scripts/check-change-packet.mjs`
 - `tests/governance-docs.test.mjs`
+- `tests/change-packet.test.mjs`
 
 用于判断当前层级、下一步和与可选 companion skills 的关系。开发、规划、实现、调试、TDD、验证、review、队列、handoff、skill 更新、新项目、creative work 和继续/下一步请求必须优先选择并读取 `harness-engineering`。与 `superpowers:*` 等 companion workflow 重叠时，先由本地 skill 决定层级、边界、角色隔离、准入、契约、验证和 review/next 义务；companion workflow 只在治理规则明确后辅助执行。
+
+change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposal.md`、`design.md`、`tasks.md`、`contracts.md` 和 `verification.md`。`contracts.md` 固定 `Current behavior`、`Proposed behavior / contract delta`、`Acceptance checks` 和 `Failure cases`，但文档说明不能替代可执行 schema、fixture、probe、check 或 acceptance test。
 
 `scripts/check-routing-guardrails.py` 用于机械检查：
 
@@ -152,6 +163,8 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - README 和 `harness-engineering/SKILL.md` 是否遗漏 canonical layer term，或保留未标注为简化视图的旧层级链路。
 
 规则不依赖具体安装目录，应使用当前会话暴露的 skill 名称和路径。
+
+`scripts/init-change-packet.mjs` 用本项目模板初始化 `docs/changes/<id>/`；`scripts/check-change-packet.mjs` 校验 packet 必需文件、`tasks.md` checkbox、`contracts.md` contract artifact 或 blocked 原因、`verification.md` 验证证据、允许的 status 值，以及 archive packet 是否把稳定结论回链到 ADR、README、contract、verification、queue 或项目索引。它不执行 apply/archive，也不批准 implementation。
 
 ### `execution-prompt-authoring`
 
@@ -175,10 +188,11 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 
 - `npm test`
 - `npm run check:routing`
+- `npm run check:packets`
 - `npm run check:entry-record`
 - `npm run check:all`
 
-`check:all` 串联 routing guardrail、Node test suites 和本轮 Implementation Entry Record 检查。仓库仍不引入 npm 依赖，脚本只使用 Node.js、Python 和 PowerShell。
+`check:all` 串联 routing guardrail、Node test suites、change packet 检查和本轮 Implementation Entry Record 检查。仓库仍不引入 npm 依赖，脚本只使用 Node.js、Python 和 PowerShell。
 
 ## 未启用但存在
 
@@ -223,6 +237,7 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - 文档、队列、状态和错误沉淀。
 - 长任务自治执行和 checkpoint。
 - harness layer、scheduler ready 队列、done archive、task packet checklist、runner marker 和 verification 的只读可视化输出与 CLI/对话紧凑状态面板。
+- OpenSpec-like artifact discipline 的本地化吸收：change packet 模板、contract delta 结构、packet 初始化与机械检查。
 - 代码质量漂移的轻量检查思路。
 - 代码文档注释的语言原生格式选择和防忘落地思路。
 - companion workflow 抢入口的机械检查和本地 skill 自守层。
@@ -234,5 +249,6 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 - 后端框架、数据库迁移、认证授权等领域专项。
 - 已启用的 CI 修复专项。
 - 特定语言生态的重构、测试或性能分析专项。
+- 不提供 OpenSpec 安装、命令兼容、`openspec/` 目录读写、apply/archive 自动执行。
 
 这些缺口不一定需要全部补齐；应按实际项目频率和重复问题来决定是否新增 skill。
