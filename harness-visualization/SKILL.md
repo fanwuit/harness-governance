@@ -24,6 +24,8 @@ node harness-visualization/scripts/harness-status.mjs --repo <project> --format 
 node harness-visualization/scripts/harness-status.mjs --repo <project> --write-md --write-json
 ```
 
+运行 `--write-md --write-json` 后，必须把当前状态以 CLI/对话紧凑面板展示出来；不要只告诉用户文件路径。
+
 ## Prompt Triggers
 
 当用户写 `$harness-visualization init`、`use harness-visualization init`、`初始化 harness visualization` 或类似请求时：
@@ -55,6 +57,10 @@ Dashboard 必须至少显示：
 - Verification：最近验证摘要，以及缺失/失败/stale warning。
 - Warnings：缺失 queue、缺失 task packet、无 checkpoint、无法解析的 invocation log。
 
+CLI/对话紧凑面板必须至少包含 Current layer、Current ready、ready queue 数量、runner marker、runner round、checkpoint result、verification stale/failed、human-needed blocker、status 文件路径。若 blocker 是端口占用，显示端口、PID、进程名和命令行。
+
+当 Current ready 指向 task packet、change packet 或等价任务包时，面板必须把 ready 作为大项，并读取任务包 checklist：显示任务包路径、完成数/总数，以及每条 `- [ ]` / `- [x]`。任务包没有 checklist 时要明确 warning，不要把 ready 级别状态误当作 task 级进度。
+
 ## Project Integration
 
 通用 layer 负责解析、刷新和展示；业务项目只提供状态源：
@@ -73,13 +79,21 @@ Dashboard 必须至少显示：
 - 不要从聊天记录恢复状态；只读取 repo 文件。
 - 不要要求每个业务项目复制刷新逻辑；把自动刷新接在通用 runner 或通用命令上。
 - 不要在本 skill 中实现 TUI/Web UI；先稳定 JSON contract，再由项目或独立工具消费。
+- 不要只生成 Markdown/JSON 而不在 CLI/对话中展示状态面板。
 
 ## Common Mistakes
 
 | Mistake | Correction |
 |---|---|
 | 只显示 pass/fail | 同时显示 layer、scheduler queue、done archive、packet、runner marker 和 verification。 |
+| 只给 status 文件路径 | 刷新 status 后直接展示 CLI/对话状态面板。 |
 | dashboard 自动改 NEXT | 只报告 warning；由 agent 或人按治理流程更新队列。 |
 | 把 `[done]` 长期留在 NEXT | 保留显示为 legacy record，并迁移到 `docs/changes/archive/` 或项目 done 记录。 |
 | 每个项目重写解析逻辑 | 复用脚本输出 JSON，让项目 UI 消费统一状态。 |
 | 缺失 checkpoint 仍声称无人值守安全 | 标记 warning，并要求 runner 补持久记录。 |
+
+## Hard visual rule
+- 以 `Current ready` 作为调度大项（不是单个 task）。
+- 当 `Task packets:` 指向任务文件时，面板必须读取 `## Task checklist` 中的 `- [ ]` / `- [x]`。
+- 面板与 `.harness/status.md` 都应显示 `Task packet`、`Task progress`、逐项 `Tasks` 列表及 `[ ]/[x]` 状态。
+- 当 ready 大项存在但 packet 无 checklist 时，必须给出可见 warning，并提示补齐 `Task checklist`。

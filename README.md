@@ -59,8 +59,8 @@ Idea
 | 角色隔离 | `agent-role-isolation` | 分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier，降低自测自收和范围膨胀风险。 | 是 |
 | 验证收口 | `review-next-governance` | 完成后更新 NEXT scheduler、done archive、backlog、blocked/not-now，记录验证证据、剩余风险和下一步。 | 是 |
 | 自治执行 | `autonomous-ready-loop` | 用外部 runner 反复启动短 `codex exec` worker，按 ready 队列推进并写 checkpoint。 | 是 |
-| 状态仪表 | `harness-status-dashboard` | 汇总 scheduler ready、done archive、target、contract、runner marker、验证新鲜度、漂移和是否需要人工输入。 | 是 |
-| 可视化状态 | `harness-visualization` | 从 NEXT scheduler、done archive、change packet、checkpoint 和 invocation log 生成只读 text/markdown dashboard 与 JSON 状态，展示 layer、ready、archive、task packet、runner 和 verification。 | 是 |
+| 状态仪表 | `harness-status-dashboard` | 汇总 scheduler ready、done archive、target、contract、runner marker、验证新鲜度、漂移和是否需要人工输入；runner 启动、blocked/no-ready 和进度查询时应直接展示 CLI/对话紧凑状态面板。 | 是 |
+| 可视化状态 | `harness-visualization` | 从 NEXT scheduler、done archive、change packet、checkpoint 和 invocation log 生成只读 text/markdown dashboard、CLI 紧凑面板与 JSON 状态，展示 layer、ready、archive、task packet checklist、runner 和 verification。 | 是 |
 | 文档治理 | `document-gardener` | 审计和修正文档、ADR、队列、索引、检查注册与当前代码/验证状态之间的漂移。 | 是 |
 | 错误沉淀 | `agent-mistake-guard` | 把重复 agent 错误沉淀为短小 guardrail，必要时升级成机械检查。 | 是 |
 | 代码质量漂移 | `code-quality-drift-guard` | 检查孤儿脚本、孤儿 wrapper、命名漂移、重复 helper、文件膨胀和未引用候选。 | 是 |
@@ -99,7 +99,7 @@ Idea
 - `assets/run-autonomous-ready-loop.sh`
 - `references/runner-contract.md`
 
-目标是让长任务由多个短 `codex exec` worker 通过仓库文件交接，而不是依赖单个长聊天上下文。runner 模板会在每轮完成或 checkpoint 写入后尝试调用通用 `harness-visualization` 刷新 `.harness/status.md` 和 `.harness/status.json`；找不到脚本时只警告，避免把可视化依赖变成 worker 主流程阻断点。`NEXT.md` 应保持为 scheduler，只保留 `[ready]` 和必要时短暂 `[active]`；已完成历史进入 `docs/changes/archive/` 或项目 done 记录。
+目标是让长任务由多个短 `codex exec` worker 通过仓库文件交接，而不是依赖单个长聊天上下文。runner 模板会在每轮完成或 checkpoint 写入后尝试调用通用 `harness-visualization` 刷新 `.harness/status.md` 和 `.harness/status.json`，并在 CLI/对话中展示紧凑状态面板；找不到脚本时只警告，避免把可视化依赖变成 worker 主流程阻断点。`NEXT.md` 应保持为 scheduler，只保留 `[ready]` 和必要时短暂 `[active]`；已完成历史进入 `docs/changes/archive/` 或项目 done 记录。
 
 ### `implementation-readiness-gate`
 
@@ -144,7 +144,7 @@ Idea
 - `tests/harness-status.test.mjs`
 - `tests/fixtures/sample-repo/`
 
-脚本默认只读扫描目标项目的 `NEXT.md`、`docs/changes/*/tasks.md`、`docs/changes/archive/*/tasks.md`、`.harness/run-checkpoint.md` 和 `.harness/codex-exec-invocations.ndjson`，输出终端文本；使用 `--format json` 可供 agent、TUI 或 Web UI 消费；使用 `--write-md` / `--write-json` 可写入目标项目 `.harness/status.md` 和 `.harness/status.json`。使用 `--init` 可生成 `.harness/harness-status.config.json`，用于覆盖 queue、change root、archive root、checkpoint、invocation log 和 status 输出路径。它只负责可见性，不推进队列、不替代 gate 或 verification。旧 `NEXT.md` 中残留的 `[done]` 会以 `legacyDoneItems` 保留并产生迁移 warning，避免历史完成项丢失。
+脚本默认只读扫描目标项目的 `NEXT.md`、`docs/changes/*/tasks.md`、`docs/changes/archive/*/tasks.md`、`.harness/run-checkpoint.md` 和 `.harness/codex-exec-invocations.ndjson`，输出终端文本；使用 `--format json` 可供 agent、TUI 或 Web UI 消费；使用 `--write-md` / `--write-json` 可写入目标项目 `.harness/status.md` 和 `.harness/status.json`，随后仍要在 CLI/对话展示当前紧凑状态面板。面板把 `Current ready` 作为调度大项；当 ready 指向 task packet、change packet 或等价任务包时，显示任务包路径、完成数/总数，以及 `## Task checklist` 中每个 `- [ ]` / `- [x]` 状态。使用 `--init` 可生成 `.harness/harness-status.config.json`，用于覆盖 queue、change root、archive root、checkpoint、invocation log 和 status 输出路径。它只负责可见性，不推进队列、不替代 gate 或 verification。旧 `NEXT.md` 中残留的 `[done]` 会以 `legacyDoneItems` 保留并产生迁移 warning，避免历史完成项丢失。
 
 提示词入口支持 `$harness-visualization init`：初始化目标项目 status config，刷新 `.harness/status.md` / `.harness/status.json`，并报告缺失状态源。
 
@@ -187,7 +187,7 @@ Idea
 - 契约优先和实现准入。
 - 文档、队列、状态和错误沉淀。
 - 长任务自治执行和 checkpoint。
-- harness layer、scheduler ready 队列、done archive、task packet、runner marker 和 verification 的只读可视化输出。
+- harness layer、scheduler ready 队列、done archive、task packet checklist、runner marker 和 verification 的只读可视化输出与 CLI/对话紧凑状态面板。
 - 代码质量漂移的轻量检查思路。
 - 代码文档注释的语言原生格式选择和防忘落地思路。
 - companion workflow 抢入口的机械检查和本地 skill 自守层。

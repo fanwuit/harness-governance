@@ -29,6 +29,14 @@ description: Use when a project needs a status dashboard, drift report, autonomo
 - Drift：ready / target / contract 是否和上一轮不一致。
 - Human needed：是否需要人工材料、权限、外部凭据或阶段选择。
 
+## CLI 面板要求
+
+启动 runner、刷新 status、处理 blocked/boundary/no-ready marker，或用户询问进度时，必须在 CLI/对话中直接展示紧凑状态面板；不要只给 `.harness/status.md` / `.harness/status.json` 路径。
+
+面板至少包含：Current layer、Current ready、ready queue 数量、runner marker、runner round、checkpoint result、verification stale/failed、human-needed blocker、status 文件路径。若 blocker 是端口占用，必须显示端口、PID、进程名和命令行。
+
+如果 Current ready 指向 task packet、change packet 或等价任务包，CLI 面板必须把 ready 当作大项，并显示任务包路径、完成数/总数，以及任务包 checklist 中每个 `- [ ]` / `- [x]` 的状态；不要只显示 ready 级别的 pass/fail。
+
 ## 落地步骤
 
 1. 找项目队列入口，常见是 `NEXT.md`、issue queue 或 TODO 文件；`NEXT.md` 应只作为 scheduler，不作为 done 历史库。
@@ -42,4 +50,11 @@ description: Use when a project needs a status dashboard, drift report, autonomo
 
 - 不要把聊天记忆当仪表数据源。
 - 不要只显示“通过/失败”，必须显示 scheduler ready、done archive、target、contract 和 marker。
+- 不要只刷新 Markdown/JSON 文件而不展示 CLI 状态面板。
 - 不要让 report 修改业务代码。
+
+## Hard visual rule
+- 以 `Current ready` 作为调度大项（不是单个 task）。
+- 当 `Task packets:` 指向任务文件时，面板必须读取 `## Task checklist` 中的 `- [ ]` / `- [x]`。
+- 面板与 `.harness/status.md` 都应显示 `Task packet`、`Task progress`、逐项 `Tasks` 列表及 `[ ]/[x]` 状态。
+- 当 ready 大项存在但 packet 无 checklist 时，必须给出可见 warning，并提示补齐 `Task checklist`。
