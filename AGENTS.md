@@ -1,11 +1,12 @@
 ## Skill 入口优先级
 
-每次开始处理用户请求时，先选择并读取：
+先做入口分级，再决定是否读取完整治理 skill。
 
-- `skill-use-transparency`
-- `harness-engineering`
+- **Fast Path**：纯问答、只读解释、简单定位、用户明确只要建议/计划且不修改文件、不需要 durable artifact 的一次性回答。不要加载完整治理 workflow，不创建计划文件，不更新 NEXT，不声明完成实现；可简短说明本轮未进入 governed workflow。
+- **Trivial Safe Change**：单文件或极少文件、无公共契约/依赖/安全/持久化/构建发布变化、有明确验证命令的小修。可使用轻量 entry summary；一旦发现行为、契约、风险或范围扩大，升级到 governed path。
+- **Governed Path**：新项目、开发、规划、实现、调试、验证、review、继续、下一步、队列、handoff、skill 更新、产品行为变化、跨模块或高风险请求。先选择并读取 `skill-use-transparency` 和 `harness-engineering`。
 
-对新项目、开发、规划、实现、调试、验证、review、继续、下一步、队列、handoff、skill 更新等请求：
+对 governed path 请求：
 
 - `harness-engineering` 拥有最高入口路由权。
 - 在 `harness-engineering` 完成当前 layer 判断前，不得执行任何 `superpowers:*` 或其他 companion workflow。
@@ -24,7 +25,7 @@ Routing decision 模板：
 Local governance skills: skill-use-transparency, harness-engineering, <other local governance skills>
 Companion workflow skills: <optional companion skills, or none>
 Loaded SKILL.md files: <success/failure list>
-Routing decision: harness-engineering owns entry routing; companion workflows run only after harness selects the current layer.
+Routing decision: harness-engineering owns governed entry routing; fast path and trivial safe change remain local lightweight paths, and companion workflows run only after harness selects the current layer.
 ```
 
 ## Skill 使用透明度

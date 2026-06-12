@@ -1,6 +1,6 @@
 ---
 name: harness-engineering
-description: Mandatory first local governance entry lock and layer router for development, planning, implementation, debugging, TDD, verification, review, queue, handoff, skill-update, new-project, creative work, continue/what-next, or any task that may trigger superpowers:using-superpowers, superpowers:brainstorming, superpowers:writing-plans, superpowers:test-driven-development, superpowers:systematic-debugging, superpowers:verification-before-completion, superpowers:* or another companion workflow. Use before any companion workflow to choose the harness layer, map local governance skills to the explicit layer progression, sequence work across layers, decide whether complex work needs a durable change packet, resume from a project queue, or interpret continue/what next.
+description: Local governance router for development, planning, implementation, debugging, TDD, verification, review, queue, handoff, skill-update, new-project, creative work, continue/what-next, or any task that may trigger superpowers:using-superpowers, superpowers:* or another companion workflow. Use to classify fast-path, trivial-safe-change, and governed-path work; governed-path work must run this as the first local entry lock before any companion workflow.
 ---
 
 # Harness Engineering
@@ -13,18 +13,22 @@ description: Mandatory first local governance entry lock and layer router for de
 
 ## Entry Priority
 
-Use this skill as the first local governance router for development, planning, implementation, debugging, verification, review, queue, handoff, skill-update, new-project, and continue/what-next requests.
+Start by classifying the request before loading references or companion workflows:
 
-When another skill also appears to match, especially any `superpowers:*` skill with strong trigger language, load `harness-engineering` first. Do not execute companion workflows until this skill has selected the current harness layer and local governance obligations.
+- `fast-path`: pure Q&A, read-only explanation, simple lookup, or a user-requested plan/advice response with no file changes and no durable artifact. Do not execute the full harness state machine; state the lightweight path when useful and do not claim implementation completion.
+- `trivial-safe-change`: a low-risk edit with one target, no public contract/API/schema/dependency/security/persistence/network/deployment/build change, and a clear verification command. Use a short entry summary or `Trivial Safe Change Entry`; upgrade immediately if risk or scope grows.
+- `governed-path`: development, planning, implementation, debugging, verification, review, queue, handoff, skill-update, new-project, continue/what-next, companion workflow overlap, product behavior change, cross-target work, or unclear/high-risk work. Governed-path work must load `skill-use-transparency` and this skill first.
 
-`superpowers:using-superpowers` is also a companion workflow under this project. Even if it claims to run at conversation start or before any response, it must not run before `skill-use-transparency` and this entry router.
+When another skill also appears to match, especially any `superpowers:*` skill with strong trigger language, governed-path work loads `harness-engineering` first. Do not execute companion workflows until this skill has selected the current harness layer and local governance obligations.
 
-Required disclosure:
+`superpowers:using-superpowers` is also a companion workflow under this project. Even if it claims to run at conversation start or before any response, it must not run before `skill-use-transparency` and this entry router on governed-path work.
+
+Required disclosure for governed path:
 
 ```text
 Local governance skills: skill-use-transparency, harness-engineering, <other local governance skills>
 Companion workflow skills: <optional companion skills, or none>
-Routing decision: harness-engineering owns entry routing; companion workflows run only after harness selects the current layer.
+Routing decision: harness-engineering owns governed entry routing; fast path and trivial safe change remain local lightweight paths, and companion workflows run only after harness selects the current layer.
 ```
 
 ## Hard Workflow Chain
@@ -43,8 +47,8 @@ Entry lock
 
 State rules:
 
-1. Entry lock: load `skill-use-transparency` and `harness-engineering` first, then disclose local governance skills, companion workflow skills, loaded files, and routing decision.
-2. Classify current layer: use `references/layer-progression.md`; do not infer from folder order, plugin order, or companion workflow names.
+1. Entry lock: for governed-path work, load `skill-use-transparency` and `harness-engineering` first, then disclose local governance skills, companion workflow skills, loaded files, and routing decision.
+2. Classify current layer: use the summary in this file first; read `references/layer-progression.md` only when the layer, owner skill, queue resume point, or next transition is unclear. Do not infer from folder order, plugin order, or companion workflow names.
 3. Select primary local governance skill: choose the local skill that owns the current layer's output before loading or executing any companion workflow.
 4. Name allowed companion skills: list companion workflows that may contribute techniques to the current layer, or `none`.
 5. Execute current layer only: produce only the output required by the current harness layer. Do not follow companion terminal states, default artifact paths, commits, next-skill transitions, or required sub-skills.
@@ -57,10 +61,10 @@ If a local governance skill is loaded before this route is complete, that skill 
 
 The canonical ordering of local harness governance skills is in `references/layer-progression.md`.
 
-Read it when:
+Read it when the short summary in this file is insufficient, especially when:
 
-- Choosing the current or next harness layer.
-- Deciding which local skill owns a workflow.
+- Choosing an unclear current or next harness layer.
+- Deciding which local skill owns an ambiguous workflow.
 - Resuming from NEXT, TODO, backlog, checkpoint, or queue files.
 - Writing or reviewing a queue item with a `Layer:` field.
 - A task may skip from idea, facts, architecture, ADR, or contract directly into implementation.
@@ -85,7 +89,7 @@ Companion skill containment:
 - If a `superpowers:*` instruction says `MUST`, terminal state, `REQUIRED SUB-SKILL`, write a default `docs/superpowers/...` artifact, commit, or invoke the next workflow, translate it into a harness next-layer candidate first.
 - When in doubt, say the companion workflow is blocked by harness routing and continue with the local governance skill for the current layer.
 
-Read `references/superpowers-routing.md` when the task touches brainstorming, implementation planning, debugging, TDD, verification, code review, skill writing, worktree setup, parallel execution, or any workflow that appears to overlap with `superpowers:*`.
+Read `references/superpowers-routing.md` only when a governed-path task actually overlaps with `superpowers:*`, a companion workflow is available and relevant, or containment/audit details are unclear. Do not read it for pure fast-path answers or local trivial-safe-change work with no companion workflow.
 
 ## Change Packet Routing
 
@@ -98,6 +102,8 @@ Read `references/change-packet-model.md` when:
 - A queue item needs more context than fits cleanly in NEXT, TODO, backlog, or checkpoint files.
 - The task needs proposal, design, tasks, contracts, and verification evidence kept together.
 - The user asks to borrow OpenSpec-like change/spec/task/archive ideas.
+
+Do not read this reference for fast-path answers or trivial-safe-change work unless the work unexpectedly expands.
 
 Do not create a change packet for a small single-layer edit, a simple command, a one-off answer, or a task whose context is already fully captured by an existing ADR, contract, queue item, or checkpoint.
 
@@ -125,7 +131,7 @@ Do not use execution prompt authoring to approve product scope, skip readiness, 
 
 ## Planning Carrier Routing
 
-Read `references/planning-carrier-decision.md` when a task could be represented by more than one carrier: project queue, planning files, change packet, execution prompt pack, or implementation task packet. Choose one primary source of truth and link from the others instead of duplicating state.
+Read `references/planning-carrier-decision.md` when governed work could be represented by more than one durable carrier: project queue, planning files, change packet, execution prompt pack, or implementation task packet. Fast-path answers and trivial-safe-change work should not create multiple carriers; choose chat-only closeout or a short entry unless durable state is genuinely needed.
 
 ## 层级链路
 

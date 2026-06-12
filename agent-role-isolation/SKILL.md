@@ -1,6 +1,6 @@
 ---
 name: agent-role-isolation
-description: Use when a task involves task decomposition, planning, TDD, test writing, contract writing, implementation, review, verification, or when the user requires separation between planner/tester/implementer/reviewer roles to avoid AI self-confirmation, self-satisfaction, or tests being shaped by the same agent that writes the implementation.
+description: Use when a task needs explicit separation between planner/tester/implementer/reviewer roles because it changes behavior, writes or changes acceptance tests, uses multiple agents, is high risk, or the user requires independent review to avoid AI self-confirmation.
 ---
 
 ## Harness Precondition
@@ -17,14 +17,26 @@ Use this skill to prevent one agent context from planning, testing, implementing
 
 ## Trigger Check
 
-Before coding or changing tests, decide whether the current task touches more than one role:
+Before coding or changing tests, decide whether role isolation is required by risk, not ceremony.
+
+Use this workflow when any of these are true:
+
+- The same task writes or changes acceptance tests/contracts and implements the behavior.
+- The task is high risk: public contract, security, permissions, persistence, external API, deployment, data migration, or cross-target coordination.
+- Multiple agents or workers may write or audit related work.
+- The user explicitly asks for independent review or role separation.
+- Prior failures suggest self-confirmation, tests shaped to the implementation, or scope creep.
+
+You may skip or record a lightweight rationale for pure docs, read-only work, trivial-safe-change work, target-specific verification, or existing-test-covered small fixes that do not modify tests.
+
+Roles:
 
 - `Planner`（规划者）：拆任务、定义目标、非目标、成功标准和风险。
 - `Contract/Test Writer`（契约/测试编写者）：先固定可失败的 schema、fixture、probe、test 或 check。
 - `Implementer`（实现者）：只实现满足既有契约的最小改动。
 - `Reviewer/Verifier`（审查/验证者）：用新上下文或独立 pass 审查 diff、失败路径、验证输出和漏测风险。
 
-If two or more roles are involved, apply this workflow. If the project has stricter local rules, follow the stricter rule.
+If the workflow is required, apply it. If the project has stricter local rules, follow the stricter rule.
 
 If a companion workflow already uses subagents, reviewers, or TDD helpers, still apply this workflow when the task matches the trigger. Companion workflows can execute role separation, but they do not replace the local obligation to classify roles, constrain handoffs, and verify independently.
 

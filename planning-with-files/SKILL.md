@@ -1,6 +1,6 @@
 ---
 name: planning-with-files
-description: Use for complex multi-step tasks that need durable file-backed planning and lack an existing project queue, NEXT.md, harness checkpoint, or repository-specific planning system, including when superpowers:writing-plans is unavailable or persistence is needed. Do not use when project queue rules already apply unless explicitly requested.
+description: Use for complex multi-step tasks that need durable file-backed planning, likely span sessions or workers, and lack an existing project queue, NEXT.md, harness checkpoint, or repository-specific planning system. Do not use for fast-path answers, trivial safe changes, or when the user asks for no file changes.
 ---
 
 ## Harness Precondition
@@ -9,7 +9,7 @@ description: Use for complex multi-step tasks that need durable file-backed plan
 
 # Planning with Files
 
-Work like Manus: Use persistent markdown files as your "working memory on disk." This skill is for tasks without an existing repository planning or queue system. If the project already has `NEXT.md`, harness checkpoint files, or explicit queue rules, follow those first unless the user explicitly requests this file-based planning workflow.
+Work like Manus: Use persistent markdown files as your "working memory on disk." This skill is for tasks without an existing repository planning or queue system when durable state is genuinely needed. If the project already has `NEXT.md`, harness checkpoint files, or explicit queue rules, follow those first unless the user explicitly requests this file-based planning workflow. Do not use this workflow for fast-path answers, trivial-safe-change work, or user requests that explicitly prohibit file changes.
 
 ## FIRST: Restore Context
 
@@ -36,13 +36,14 @@ If catchup report shows unsynced context:
 
 ## Quick Start
 
-Before any complex task that lacks an existing `NEXT.md`, harness checkpoint, or repository-specific queue system:
+Before any complex task that lacks an existing `NEXT.md`, harness checkpoint, or repository-specific queue system and is expected to need durable recovery:
 
-1. **Create `task_plan.md`** — Use [templates/task_plan.md](templates/task_plan.md) as reference
-2. **Create `findings.md`** — Use [templates/findings.md](templates/findings.md) as reference
-3. **Create `progress.md`** — Use [templates/progress.md](templates/progress.md) as reference
-4. **Re-read plan before decisions** — Refreshes goals in attention window
-5. **Update after each phase** — Mark complete, log errors
+1. **Create an isolated plan directory** — Prefer `.planning/YYYY-MM-DD-<slug>/` via `scripts/init-session.sh <name>` instead of root-level legacy files.
+2. **Create `task_plan.md`** — Use [templates/task_plan.md](templates/task_plan.md) as reference
+3. **Create `findings.md`** — Use [templates/findings.md](templates/findings.md) as reference
+4. **Create `progress.md`** — Use [templates/progress.md](templates/progress.md) as reference
+5. **Re-read plan before decisions** — Refreshes goals in attention window
+6. **Update after each phase** — Mark complete, log errors
 
 > **Note:** Planning files go in your project root, not the skill installation folder.
 
@@ -156,16 +157,19 @@ If you can answer these, your context management is solid:
 ## When to Use This Pattern
 
 **Use for:**
-- Multi-step tasks (3+ steps)
-- Research tasks
-- Building/creating projects
-- Tasks spanning many tool calls
+- Multi-step tasks that likely span sessions or workers
+- Research tasks whose findings must survive context loss
+- Building/creating projects that lack an existing queue or checkpoint system
+- Tasks spanning many tool calls where durable recovery is required
 - Anything requiring organization and lacking an existing project planning system
 
 **Skip for:**
 - Simple questions
 - Single-file edits
+- Trivial safe changes
 - Quick lookups
+- User requests that explicitly forbid file changes
+- Single-session plans that can be summarized in chat
 - Repositories with `NEXT.md`, harness-engineering queue rules, or another explicit planning/checkpoint workflow, unless the user explicitly asks for this skill
 
 ## Carrier Decision

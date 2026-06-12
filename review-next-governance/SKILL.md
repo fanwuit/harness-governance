@@ -23,14 +23,14 @@ Verification -> Review / Next
 
 以下情况使用本 skill：
 
-- 即将声明任务完成。
-- 刚跑完测试、检查、probe、截图或人工验证。
+- 完整 governed path 即将声明任务完成。
+- 刚跑完测试、检查、probe、截图或人工验证，且结果会影响项目状态。
 - 发现了新的后续工作、风险或阻塞项。
 - 用户问“接下来做什么”“继续”“现在应该做什么”。
 - 需要更新 NEXT scheduler、done archive、backlog、queue、Blocked 或 Not Now。
 - PoC 或 ADR 结论不能只留在聊天里。
 
-如果只是纯问答且没有改变项目状态，可以不更新队列，但仍应说明判断依据。
+如果只是纯问答、只读分析或 trivial-safe-change，且没有改变项目状态、没有 durable follow-up、没有 blocked/not-now 项，可以使用 chat-only closeout：说明判断依据、验证和风险，但不更新队列。
 
 ## 收口流程
 
@@ -47,10 +47,11 @@ Verification -> Review / Next
    - Not Now：明确不进入当前阶段的事项。
 
 3. 更新稳定位置
+   - 对 chat-only closeout（纯问答、只读分析、trivial-safe-change 且无持久后续项），不要为了仪式感创建 NEXT；在最终回复记录完成内容、验证和风险即可。
    - `NEXT.md` 或等价 active queue 只作为 scheduler，保留可执行 `[ready]`，必要时只允许短暂 `[active]`。
    - 已完成事项不要长期留在 `NEXT.md`；复杂 change packet 移到 `docs/changes/archive/<YYYY-MM-DD>-<change-id>/`，并把稳定结论同步回 ADR、schema、verification、README 或项目索引。
    - blocked / not-now 不要混入 ready scheduler；优先写入项目已有 issue、backlog、roadmap，或 `.harness/blocked.md` / `.harness/not-now.md`。
-   - 新发现不要只留在聊天里。
+   - 会影响未来工作的新发现不要只留在聊天里。
    - 如果项目有 doc-map 或文档索引，新增文档后同步登记。
 
 4. 决定是否继续

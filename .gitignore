@@ -8,3 +8,4 @@ build/
 .vite.out
 .vite.err
 generated_images/
+docs/

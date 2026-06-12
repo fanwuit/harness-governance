@@ -23,6 +23,24 @@ test('layer progression maps governed implementation entry into implementation r
   assert.match(readme, /Implementation Entry Record.*mechanical credential/i);
 });
 
+test('entry docs preserve lightweight routing without weakening companion containment', async () => {
+  const agents = await readRepoText('AGENTS.md');
+  const harnessSkill = await readRepoText('harness-engineering/SKILL.md');
+  const readme = await readRepoText('README.md');
+
+  assert.match(agents, /Fast Path/);
+  assert.match(agents, /Trivial Safe Change/);
+  assert.match(agents, /Governed Path/);
+  assert.match(harnessSkill, /fast-path/);
+  assert.match(harnessSkill, /trivial-safe-change/);
+  assert.match(harnessSkill, /governed-path/);
+  assert.match(harnessSkill, /lazy|insufficient|only when/i);
+  assert.match(readme, /check:fast/);
+  assert.match(readme, /check:governance/);
+  assert.match(agents, /companion workflows run only after harness selects the current layer/i);
+  assert.match(harnessSkill, /companion workflows run only after harness selects the current layer/i);
+});
+
 test('dashboard skill delegates implementation to harness visualization by default', async () => {
   const dashboard = await readRepoText('harness-status-dashboard/SKILL.md');
   const readme = await readRepoText('README.md');

@@ -31,11 +31,17 @@ ALLOWED_RISK_FILES = {
 
 REQUIRED_PHRASES = {
     ROOT / "AGENTS.md": [
+        "Fast Path",
+        "Trivial Safe Change",
+        "Governed Path",
         "superpowers:using-superpowers",
         "terminal state",
         "REQUIRED SUB-SKILL",
     ],
     ROOT / "harness-engineering" / "SKILL.md": [
+        "fast-path",
+        "trivial-safe-change",
+        "governed-path",
         "Entry lock",
         "Classify current layer",
         "Transition gate",

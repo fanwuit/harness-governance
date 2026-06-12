@@ -1,6 +1,6 @@
 ---
 name: governed-implementation-entry
-description: Use when Codex is about to write or modify product code, create a new app/package/service, enter implementation after brief/contract/readiness work, or treat a task as small/simple/obvious while it still changes product behavior.
+description: Use when Codex is about to write or modify product behavior, create a new app/package/service, enter implementation after brief/contract/readiness work, or classify a low-risk edit as a trivial safe change before implementation.
 ---
 
 # Governed Implementation Entry
@@ -11,7 +11,7 @@ description: Use when Codex is about to write or modify product code, create a n
 
 ## Overview
 
-Use this as a hard entry gate before product implementation. Smallness is not evidence of safety; only an explicit throwaway-prototype scope can reduce governance, and the exception itself must be recorded.
+Use this as a hard entry gate before product implementation. Smallness is not evidence of safety, but a strictly bounded `Trivial Safe Change Entry` can reduce ceremony for low-risk edits that do not change product behavior or public contracts.
 
 ## Hard Gate
 
@@ -48,11 +48,30 @@ If any field is missing, vague, or only implied by chat history, stop before imp
 | Review / Next state file | `NEXT.md` or the project's equivalent persistent state. |
 | Stop conditions | Conditions that require stopping instead of expanding scope. |
 
-## Small Task Rule
+## Trivial Safe Change Rule
 
-Small, static, local, single-file, no-dependency, obvious, or demo-like work does not bypass this skill.
+Small, static, local, single-file, no-dependency, obvious, or demo-like work does not automatically bypass governance. It may use a `Trivial Safe Change Entry` only when all of these are true:
 
-Only an explicit user request for a throwaway prototype may reduce the gate. If reduced, record:
+- One target, with no cross-target coordination.
+- No public API, schema, contract, config format, dependency, build, deployment, security, permission, authentication, authorization, persistence, network, or external API change.
+- No new behavior contract or acceptance test is being authored by the implementer.
+- Verification is clear and can be run before any completion claim.
+
+The entry must include every field below:
+
+```text
+Trivial Safe Change Entry:
+- Target:
+- Scope:
+- Why trivial:
+- Existing contract or reason not needed:
+- Verification:
+- Stop conditions:
+```
+
+Upgrade to the full Implementation Entry Record as soon as behavior, contract, risk, uncertainty, or scope expands.
+
+Only an explicit user request for a throwaway prototype may reduce the gate further. If reduced, record:
 
 - `Prototype exception: yes`
 - What is skipped
@@ -71,7 +90,7 @@ Silently skipping packetization is forbidden.
 
 ## Review / Next Rule
 
-Before claiming completion, ensure the result is written to `NEXT.md` or the project's equivalent state file.
+Before claiming completion for full governed implementation, ensure the result is written to `NEXT.md` or the project's equivalent state file.
 
 Record:
 
@@ -81,7 +100,7 @@ Record:
 - Not-now scope
 - Next ready layer or next ready task
 
-If no state file exists, create one or record why the project intentionally has no persistent queue yet.
+For a `Trivial Safe Change Entry`, chat-only closeout is allowed when there are no durable follow-ups, blocked items, or project-state changes. The final response must still record the verification result and remaining risk. If no state file exists for governed implementation, create one or record why the project intentionally has no persistent queue yet.
 
 ## Reverse Audit
 
@@ -98,7 +117,7 @@ If any answer is no, do not claim completion.
 
 ## Mechanical Check
 
-Use `scripts/check-entry-record.mjs <markdown-file>` to check that a Markdown record contains the required Implementation Entry Record fields.
+Use `scripts/check-entry-record.mjs <markdown-file>` to check that a Markdown record contains either the required Implementation Entry Record fields or the required Trivial Safe Change Entry fields.
 
 The script is a backstop only. Passing it does not prove the gate is correct; it proves required fields are present and non-empty.
 

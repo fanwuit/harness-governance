@@ -11,9 +11,15 @@
 
 ## 核心链路
 
-`harness-engineering` 是开发、规划、实现、调试、TDD、验证、review、队列、handoff、skill 更新、新项目、creative work 和继续/下一步请求的优先入口锁与层级路由。它先判断本地治理层级和义务，再决定是否使用 companion workflow。任何 `superpowers:*`、`superpowers:using-superpowers` 或其他 companion workflow 看起来适用时，都不能越过 `skill-use-transparency` 和 `harness-engineering`。
+入口先做分级，避免把所有请求都升级成完整治理流程：
 
-当前 harness 入口按硬状态机执行：
+- **Fast Path**：纯问答、只读解释、简单定位、用户明确只要建议/计划且不修改文件；不加载完整治理 workflow，不创建计划文件，不更新 NEXT，不声明完成实现。
+- **Trivial Safe Change**：单 target、无公共契约/依赖/安全/持久化/构建发布变化、有明确验证命令的小修；使用短 entry summary 或 `Trivial Safe Change Entry`。
+- **Governed Path**：开发、规划、实现、调试、TDD、验证、review、队列、handoff、skill 更新、新项目、creative work、继续/下一步、产品行为变化、跨模块或高风险请求；先选择并读取 `skill-use-transparency` 和 `harness-engineering`。
+
+`harness-engineering` 是 governed path 的优先入口锁与层级路由。它先判断本地治理层级和义务，再决定是否使用 companion workflow。任何 `superpowers:*`、`superpowers:using-superpowers` 或其他 companion workflow 看起来适用时，都不能越过 governed path 的本地入口路由。
+
+当前 governed harness 入口按硬状态机执行：
 
 ```text
 Entry lock
@@ -25,7 +31,7 @@ Entry lock
  -> Review / Next
 ```
 
-companion workflow 只能作为能力插件。其 `MUST`、terminal state、`REQUIRED SUB-SKILL`、next-skill transition、默认 artifact 路径或 commit 要求，都必须先翻译成 harness 下一层候选，不能直接执行。
+companion workflow 只能作为能力插件。其 `MUST`、terminal state、`REQUIRED SUB-SKILL`、next-skill transition、默认 artifact 路径或 commit 要求，都必须先翻译成 harness 下一层候选，不能直接执行。reference 默认懒加载：只有层级不明确、涉及 queue/continue/next、change packet、planning carrier、superpowers 重叠或严格治理审计时才读取详细 reference。
 
 `harness-engineering` 定义了主要工程层级：
 
@@ -59,10 +65,10 @@ Idea
 | 契约优先 | `contract-first-development` | 在实现前固定 schema、example、fixture、probe、check、失败路径和验证命令；把 red / green / refactor 映射为 Contract -> Implementation -> Verification 的本地 TDD contract cycle。 | 是 |
 | 契约膨胀控制 | `contract-growth-control` | 防止一直补 ADR/schema/check/readiness 而不进入最小实现切片。 | 是 |
 | 实现细节时机 | `implementation-detail-timing` | 判断类名、模块名、字段、表、迁移、依赖规则等应在哪个层级固定。 | 是 |
-| 实现入口 | `governed-implementation-entry` | 在写实现代码前记录 Implementation Entry Record；它是进入 product implementation 的 mechanical credential，固定当前层级、target、scope、contract evidence、readiness、packetization、verification、Review / Next 和 stop conditions。 | 是 |
+| 实现入口 | `governed-implementation-entry` | 在写产品行为实现前记录 Implementation Entry Record，它仍是进入 product implementation 的 mechanical credential；低风险小修可使用 Trivial Safe Change Entry，固定 target、scope、trivial reason、验证和 stop conditions。 | 是 |
 | 实现准入 | `implementation-readiness-gate` | 进入 target 实现前检查架构、ADR、contract、lint、测试 baseline、验证命令和本地 agent 规则。 | 是 |
-| 角色隔离 | `agent-role-isolation` | 分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier，降低自测自收和范围膨胀风险；并行工作必须先有 execution matrix 和 Integrator 审计边界。 | 是 |
-| 验证收口 | `review-next-governance` | 完成后更新 NEXT scheduler、done archive、backlog、blocked/not-now，记录 completion evidence、review feedback、branch finish 边界、剩余风险和下一步。 | 是 |
+| 角色隔离 | `agent-role-isolation` | 对高风险、改测试又改实现、多 agent 或用户要求独立审查的任务分离 Planner、Contract/Test Writer、Implementer、Reviewer/Verifier；trivial-safe-change 可记录轻量跳过理由。 | 是 |
+| 验证收口 | `review-next-governance` | 完整 governed work 完成后更新 NEXT scheduler、done archive、backlog、blocked/not-now；纯问答、只读分析和 trivial-safe-change 且无持久后续项时允许 chat-only closeout。 | 是 |
 | 自治执行 | `autonomous-ready-loop` | 用外部 runner 反复启动短 `codex exec` worker，按 ready 队列推进并写 checkpoint。 | 是 |
 | 状态仪表 | `harness-status-dashboard` | 汇总 scheduler ready、done archive、target、contract、runner marker、验证新鲜度、漂移和是否需要人工输入；dashboard 负责解释/诊断，不默认复制 report 脚本。 | 是 |
 | 可视化状态 | `harness-visualization` | 默认实现：从 NEXT scheduler、done archive、change packet、checkpoint 和 invocation log 生成只读 text/markdown dashboard、CLI 紧凑面板与 JSON 状态，展示 layer、ready、archive、task packet checklist、runner 和 verification。 | 是 |
@@ -70,7 +76,7 @@ Idea
 | 错误沉淀 | `agent-mistake-guard` | 把重复 agent 错误沉淀为短小 guardrail，必要时升级成机械检查。 | 是 |
 | 代码质量漂移 | `code-quality-drift-guard` | 检查孤儿脚本、孤儿 wrapper、命名漂移、重复 helper、文件膨胀和未引用候选。 | 是 |
 | 文档注释规范 | `doc-comment-policy` | 标准化类、接口、方法、函数、参数和返回值的语言原生 doc comment，避免“功能/入参/出参”模板破坏生成文档。 | 是 |
-| 文件化计划 | `planning-with-files` | 用 `task_plan.md`、`findings.md`、`progress.md` 做持久计划、进度记录和上下文恢复；与 queue、change packet、execution prompt pack、task packet 之间通过 carrier decision 防止多套 source of truth。 | 是 |
+| 文件化计划 | `planning-with-files` | 仅在复杂任务需要 durable recovery、跨会话或多 worker 且缺少现有队列时，用 `task_plan.md`、`findings.md`、`progress.md` 做持久计划；fast-path、trivial-safe-change 或用户禁止写文件时不触发。 | 是 |
 | 执行提示词编写 | `execution-prompt-authoring` | 把已确认的计划、gate、队列项或 change packet 转成可审计的 controller、worker、subagent audit 和 integrator prompt pack，并提供 parallel execution matrix。 | 是 |
 | Skill 透明度 | `skill-use-transparency` | 要求说明选择了哪个 skill、为什么触发、是否成功读取 `SKILL.md`、是否完整执行。 | 是 |
 | 代码库导览 | `codebase-orientation` | 给陌生仓库快速梳理模块、入口、运行/测试命令和安全入门任务。 | 是 |
@@ -117,8 +123,9 @@ runner 的 `VerificationCommand` 只能使用受控 preset 名称，例如 `rout
 
 - `scripts/check-entry-record.mjs`
 - `tests/check-entry-record.test.mjs`
+- `tests/fixtures/valid-entry-record.md`
 
-该脚本只检查 Implementation Entry Record 的必需字段是否存在且非空，并确认 readiness / packetization 字段包含允许值；它不证明 gate 内容正确。
+该脚本只检查 Implementation Entry Record 或 Trivial Safe Change Entry 的必需字段是否存在且非空，并确认完整 entry 的 readiness / packetization 字段包含允许值；它不证明 gate 内容正确。
 
 ### `implementation-readiness-gate`
 
@@ -198,6 +205,13 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 
 提示词入口支持 `$harness-visualization init`：初始化目标项目 status config，刷新 `.harness/status.md` / `.harness/status.json`，并报告缺失状态源。
 
+### 审计与整改归档
+
+历史审计和整改记录默认不放在根目录，避免污染入口搜索和 `git status`：
+
+- `docs/audits/`：历史审计报告。
+- `docs/remediation/`：整改记录和剩余项。
+
 ### 根目录检查入口
 
 提供统一 npm scripts：
@@ -206,15 +220,17 @@ change packet 模板用于初始化原生 `docs/changes/<id>/`，包含 `proposa
 - `npm run check:routing`
 - `npm run check:packets`
 - `npm run check:entry-record`
+- `npm run check:fast`
+- `npm run check:governance`
 - `npm run check:all`
 
-`check:all` 串联 routing guardrail、Node test suites、change packet 检查和本轮 Implementation Entry Record 检查。仓库仍不引入 npm 依赖，脚本只使用 Node.js、Python 和 PowerShell。
+`check:fast` 用于日常小改，串联 routing guardrail 和关键治理测试；`check:governance` 用于入口、harness、entry、planning 等治理规则改动；`check:all` 串联 routing guardrail、全部 Node test suites、change packet 检查和稳定 Implementation Entry Record fixture 检查。仓库仍不引入 npm 依赖，脚本只使用 Node.js、Python 和 PowerShell。
 
 ## 使用建议
 
-- 每次处理开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求时，先用 `harness-engineering` 做入口路由。
-- 新想法或范围不清时，由 `harness-engineering` 先路由到当前层，再进入 `brainstorm-to-brief` 等本地 skill。
-- 任何 `superpowers:*` 或其他 companion workflow 看起来适用时，先选择并读取 `harness-engineering`；`superpowers:using-superpowers` 即使声明 starting any conversation / before ANY response，也不能早于 harness 入口。
+- 先做入口分级：纯问答、只读解释、简单定位走 Fast Path；低风险小修走 Trivial Safe Change；开发、规划、实现、调试、验证、review、队列、handoff、skill 更新、新项目和继续/下一步请求走 Governed Path。
+- Governed Path 先用 `harness-engineering` 做入口路由；新想法或范围不清时，由 `harness-engineering` 先路由到当前层，再进入 `brainstorm-to-brief` 等本地 skill。
+- 任何 `superpowers:*` 或其他 companion workflow 看起来适用时，governed path 先选择并读取 `harness-engineering`；`superpowers:using-superpowers` 即使声明 starting any conversation / before ANY response，也不能早于 harness 入口。
 - companion workflow 的 terminal state、`REQUIRED SUB-SKILL`、默认写文件/commit/next-skill 要求，只能作为 harness transition gate 的候选输入。
 - 行为未知时，先用 `observable-fact-discovery` 固定事实。
 - 涉及多个组件或边界时，进入 `architecture-boundary-design`，必要时再写 `adr-writing`。
