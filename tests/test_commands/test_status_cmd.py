@@ -1,0 +1,70 @@
+"""Tests for ``harness status``."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from click.testing import CliRunner
+
+from harness_governance.cli import cli
+from harness_governance.commands.status import build_status, format_markdown
+
+
+def test_status_empty_repo(tmp_repo: Path) -> None:
+    payload = build_status(tmp_repo)
+    assert payload["currentLayer"] == "unknown"
+    assert payload["queueSummary"]["total"] == 0
+    assert any("Queue file not found" in w for w in payload["warnings"])
+
+
+def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement scaffold\n- Layer: implementation\n- Change: scaffold-cli\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "scaffold-cli"])
+    payload = build_status(tmp_repo)
+    assert payload["currentLayer"] == "implementation"
+    assert payload["queueSummary"]["active"] == 1
+    assert any(p["change_id"] == "scaffold-cli" for p in payload["packets"])
+
+
+def test_status_refresh_writes_files(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "status",
+            "--refresh",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_repo / ".harness" / "status.md").is_file()
+    assert (tmp_repo / ".harness" / "status.json").is_file()
+
+
+def test_status_markdown_includes_timeline(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Draft ADR\n- Layer: adr\n", encoding="utf-8"
+    )
+    payload = build_status(tmp_repo)
+    md = format_markdown(payload)
+    assert "Harness:" in md
+    assert "[adr]" in md  # current layer bracket
+    assert "Scheduler Queue" in md
+
+
+def test_status_cli_json(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "--json", "status"],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert "queueSummary" in payload
+    assert "verification" in payload

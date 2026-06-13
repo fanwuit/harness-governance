@@ -101,9 +101,14 @@ def has_entry_record_header(block: str) -> bool:
 
 
 def render_entry_record(record: EntryRecord) -> str:
-    """Render an :class:`EntryRecord` as a Markdown block."""
+    """Render an :class:`EntryRecord` as a Markdown block.
+
+    Output matches the canonical heading style and field labels used by
+    the bundled fixture and the legacy ``check-entry-record.mjs``
+    validator (notably ``Review / Next state file`` with spaces).
+    """
     lines = [
-        "## Implementation Entry Record",
+        "Implementation Entry Record:",
         f"- Current layer: {record.current_layer.value}",
         f"- Target: {record.target}",
         f"- Scope: {record.scope}",
@@ -111,7 +116,7 @@ def render_entry_record(record: EntryRecord) -> str:
         f"- Readiness gate: {record.readiness_gate}",
         f"- Packetization: {record.packetization}",
         f"- Verification command: {record.verification_command}",
-        f"- Review/Next state file: {record.review_next_state}",
+        f"- Review / Next state file: {record.review_next_state}",
         f"- Stop conditions: {record.stop_conditions}",
     ]
     return "\n".join(lines)

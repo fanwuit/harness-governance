@@ -1,13 +1,18 @@
 """harness CLI entry point.
 
-Wires the :mod:`click` groups together. Phase A ships three subcommands:
+Wires the :mod:`click` groups together. Phase B ships:
 
 * ``harness init``
 * ``harness governed-start``
 * ``harness packet {init,check}``
-
-Phase B will add ``entry``, ``plan``, ``check``, ``status``, ``verify``,
-``review``, ``config``, and ``runner`` groups.
+* ``harness entry {check,record}``
+* ``harness plan {init,attest,show,clear,complete}``
+* ``harness check {routing,packets,entry,inventory,all}``
+* ``harness status``
+* ``harness verify <preset>``
+* ``harness review close``
+* ``harness config init``
+* ``harness runner start``
 """
 
 from __future__ import annotations
@@ -18,9 +23,17 @@ from pathlib import Path
 import click
 
 from . import __version__
+from .commands.check import check_group
+from .commands.config_cmd import config_group
+from .commands.entry import entry_group
 from .commands.governed_start import governed_start_cmd
 from .commands.init import init_cmd
 from .commands.packet import packet_group
+from .commands.plan import plan_group
+from .commands.review import review_group
+from .commands.runner import runner_group
+from .commands.status import status_cmd
+from .commands.verify import verify_cmd
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -44,6 +57,14 @@ def cli(ctx: click.Context, project_root: Path | None, json_output: bool) -> Non
 cli.add_command(init_cmd)
 cli.add_command(governed_start_cmd)
 cli.add_command(packet_group)
+cli.add_command(entry_group)
+cli.add_command(plan_group)
+cli.add_command(check_group)
+cli.add_command(status_cmd)
+cli.add_command(verify_cmd)
+cli.add_command(review_group)
+cli.add_command(config_group)
+cli.add_command(runner_group)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -54,8 +75,6 @@ def main(argv: list[str] | None = None) -> int:
         return int(exc.exit_code)
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 1
-    # ``click.main(standalone_mode=False)`` swallows Exit and returns the
-    # exit code, so honor that here.
     return int(result) if result else 0
 
 

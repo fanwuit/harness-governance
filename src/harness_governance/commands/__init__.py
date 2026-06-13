@@ -1,9 +1,53 @@
 """Public re-exports for the commands subpackage."""
 
-from . import governed_start, init, packet
+from . import (
+    check,
+    config_cmd,
+    entry,
+    governed_start,
+    init,
+    packet,
+    plan,
+    review,
+    runner,
+    status,
+    verify,
+)
+from .check import (
+    check_all_cmd,
+    check_entry,
+    check_entry_cmd,
+    check_group,
+    check_inventory,
+    check_inventory_cmd,
+    check_packets,
+    check_packets_cmd,
+    check_routing,
+    check_routing_cmd,
+)
+from .config_cmd import config_group, config_init_cmd
+from .entry import (
+    check_file as check_entry_file,
+    discover_entry_files,
+    entry_check_cmd,
+    entry_group,
+    entry_record_cmd,
+)
 from .governed_start import governed_start_cmd
 from .init import InitResult, detect_platform, init_cmd, write_skill_file
 from .packet import packet_check_cmd, packet_group, packet_init_cmd
+from .plan import (
+    plan_attest_cmd,
+    plan_clear_cmd,
+    plan_complete_cmd,
+    plan_group,
+    plan_init_cmd,
+    plan_show_cmd,
+)
+from .review import review_close_cmd, review_group
+from .runner import runner_group, runner_start_cmd
+from .status import build_status, format_markdown, format_text, status_cmd
+from .verify import verify_cmd
 
 __all__ = [
     "init_cmd",
@@ -14,7 +58,47 @@ __all__ = [
     "packet_group",
     "packet_init_cmd",
     "packet_check_cmd",
-    "init",
+    "entry_group",
+    "entry_check_cmd",
+    "entry_record_cmd",
+    "check_entry_file",
+    "discover_entry_files",
+    "plan_group",
+    "plan_init_cmd",
+    "plan_attest_cmd",
+    "plan_show_cmd",
+    "plan_clear_cmd",
+    "plan_complete_cmd",
+    "check_group",
+    "check_routing_cmd",
+    "check_packets_cmd",
+    "check_entry_cmd",
+    "check_inventory_cmd",
+    "check_all_cmd",
+    "check_routing",
+    "check_packets",
+    "check_entry",
+    "check_inventory",
+    "status_cmd",
+    "build_status",
+    "format_text",
+    "format_markdown",
+    "verify_cmd",
+    "review_group",
+    "review_close_cmd",
+    "config_group",
+    "config_init_cmd",
+    "runner_group",
+    "runner_start_cmd",
+    "check",
+    "config_cmd",
+    "entry",
     "governed_start",
+    "init",
     "packet",
+    "plan",
+    "review",
+    "runner",
+    "status",
+    "verify",
 ]
