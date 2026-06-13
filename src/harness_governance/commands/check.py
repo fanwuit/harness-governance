@@ -15,6 +15,7 @@ import click
 from ..commands.entry import check_file as check_entry_file
 from ..commands.entry import discover_entry_files
 from ..file_ops import packet as packet_ops
+from ..messages import bilingual
 from ..models.schemas import CheckFinding, CheckResult
 from ..state_machine.engine import (
     StateMachineEngine,
@@ -55,13 +56,14 @@ def check_routing(repo_root: Path) -> CheckResult:
     skills = _find_enabled_skills(repo_root)
     for path in skills:
         text = path.read_text(encoding="utf-8")
+        rel = str(path.relative_to(repo_root))
         if _HARNESS_PRECONDITION not in text:
             findings.append(
                 CheckFinding(
                     check="routing",
-                    target=str(path.relative_to(repo_root)),
+                    target=rel,
                     level="error",
-                    message=f"missing {_HARNESS_PRECONDITION}",
+                    message=bilingual("check.missing_precondition", path=rel),
                 )
             )
         for term in _CANONICAL_LAYER_TERMS:
@@ -69,18 +71,18 @@ def check_routing(repo_root: Path) -> CheckResult:
                 findings.append(
                     CheckFinding(
                         check="routing",
-                        target=str(path.relative_to(repo_root)),
+                        target=rel,
                         level="warning",
-                        message=f"missing canonical layer term: {term}",
+                        message=bilingual("check.missing_layer_term", path=rel, term=term),
                     )
                 )
         if _OLD_CHAIN.search(text) and "简化视图" not in text:
             findings.append(
                 CheckFinding(
                     check="routing",
-                    target=str(path.relative_to(repo_root)),
+                    target=rel,
                     level="warning",
-                    message="old layer chain without 简化视图 marker",
+                    message=bilingual("check.old_chain_without_marker", path=rel),
                 )
             )
 
@@ -97,7 +99,7 @@ def check_routing(repo_root: Path) -> CheckResult:
                 check="routing",
                 target="state-machine",
                 level="error",
-                message="state machine allowed idea → implementation without readiness",
+                message=bilingual("check.state_machine_bypass"),
             )
         )
 
@@ -156,7 +158,7 @@ def check_inventory(repo_root: Path) -> CheckResult:
                     check="inventory",
                     target="README.md",
                     level="error",
-                    message="README.md not found",
+                    message=bilingual("check.inventory_no_readme"),
                 ),
             ),
         )
@@ -177,7 +179,7 @@ def check_inventory(repo_root: Path) -> CheckResult:
                     check="inventory",
                     target="README.md",
                     level="error",
-                    message=f"declared count {declared}, on-disk count {len(enabled)}",
+                    message=bilingual("check.inventory_count_drift", declared=declared, actual=len(enabled)),
                 )
             )
 
@@ -189,7 +191,7 @@ def check_inventory(repo_root: Path) -> CheckResult:
                     check="inventory",
                     target="README.md",
                     level="warning",
-                    message=f"missing enabled skill: {skill}",
+                    message=bilingual("check.inventory_missing_skill", skill=skill),
                 )
             )
     for skill in table_skills:
@@ -199,7 +201,7 @@ def check_inventory(repo_root: Path) -> CheckResult:
                     check="inventory",
                     target="README.md",
                     level="warning",
-                    message=f"lists missing/disabled skill: {skill}",
+                    message=bilingual("check.inventory_extra_skill", skill=skill),
                 )
             )
 
@@ -242,11 +244,11 @@ def _emit(ctx: click.Context, result: CheckResult) -> None:
         return
     if result.passed:
         if result.inspected:
-            click.echo(f"{result.check} check passed: {result.inspected} item(s).")
+            click.echo(bilingual("check.passed_with_count", check=result.check, n=result.inspected))
         else:
-            click.echo(f"{result.check} check passed.")
+            click.echo(bilingual("check.passed", check=result.check))
         return
-    click.echo(f"{result.check} check failed:")
+    click.echo(bilingual("check.failed_header", check=result.check))
     for finding in result.findings:
         click.echo(f"- [{finding.level}] {finding.target}: {finding.message}")
     raise click.exceptions.Exit(code=1)

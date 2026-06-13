@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from ..file_ops.checkpoint import Checkpoint
+from ..messages import bilingual
 
 
 @click.group("review")
@@ -91,7 +92,7 @@ def review_close_cmd(
         cp.next_resume_source = next_resume
 
     cp.dump(target)
-    click.echo(f"Recorded review/next state for {task_id} in {target}")
+    click.echo(bilingual("review.recorded", task_id=task_id, path=str(target)))
 
 
 __all__ = ["review_group", "review_close_cmd"]

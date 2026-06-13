@@ -44,12 +44,23 @@ PLATFORM_SKILL_PATHS: dict[str, Path] = {
     "claude-code": Path(".claude/skills/harness-governance/SKILL.md"),
     "codex": Path(".codex/skills/harness-governance/SKILL.md"),
     "cline": Path(".clinerules/harness-governance.md"),
+    "cursor": Path(".cursor/rules/harness-governance.md"),
     "generic": Path("AGENTS.md"),
 }
 
+# Detection priority: first match wins.
 PLATFORM_HINTS: tuple[tuple[str, str], ...] = (
     (".claude", "claude-code"),
     (".codex", "codex"),
     (".clinerules", "cline"),
+    (".cursor", "cursor"),
     ("AGENTS.md", "generic"),
+)
+
+# Env vars that hint at a specific platform regardless of repo dotfiles.
+ENV_HINTS: tuple[tuple[str, str], ...] = (
+    ("CLAUDE_CODE", "claude-code"),
+    ("CODEX_HOME", "codex"),
+    ("CLINE_SESSION", "cline"),
+    ("CURSOR_TRACE_ID", "cursor"),
 )

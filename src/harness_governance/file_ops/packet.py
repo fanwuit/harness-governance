@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Iterable
 
 from ..config.defaults import ALLOWED_PACKET_STATUSES, REQUIRED_PACKET_FILES
+from ..messages import bilingual
 from ..models.schemas import ChangePacketInitResult, ChangePacketSummary
+from ._cache import PACKET_CACHE, file_cache
 from ._util import assert_inside, validate_change_id
 
 _TEMPLATES_PACKAGE = "harness_governance.data.templates.change-packet"
@@ -102,8 +104,10 @@ def init_packet(
 
     if target.exists() and not force and any(target.iterdir()):
         raise FileExistsError(
-            f"Change packet already exists: {target.relative_to(root_abs)} "
-            "(use --force to fill missing files)."
+            bilingual(
+                "packet.exists",
+                path=str(target.relative_to(root_abs)),
+            )
         )
 
     target.mkdir(parents=True, exist_ok=True)
@@ -131,8 +135,14 @@ def discover_packets(project_root: Path) -> list[Path]:
     """Return all packet directories under ``docs/changes/``.
 
     Live packets and ``archive/*`` are both returned; the caller decides
-    which to inspect.
+    which to inspect. Result is cached at the function level and
+    invalidated when ``docs/changes/`` mtime changes.
     """
+    return _discover_packets_cached(project_root)
+
+
+@file_cache
+def _discover_packets_cached(project_root: Path) -> list[Path]:
     changes_root = (project_root / "docs" / "changes").resolve()
     if not changes_root.is_dir():
         return []
@@ -166,7 +176,7 @@ def resolve_packet_path(project_root: Path, target: str) -> Path:
     if packet_candidate.is_dir():
         return packet_candidate
 
-    raise FileNotFoundError(f"Change packet not found: {target}")
+    raise FileNotFoundError(bilingual("packet.not_found", target=target))
 
 
 def check_packet(
@@ -181,11 +191,15 @@ def check_packet(
     produce a dashboard row even when the packet is invalid.
     """
     errors: list[str] = []
+    label = _rel(packet_dir_path, project_root)
     if not packet_dir_path.exists():
-        return ([f"{packet_dir_path} does not exist."], _empty_summary(packet_dir_path))
+        return (
+            [bilingual("packet.label_does_not_exist", label=label)],
+            _empty_summary(packet_dir_path),
+        )
     if not packet_dir_path.is_dir():
         return (
-            [f"{packet_dir_path} is not a directory."],
+            [bilingual("packet.label_not_a_dir", label=label)],
             _empty_summary(packet_dir_path),
         )
 
@@ -193,14 +207,13 @@ def check_packet(
     for filename in REQUIRED_PACKET_FILES:
         file_path = packet_dir_path / filename
         if not file_path.exists():
-            errors.append(f"{_rel(packet_dir_path, project_root)} missing {filename}.")
+            errors.append(bilingual("packet.label_missing_file", label=label, filename=filename))
             continue
         texts[filename] = file_path.read_text(encoding="utf-8")
 
-    label = _rel(packet_dir_path, project_root)
     tasks_text = texts.get("tasks.md", "")
     if tasks_text and not _CHECKBOX_RE.search(tasks_text):
-        errors.append(f"{label}/tasks.md must contain at least one checkbox checklist item.")
+        errors.append(bilingual("packet.label_missing_checkbox", label=label))
 
     status_value = "draft"
     for filename, text in texts.items():
@@ -208,30 +221,27 @@ def check_packet(
             value = match.group(1).lower()
             if value not in ALLOWED_PACKET_STATUSES:
                 errors.append(
-                    f"{label}/{filename} has invalid status '{match.group(1)}'. "
-                    "Use draft/ready/active/blocked/done/archived."
+                    bilingual(
+                        "packet.label_invalid_status",
+                        label=label,
+                        filename=filename,
+                        value=match.group(1),
+                    )
                 )
             else:
                 status_value = value
 
     contracts_text = texts.get("contracts.md", "")
     if contracts_text and not _has_contract_artifact(contracts_text) and not _has_blocked_reason(contracts_text):
-        errors.append(
-            f"{label}/contracts.md must declare a contract artifact or an explicit blocked reason."
-        )
+        errors.append(bilingual("packet.label_missing_contract_artifact", label=label))
 
     verification_text = texts.get("verification.md", "")
     if verification_text and not _has_verification_evidence(verification_text):
-        errors.append(
-            f"{label}/verification.md must record verification commands, results, or an unable-to-verify reason."
-        )
+        errors.append(bilingual("packet.label_missing_verification", label=label))
 
     combined = "\n".join(texts.values())
     if _is_archived(packet_dir_path, combined, project_root) and not _has_archive_backlink(combined):
-        errors.append(
-            f"{label}: Archived packet must link stable conclusions back to ADR, README, "
-            "contract, verification, queue, or project index."
-        )
+        errors.append(bilingual("packet.label_archived_no_backlink", label=label))
 
     summary = ChangePacketSummary(
         change_id=packet_dir_path.name,

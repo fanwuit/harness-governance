@@ -7,14 +7,16 @@ re-running without ``--force`` is a no-op.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 
 import click
 
-from ..config.defaults import PLATFORM_HINTS, PLATFORM_SKILL_PATHS
+from ..config.defaults import ENV_HINTS, PLATFORM_HINTS, PLATFORM_SKILL_PATHS
 from ..config.settings import write_default_config
+from ..messages import bilingual
 
 _SKILLS_PACKAGE = "harness_governance.data.skills"
 
@@ -30,8 +32,19 @@ class InitResult:
     notes: tuple[str, ...] = ()
 
 
-def detect_platform(project_root: Path) -> str:
-    """Best-effort platform detection based on existing dotfiles."""
+def detect_platform(project_root: Path, *, env: dict[str, str] | None = None) -> str:
+    """Best-effort platform detection.
+
+    Lookup order:
+
+    1. Environment variables in :data:`ENV_HINTS` (env wins over dotfiles).
+    2. Repo dotfiles in :data:`PLATFORM_HINTS`.
+    3. Fallback to ``claude-code``.
+    """
+    env_vars = env if env is not None else os.environ
+    for var, platform in ENV_HINTS:
+        if env_vars.get(var):
+            return platform
     for hint, platform in PLATFORM_HINTS:
         if (project_root / hint).exists():
             return platform
@@ -75,15 +88,26 @@ def write_skill_file(project_root: Path, platform: str) -> Path:
     default=False,
     help="Only write .harness/config.toml; skip the per-platform skill adapter.",
 )
+@click.option(
+    "--no-detect",
+    is_flag=True,
+    default=False,
+    help="Skip auto-detection; require --platform to be set explicitly.",
+)
 @click.pass_context
 def init_cmd(
     ctx: click.Context,
     platform: str | None,
     force: bool,
     skip_skill: bool,
+    no_detect: bool,
 ) -> None:
     """Initialize harness governance in the current project."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd()).resolve()
+    if no_detect and not platform:
+        raise click.UsageError(
+            "--no-detect requires --platform to be set explicitly."
+        )
     detected = platform or detect_platform(project_root)
 
     config_path = write_default_config(project_root, agent_platform=detected, force=force)
@@ -93,10 +117,10 @@ def init_cmd(
     if not skip_skill:
         existing = (project_root / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])).resolve()
         if existing.exists() and not force:
-            notes.append(f"Skill file already exists at {existing}; use --force to overwrite.")
+            notes.append(bilingual("init.skill_exists", path=str(existing)))
         else:
             skill_path = write_skill_file(project_root, detected)
-            notes.append(f"Wrote skill file: {skill_path}")
+            notes.append(bilingual("init.skill_created", path=str(skill_path)))
 
     result = InitResult(
         project_root=project_root,
@@ -123,16 +147,16 @@ def init_cmd(
         )
         return
 
-    click.echo(f"Detected: {result.detected_platform}")
+    click.echo(bilingual("init.detected", platform=result.detected_platform))
     if result.config_path:
-        click.echo(f"Created: {result.config_path}")
+        click.echo(bilingual("init.config_created", path=str(result.config_path)))
     if result.skill_path:
-        click.echo(f"Created: {result.skill_path}")
+        click.echo(bilingual("init.skill_created", path=str(result.skill_path)))
     for note in result.notes:
         if note.startswith("Detected platform"):
             continue
         click.echo(f"Note: {note}")
-    click.echo("Done. Your agent will now use harness governance for engineering work.")
+    click.echo(bilingual("init.done"))
 
 
 __all__ = ["init_cmd", "detect_platform", "write_skill_file", "InitResult"]

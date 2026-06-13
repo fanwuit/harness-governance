@@ -10,6 +10,7 @@ from pathlib import Path
 
 import click
 
+from ..messages import bilingual
 from ..models.schemas import RoutingInput, RoutingResult
 from ..state_machine.classification import classify, RoutingPath
 from ..state_machine.layers import HarnessLayer
@@ -17,17 +18,10 @@ from ..state_machine.layers import HarnessLayer
 
 def _build_recommendation(path: RoutingPath) -> str:
     if path is RoutingPath.FAST_PATH:
-        return "Answer the question directly; no harness command needed."
+        return "governed_start.recommendation.fast"
     if path is RoutingPath.TRIVIAL_SAFE_CHANGE:
-        return (
-            "Write a short Trivial Safe Change Entry, run the verification "
-            "command, then `harness review close <task-id>`."
-        )
-    return (
-        "Load `skill-use-transparency` and `harness-engineering`, then "
-        "`harness packet init <change-id>` when the work spans more than "
-        "one layer."
-    )
+        return "governed_start.recommendation.trivial"
+    return "governed_start.recommendation.governed"
 
 
 def _evaluate(input_model: RoutingInput) -> RoutingResult:
@@ -39,14 +33,14 @@ def _evaluate(input_model: RoutingInput) -> RoutingResult:
         is_unclear_or_high_risk=input_model.is_unclear_or_high_risk,
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
-    recommendation = _build_recommendation(decision.path)
+    rec_key = _build_recommendation(decision.path)
     return RoutingResult(
         path=decision.path,
         rationale=decision.rationale,
         current_layer=decision.current_layer,
         primary_skill=decision.primary_skill,
         disclosure=disclosure,
-        recommended_next_command=recommendation,
+        recommended_next_command=bilingual(rec_key),
     )
 
 
@@ -120,17 +114,17 @@ def governed_start_cmd(
         )
         return
 
-    click.echo(f"Routing: {result.path.value}")
-    click.echo(f"Rationale: {result.rationale}")
+    click.echo(bilingual("governed_start.routing", path=result.path.value))
+    click.echo(bilingual("governed_start.rationale", text=result.rationale))
     if result.current_layer:
-        click.echo(f"Current layer: {result.current_layer.value}")
+        click.echo(bilingual("governed_start.current_layer", layer=result.current_layer.value))
     if result.primary_skill:
-        click.echo(f"Primary skill: {result.primary_skill}")
+        click.echo(bilingual("governed_start.primary_skill", skill=result.primary_skill))
     click.echo("")
-    click.echo("Disclosure:")
+    click.echo(bilingual("governed_start.disclosure"))
     click.echo(result.disclosure)
     click.echo("")
-    click.echo(f"Next: {result.recommended_next_command}")
+    click.echo(bilingual("governed_start.next", cmd=result.recommended_next_command))
 
 
 __all__ = ["governed_start_cmd", "_evaluate"]

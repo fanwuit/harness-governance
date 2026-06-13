@@ -13,6 +13,7 @@ import click
 
 from ..config.defaults import PLATFORM_SKILL_PATHS
 from ..config.settings import write_default_config
+from ..messages import bilingual
 from .init import detect_platform
 
 
@@ -36,8 +37,8 @@ def config_init_cmd(ctx: click.Context, platform: str | None, force: bool) -> No
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     detected = platform or detect_platform(project_root)
     path = write_default_config(project_root, agent_platform=detected, force=force)
-    click.echo(f"Created: {path}")
-    click.echo(f"Agent platform: {detected}")
+    click.echo(bilingual("config.created", path=str(path)))
+    click.echo(bilingual("config.platform", platform=detected))
 
 
 __all__ = ["config_group", "config_init_cmd"]

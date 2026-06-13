@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json as _json
-import os
-import shlex
 from pathlib import Path
 
 import click
 
+from ..messages import bilingual
 from ..runner.adapters.codex_cli import CodexCliExecutor
 from ..runner.adapters.generic import SubprocessAgentExecutor
 from ..runner.loop import AutonomousReadyLoop
@@ -152,7 +151,7 @@ def runner_start_cmd(
             (i for i in items if i.active), None
         )
         if target is None:
-            click.echo("dry-run: no ready or active queue item")
+            click.echo(bilingual("runner.dry_run_no_item"))
             return
         click.echo(_default_prompt(target))
         return

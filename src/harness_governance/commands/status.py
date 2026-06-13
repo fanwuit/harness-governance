@@ -19,6 +19,7 @@ from ..file_ops import packet as packet_ops
 from ..file_ops import plan as plan_ops
 from ..file_ops.checkpoint import Checkpoint
 from ..file_ops.queue import read_queue
+from ..messages import bilingual
 from ..models.schemas import QueueItem, StatusView
 from ..state_machine.layers import canonical_progression
 
@@ -186,19 +187,23 @@ def build_status(repo_root: Path) -> dict:
 
 
 def format_text(status: dict) -> str:
+    qs = status["queueSummary"]
     lines = [
-        f"Harness status for {status['repo']}",
-        f"Generated: {status['generatedAt']}",
-        f"Current layer: {status['currentLayer']}",
+        bilingual("status.header", path=status["repo"]),
+        bilingual("status.generated", ts=status["generatedAt"]),
+        bilingual("status.current_layer", layer=status["currentLayer"]),
         "",
-        f"Scheduler queue: total={status['queueSummary']['total']} "
-        f"ready={status['queueSummary']['ready']} "
-        f"active={status['queueSummary']['active']}",
+        bilingual(
+            "status.scheduler_queue",
+            total=qs["total"],
+            ready=qs["ready"],
+            active=qs["active"],
+        ),
     ]
 
     if status["queueItems"]:
         lines.append("")
-        lines.append("Queue items:")
+        lines.append(bilingual("status.queue_items"))
         for item in status["queueItems"]:
             details = " ".join(
                 part for part in (
@@ -211,35 +216,38 @@ def format_text(status: dict) -> str:
 
     if status["packets"]:
         lines.append("")
-        lines.append("Change packets:")
+        lines.append(bilingual("status.change_packets"))
         for p in status["packets"]:
             lines.append(f"- [{p['status']}] {p['change_id']}")
 
     if status["activePlan"]:
         plan = status["activePlan"]
-        attested = "attested" if plan["attested"] else "not attested"
+        state = bilingual("status.plan_state_attested") if plan["attested"] else bilingual("status.plan_state_unattested")
         lines.append("")
-        lines.append(f"Active plan: {plan['plan_id']} ({attested})")
+        lines.append(bilingual("status.active_plan", plan_id=plan["plan_id"], state=state))
 
     if status["checkpoint"]["found"]:
         ck = status["checkpoint"]
         lines.append("")
-        lines.append("Checkpoint:")
+        lines.append(bilingual("status.checkpoint_header"))
         if ck["last_worker"]:
-            lines.append(f"- last worker: {ck['last_worker']}")
+            lines.append("- " + bilingual("status.last_worker", value=ck["last_worker"]))
         if ck["stop_reason"]:
-            lines.append(f"- stop reason: {ck['stop_reason']}")
+            lines.append("- " + bilingual("status.stop_reason", value=ck["stop_reason"]))
 
+    state = bilingual("status.verification_stale") if status["verification"]["stale"] else bilingual("status.verification_fresh")
     lines.append("")
     lines.append(
-        f"Verification: "
-        f"{'stale' if status['verification']['stale'] else 'fresh'} "
-        f"({status['verification']['summary'] or 'missing'})"
+        bilingual(
+            "status.verification_line",
+            state=state,
+            summary=status["verification"]["summary"] or "missing",
+        )
     )
 
     if status["warnings"]:
         lines.append("")
-        lines.append("Warnings:")
+        lines.append(bilingual("status.warnings_header"))
         for w in status["warnings"]:
             lines.append(f"- {w}")
 
@@ -280,7 +288,7 @@ def format_markdown(status: dict) -> str:
         "",
     ]
     if not status["queueItems"]:
-        lines.append("- No scheduler items found.")
+        lines.append("- " + bilingual("status.no_scheduled_items"))
     else:
         for item in status["queueItems"]:
             tag = "active" if item["active"] else "ready" if item["ready"] else "other"
@@ -289,7 +297,7 @@ def format_markdown(status: dict) -> str:
     lines.append("## Change Packets")
     lines.append("")
     if not status["packets"]:
-        lines.append("- No change packets found.")
+        lines.append("- " + bilingual("status.no_change_packets"))
     else:
         for p in status["packets"]:
             lines.append(f"- [{p['status']}] {p['change_id']}")
@@ -340,8 +348,8 @@ def status_cmd(ctx: click.Context, fmt: str, refresh: bool) -> None:
         status_md.parent.mkdir(parents=True, exist_ok=True)
         status_md.write_text(format_markdown(status), encoding="utf-8")
         status_json.write_text(_json.dumps(status, indent=2), encoding="utf-8")
-        click.echo(f"Wrote {status_md}")
-        click.echo(f"Wrote {status_json}")
+        click.echo(bilingual("status.wrote_md", path=str(status_md)))
+        click.echo(bilingual("status.wrote_md", path=str(status_json)))
 
     if ctx.obj.get("json_output") or fmt == "json":
         click.echo(_json.dumps(status, indent=2))

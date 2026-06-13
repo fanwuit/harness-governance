@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from ..file_ops import packet as packet_ops
+from ..messages import bilingual
 from ..models.schemas import ChangePacketInitResult, CheckResult
 
 
@@ -58,11 +59,11 @@ def packet_init_cmd(
         return
 
     rel = result.packet_dir.resolve().relative_to(root.resolve())
-    click.echo(f"Initialized change packet: {rel}")
+    click.echo(bilingual("packet.initialized", path=str(rel)))
     if result.created_files:
-        click.echo(f"Created files: {', '.join(result.created_files)}")
+        click.echo(bilingual("packet.created_files", files=", ".join(result.created_files)))
     else:
-        click.echo("No new files were written (packet already populated).")
+        click.echo(bilingual("packet.no_new_files"))
 
 
 @packet_group.command("check")
@@ -127,14 +128,14 @@ def packet_check_cmd(
         return
 
     if not packet_dirs:
-        click.echo("Change packet check passed: no change packets found.")
+        click.echo(bilingual("packet.check_passed_empty"))
         return
 
     if passed:
-        click.echo(f"Change packet check passed: {inspected} packet(s).")
+        click.echo(bilingual("packet.check_passed_with_count", n=inspected))
         return
 
-    click.echo("Change packet check failed:")
+    click.echo(bilingual("packet.check_failed_header"))
     for error in all_errors:
         click.echo(f"- {error}")
     raise click.exceptions.Exit(code=1)

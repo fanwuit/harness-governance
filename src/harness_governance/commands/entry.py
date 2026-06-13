@@ -13,6 +13,7 @@ from pathlib import Path
 import click
 
 from ..file_ops import entry as entry_ops
+from ..messages import bilingual
 from ..models.schemas import CheckResult, EntryRecord
 
 _PLACEHOLDER = re.compile(r"^(?:\s*|tbd|todo|missing|n/a|\?)$", re.IGNORECASE)
@@ -59,16 +60,20 @@ def _has_heading(text: str, heading: str) -> bool:
 
 
 def _validate_implementation(text: str) -> list[str]:
-    """Implementation-specific validation (mirrors legacy script)."""
+    """Implementation-specific validation (mirrors legacy script).
+
+    Returns a list of marker tokens the caller can pass to the i18n
+    catalog — keeps message strings centralized in :mod:`messages`.
+    """
     errors: list[str] = []
     readiness = _field_value(text, "Readiness gate") or ""
     if readiness and not re.search(r"\b(?:pass|fail)\b", readiness, re.IGNORECASE):
-        errors.append("Readiness gate must include pass or fail.")
+        errors.append("Readiness gate")
     packetization = _field_value(text, "Packetization") or ""
     if packetization and not re.search(
         r"\b(?:ready|not-needed|missing)\b", packetization, re.IGNORECASE
     ):
-        errors.append("Packetization must include ready, not-needed, or missing.")
+        errors.append("Packetization")
     return errors
 
 
@@ -82,32 +87,35 @@ def check_file(file: Path, repo_root: Path | None = None) -> list[str]:
             label = str(file)
 
     if not file.exists():
-        return [f"{label} does not exist."]
+        return [bilingual("packet.label_does_not_exist", label=label)]
     if not file.is_file():
-        return [f"{label} is not a file."]
+        return [bilingual("packet.label_not_a_dir", label=label)]
     text = file.read_text(encoding="utf-8")
 
     impl_match = _has_heading(text, "Implementation Entry Record")
     trivial_match = _has_heading(text, "Trivial Safe Change Entry")
 
     if not impl_match and not trivial_match:
-        return [
-            f"{label}: Missing 'Implementation Entry Record:' or "
-            "'Trivial Safe Change Entry:' heading."
-        ]
+        return [bilingual("entry.missing_heading", label=label)]
 
     errors: list[str] = []
     fields = _IMPLEMENTATION_FIELDS if impl_match else _TRIVIAL_FIELDS
     for field in fields:
         value = _field_value(text, field)
         if value is None:
-            errors.append(f"{label}: Missing field: {field}")
+            errors.append(bilingual("entry.missing_field", label=label, field=field))
             continue
         if _PLACEHOLDER.match(value):
-            errors.append(f"{label}: Empty or placeholder value: {field}")
+            errors.append(bilingual("entry.empty_field", label=label, field=field))
 
     if impl_match:
-        errors.extend(f"{label}: {msg}" for msg in _validate_implementation(text))
+        errors.extend(
+            bilingual(
+                "entry.readiness_format" if "Readiness gate" in msg else "entry.packetization_format",
+                label=label,
+            )
+            for msg in _validate_implementation(text)
+        )
 
     return errors
 
@@ -189,12 +197,12 @@ def entry_check_cmd(
         return
 
     if not files:
-        click.echo("Entry record check passed: no entry records found.")
+        click.echo(bilingual("entry.check_passed_empty"))
         return
     if passed:
-        click.echo(f"Entry record check passed: {len(files)} file(s).")
+        click.echo(bilingual("entry.check_passed_with_count", n=len(files)))
         return
-    click.echo("Entry record check failed:")
+    click.echo(bilingual("entry.check_failed_header"))
     for error in all_errors:
         click.echo(f"- {error}")
     raise click.exceptions.Exit(code=1)
@@ -281,7 +289,7 @@ def entry_record_cmd(
     rendered = entry_ops.render_entry_record(record) + "\n"
     if output:
         output.write_text(rendered, encoding="utf-8")
-        click.echo(f"Wrote Implementation Entry Record to {output}")
+        click.echo(bilingual("entry.record_written", path=str(output)))
     else:
         click.echo(rendered, nl=False)
 
