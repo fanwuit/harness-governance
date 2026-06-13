@@ -1,11 +1,25 @@
-__pycache__/
-*.py[cod]
-.system/
-node_modules/
-dist/
+# Build artifacts
+src/*.egg-info/
 build/
-.vite/
-.vite.out
-.vite.err
-generated_images/
-docs/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+
+# Generated state from `harness init` (per-project)
+.harness/
+.claude/skills/harness-governance/
+.codex/skills/harness-governance/
+.clinerules/harness-governance.md
+
+# Local environment
+.venv/
+.env
+
+# OS / editor noise
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

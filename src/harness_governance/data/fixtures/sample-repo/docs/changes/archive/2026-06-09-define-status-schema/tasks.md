@@ -1,0 +1,2 @@
+- [x] Define status JSON shape
+- [x] Document status markdown sections
