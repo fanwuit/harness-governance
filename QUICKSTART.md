@@ -27,6 +27,7 @@ If you use a different agent platform:
 harness init --platform codex      # writes .codex/skills/...
 harness init --platform cline      # writes .clinerules/
 harness init --platform cursor     # writes .cursor/rules/
+harness init --platform opencode   # writes .opencode/agents/
 harness init --platform qoderwork  # writes AGENTS.md
 harness init --platform generic    # writes AGENTS.md
 ```

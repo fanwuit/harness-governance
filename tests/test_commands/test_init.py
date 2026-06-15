@@ -226,3 +226,38 @@ def test_init_qoderwork_config_valid(tmp_repo: Path) -> None:
     from harness_governance.config.settings import load_config
     config = load_config(tmp_repo)
     assert config.agent_platform == "qoderwork"
+
+
+# ---------------------------------------------------------------------------
+# Phase 3: opencode platform
+# ---------------------------------------------------------------------------
+
+def test_init_detects_opencode(tmp_repo: Path) -> None:
+    (tmp_repo / ".opencode").mkdir()
+    assert detect_platform(tmp_repo) == "opencode"
+
+
+def test_init_opencode_writes_skill(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "opencode"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / ".opencode" / "agents" / "harness-governance.md"
+    assert skill.is_file()
+    content = skill.read_text(encoding="utf-8")
+    assert "OpenCode" in content
+    assert "harness" in content
+
+
+def test_init_opencode_config_valid(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "opencode"],
+    )
+    assert result.exit_code == 0, result.output
+    from harness_governance.config.settings import load_config
+    config = load_config(tmp_repo)
+    assert config.agent_platform == "opencode"

@@ -7,7 +7,7 @@
 AI engineering governance CLI. Encodes a 12-layer state machine, nine
 transition rules, and the Fast / Trivial / Governed routing decision as
 a single Python tool. Any agent with shell access — Claude Code, Codex,
-Cline, Cursor, generic assistants — can load a per-platform skill
+Cline, Cursor, OpenCode, generic assistants — can load a per-platform skill
 adapter and gain access to the same governance commands.
 
 > **Alpha preview** — the `product` branch ships the working CLI. See
@@ -101,7 +101,7 @@ For a longer walkthrough see [`QUICKSTART.md`](./QUICKSTART.md).
 
 | Command | Purpose |
 |---|---|
-| `harness init [--platform {claude-code,codex,cline,cursor,qoderwork,generic}] [--force]` | Write `.harness/config.toml` + per-platform skill adapter |
+| `harness init [--platform {claude-code,codex,cline,cursor,opencode,qoderwork,generic}] [--force]` | Write `.harness/config.toml` + per-platform skill adapter |
 | `harness governed-start "<task>" [--files …] [--contracts] [--external] [--unclear]` | Classify and produce the canonical disclosure block |
 | `harness packet init <id>` / `check [target …]` | Manage change packets under `docs/changes/<id>/` |
 | `harness entry {check,record}` | Validate / render Implementation Entry Records |

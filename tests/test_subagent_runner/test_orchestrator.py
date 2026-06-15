@@ -262,9 +262,14 @@ class TestOrchestratorPlatformDispatch:
         prompt = builder.build(project_root=project, platform="cline")
         assert "Cline" in prompt.text
 
+    def test_opencode_dispatch(self, project: Path) -> None:
+        builder = OrchestratorPromptBuilder()
+        prompt = builder.build(project_root=project, platform="opencode")
+        assert "OpenCode" in prompt.text
+
     def test_no_raw_placeholders_remain(self, project: Path) -> None:
         """All {{DISPATCH_INSTRUCTION}} and {{HARD_GATE_COMMAND}} must be resolved."""
-        for platform in ("claude-code", "codex", "cline", "cursor", "qoderwork", "generic"):
+        for platform in ("claude-code", "codex", "cline", "cursor", "opencode", "qoderwork", "generic"):
             builder = OrchestratorPromptBuilder()
             prompt = builder.build(project_root=project, platform=platform)
             assert "{{DISPATCH_INSTRUCTION}}" not in prompt.text

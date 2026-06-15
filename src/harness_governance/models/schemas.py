@@ -25,7 +25,7 @@ class HarnessConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    agent_platform: Literal["claude-code", "codex", "cline", "cursor", "qoderwork", "generic"] = "claude-code"
+    agent_platform: Literal["claude-code", "codex", "cline", "cursor", "opencode", "qoderwork", "generic"] = "claude-code"
     project_root: Path = Field(default_factory=Path.cwd)
     queue_file: Path = Path("NEXT.md")
     changes_root: Path = Path("docs/changes")

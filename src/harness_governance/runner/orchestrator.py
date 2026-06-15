@@ -41,6 +41,10 @@ _PLATFORM_DISPATCH: dict[str, str] = {
         "Use Cursor's Agent mode sub-task:\n"
         "   - Dispatch via Cursor's built-in agent delegation"
     ),
+    "opencode": (
+        "Use OpenCode's subagent delegation:\n"
+        "   - Dispatch via OpenCode's built-in agent spawning"
+    ),
     "qoderwork": (
         "Use the Task tool to spawn a subagent:\n"
         "   - `subagent_type: general-purpose`"
@@ -80,6 +84,13 @@ _PLATFORM_HARD_GATE: dict[str, str] = {
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Sub-task findings conflict with main-window evidence"
+    ),
+    "opencode": (
+        "Run directly in the main OpenCode session (not a subagent) when:\n"
+        "- The user explicitly asks for it\n"
+        "- Release or phase closeout is involved\n"
+        "- Security, persistence, deployment, or cross-repository behavior changes\n"
+        "- Subagent findings conflict with main-window evidence"
     ),
     "qoderwork": (
         "Run directly in the main session (not a subagent) when:\n"

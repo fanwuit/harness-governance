@@ -45,6 +45,7 @@ PLATFORM_SKILL_PATHS: dict[str, Path] = {
     "codex": Path(".codex/skills/harness-governance/SKILL.md"),
     "cline": Path(".clinerules/harness-governance.md"),
     "cursor": Path(".cursor/rules/harness-governance.md"),
+    "opencode": Path(".opencode/agents/harness-governance.md"),
     "qoderwork": Path("AGENTS.md"),
     "generic": Path("AGENTS.md"),
 }
@@ -56,6 +57,7 @@ PLATFORM_HINTS: tuple[tuple[str, str], ...] = (
     (".clinerules", "cline"),
     (".cursor", "cursor"),
     (".qoderwork", "qoderwork"),
+    (".opencode", "opencode"),
     ("AGENTS.md", "generic"),
 )
 
