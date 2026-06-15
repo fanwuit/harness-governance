@@ -475,6 +475,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Configuration validation failed: {error}",
         "zh-CN": "配置文件验证失败: {error}",
     },
+    "config.migrate_done": {
+        "en": "Config migrated from schema v{old} to v{new}.",
+        "zh-CN": "配置已从 schema v{old} 迁移到 v{new}。",
+    },
+    "config.migrate_already_current": {
+        "en": "Config is already at schema v{version}; no migration needed.",
+        "zh-CN": "配置已是 schema v{version}；无需迁移。",
+    },
     # runner ---------------------------------------------------------------
     "runner.dry_run_no_item": {
         "en": "dry-run: no ready or active queue item",

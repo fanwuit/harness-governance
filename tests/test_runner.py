@@ -147,3 +147,103 @@ def test_runner_start_cli_dry_run(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert "Test" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Retry mechanism
+# ---------------------------------------------------------------------------
+
+
+def test_loop_retries_on_failure_and_succeeds(runner_repo: Path) -> None:
+    """Executor fails first attempt, succeeds on retry."""
+    call_count = 0
+
+    class FlakyExecutor:
+        name = "flaky"
+
+        def execute(self, prompt, *, timeout_seconds, round_label):
+            nonlocal call_count
+            call_count += 1
+            from harness_governance.runner.base import ExecutionResult
+
+            if call_count == 1:
+                return ExecutionResult(
+                    exit_code=1, stdout="fail", stderr="", marker=None,
+                    duration_seconds=0.01,
+                )
+            return ExecutionResult(
+                exit_code=0, stdout=AUTONOMOUS_READY_DONE, stderr="",
+                marker=AUTONOMOUS_READY_DONE, duration_seconds=0.01,
+            )
+
+    loop = AutonomousReadyLoop(
+        executor=FlakyExecutor(),
+        project_root=runner_repo,
+        queue_file=Path("NEXT.md"),
+        checkpoint_file=Path(".harness/run-checkpoint.md"),
+        invocation_log=Path(".harness/invocations.ndjson"),
+        prompt_builder=lambda item: "PROMPT",
+        max_retries=2,
+    )
+    result = loop.run(mode="bounded", max_rounds=1)
+    assert result.stopped_for == "max_rounds"
+    assert call_count == 2  # first fail + retry success
+
+
+def test_loop_retries_exhausted_marks_failed(runner_repo: Path) -> None:
+    """All retries fail; loop reports 'failed'."""
+    from harness_governance.runner.base import ExecutionResult
+
+    class AlwaysFailExecutor:
+        name = "fail"
+
+        def execute(self, prompt, *, timeout_seconds, round_label):
+            return ExecutionResult(
+                exit_code=1, stdout="error", stderr="", marker=None,
+                duration_seconds=0.01,
+            )
+
+    loop = AutonomousReadyLoop(
+        executor=AlwaysFailExecutor(),
+        project_root=runner_repo,
+        queue_file=Path("NEXT.md"),
+        checkpoint_file=Path(".harness/run-checkpoint.md"),
+        invocation_log=Path(".harness/invocations.ndjson"),
+        prompt_builder=lambda item: "PROMPT",
+        max_retries=2,
+    )
+    result = loop.run(mode="bounded", max_rounds=1)
+    assert result.stopped_for == "failed"
+    assert result.rounds == 1  # only 1 invocation logged (final result)
+
+
+# ---------------------------------------------------------------------------
+# Total timeout
+# ---------------------------------------------------------------------------
+
+
+def test_loop_respects_total_timeout(runner_repo: Path) -> None:
+    """Total timeout stops the loop even if max_rounds allows more."""
+    from harness_governance.runner.base import ExecutionResult
+
+    class SlowExecutor:
+        name = "slow"
+
+        def execute(self, prompt, *, timeout_seconds, round_label):
+            return ExecutionResult(
+                exit_code=0, stdout=AUTONOMOUS_READY_DONE, stderr="",
+                marker=AUTONOMOUS_READY_DONE, duration_seconds=0.1,
+            )
+
+    loop = AutonomousReadyLoop(
+        executor=SlowExecutor(),
+        project_root=runner_repo,
+        queue_file=Path("NEXT.md"),
+        checkpoint_file=Path(".harness/run-checkpoint.md"),
+        invocation_log=Path(".harness/invocations.ndjson"),
+        prompt_builder=lambda item: "PROMPT",
+        total_timeout_seconds=0,  # immediately exceeded
+    )
+    result = loop.run(mode="boundary", max_rounds=100)
+    assert result.stopped_for == "error"
+    assert result.rounds == 0  # no rounds completed

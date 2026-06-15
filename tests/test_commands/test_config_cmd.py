@@ -192,3 +192,58 @@ class TestConfigValidate:
         assert result.exit_code != 0
         data = json.loads(result.output)
         assert data["valid"] is False
+
+
+# -- config migrate --------------------------------------------------------
+
+
+class TestConfigMigrate:
+    def test_migrate_already_current(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        _init_config(runner, tmp_repo)
+        result = runner.invoke(
+            cli, ["--project-root", str(tmp_repo), "config", "migrate"]
+        )
+        assert result.exit_code == 0, result.output
+        # Should say already current (schema_version = 1 matches CURRENT).
+        assert "already" in result.output.lower() or "schema" in result.output.lower()
+
+    def test_migrate_from_old_schema(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        # Write a config without schema_version (simulating old config).
+        harness_dir = tmp_repo / ".harness"
+        harness_dir.mkdir(parents=True)
+        (harness_dir / "config.toml").write_text(
+            'agent_platform = "generic"\n'
+            'queue_file = "NEXT.md"\n'
+            'changes_root = "docs/changes"\n'
+            'planning_root = ".planning"\n'
+            'harness_dir = ".harness"\n'
+            'check_frequency = "targeted"\n',
+            encoding="utf-8",
+        )
+        result = runner.invoke(
+            cli, ["--project-root", str(tmp_repo), "config", "migrate"]
+        )
+        assert result.exit_code == 0, result.output
+        # Verify schema_version was added.
+        text = (harness_dir / "config.toml").read_text(encoding="utf-8")
+        assert "schema_version" in text
+
+    def test_migrate_without_config_file_fails(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli, ["--project-root", str(tmp_repo), "config", "migrate"]
+        )
+        assert result.exit_code != 0
+
+    def test_migrate_json_output(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        _init_config(runner, tmp_repo)
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_repo), "--json", "config", "migrate"],
+        )
+        assert result.exit_code == 0, result.output
+        data = json.loads(result.output)
+        assert data["migrated"] is False

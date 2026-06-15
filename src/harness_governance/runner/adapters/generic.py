@@ -1,10 +1,15 @@
-"""Subprocess-based AgentExecutor that runs a configurable shell command."""
+"""Subprocess-based AgentExecutor that runs a configurable shell command.
+
+Output is streamed to stderr in real time so long-running agent
+sessions are not completely silent while they work.
+"""
 
 from __future__ import annotations
 
 import os
 import shlex
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,12 +20,12 @@ from ..base import AgentExecutor, ExecutionResult, detect_marker, detect_verific
 
 @dataclass(slots=True)
 class SubprocessAgentExecutor(AgentExecutor):
-    """Run an agent command via ``subprocess.run``.
+    """Run an agent command via ``subprocess.Popen``.
 
     The agent is invoked as ``command_prompt_placeholder`` (or via
-    positional append when ``prompt_as_arg`` is True). The executor
-    records stdout/stderr so the loop can detect markers, capture
-    verification summaries, and write an invocation log entry.
+    positional append when ``prompt_as_arg`` is True). Stdout and stderr
+    are streamed to the parent's stderr in real time, then captured for
+    marker detection and invocation-log recording.
     """
 
     command_template: str
@@ -28,6 +33,7 @@ class SubprocessAgentExecutor(AgentExecutor):
     prompt_as_arg: bool = False
     env_overrides: dict[str, str] | None = None
     workdir: Path | None = None
+    stream_output: bool = True
 
     @property
     def name(self) -> str:
@@ -53,28 +59,51 @@ class SubprocessAgentExecutor(AgentExecutor):
             cmd = shlex.split(cmd_str)
 
         started = time.monotonic()
+        stdout_lines: list[str] = []
+        stderr_lines: list[str] = []
+
         try:
-            completed = subprocess.run(
+            proc = subprocess.Popen(
                 list(cmd),
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout_seconds,
                 env=env,
                 cwd=cwd,
             )
-        except subprocess.TimeoutExpired as exc:
+
+            # Stream stdout and stderr in real time when enabled.
+            if proc.stdout is not None:
+                for line in proc.stdout:
+                    if self.stream_output:
+                        sys.stderr.write(line)
+                        sys.stderr.flush()
+                    stdout_lines.append(line)
+
+            if proc.stderr is not None:
+                for line in proc.stderr:
+                    if self.stream_output:
+                        sys.stderr.write(line)
+                        sys.stderr.flush()
+                    stderr_lines.append(line)
+
+            proc.wait(timeout=timeout_seconds)
+
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
             return ExecutionResult(
                 exit_code=124,
-                stdout=exc.stdout or "",
-                stderr=(exc.stderr or "") + f"\n[harness runner] timed out after {timeout_seconds}s",
+                stdout="".join(stdout_lines),
+                stderr="".join(stderr_lines) + f"\n[harness runner] timed out after {timeout_seconds}s",
                 marker=None,
                 duration_seconds=time.monotonic() - started,
             )
 
-        stdout = completed.stdout or ""
-        stderr = completed.stderr or ""
+        stdout = "".join(stdout_lines)
+        stderr = "".join(stderr_lines)
         return ExecutionResult(
-            exit_code=completed.returncode,
+            exit_code=proc.returncode,
             stdout=stdout,
             stderr=stderr,
             marker=detect_marker(stdout + "\n" + stderr),

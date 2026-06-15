@@ -102,15 +102,56 @@ def test_adr_chat_only_with_long_lived_boundary_blocked(engine: StateMachineEngi
     assert any(v.rule_code == "T4-ADR-MUST-BE-DURABLE" for v in verdict.violations)
 
 
-def test_fact_discovery_note_appended(engine: StateMachineEngine) -> None:
+def test_fact_discovery_blocks_forward_transition(engine: StateMachineEngine) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.BRIEF,
         to_layer=HarnessLayer.ARCHITECTURE,
         material_unknown_present=True,
     )
     verdict = engine.evaluate(ctx)
+    assert not verdict.allowed
+    assert any(v.rule_code == "T5-FACT-DISCOVERY-INTERRUPT" for v in verdict.violations)
+
+
+def test_fact_discovery_allows_staying_at_same_layer(engine: StateMachineEngine) -> None:
+    ctx = TransitionContext(
+        from_layer=HarnessLayer.BRIEF,
+        to_layer=HarnessLayer.BRIEF,
+        material_unknown_present=True,
+    )
+    verdict = engine.evaluate(ctx)
     assert verdict.allowed
-    assert any("fact-discovery" in note for note in verdict.notes)
+
+
+def test_fact_discovery_allows_entering_fact_discovery(engine: StateMachineEngine) -> None:
+    ctx = TransitionContext(
+        from_layer=HarnessLayer.BRIEF,
+        to_layer=HarnessLayer.FACT_DISCOVERY,
+        material_unknown_present=True,
+    )
+    verdict = engine.evaluate(ctx)
+    assert verdict.allowed
+
+
+def test_verification_failure_blocks_layer_change(engine: StateMachineEngine) -> None:
+    ctx = TransitionContext(
+        from_layer=HarnessLayer.IMPLEMENTATION,
+        to_layer=HarnessLayer.READINESS,
+        verification_failed=True,
+    )
+    verdict = engine.evaluate(ctx)
+    assert not verdict.allowed
+    assert any(v.rule_code == "T8-VERIFICATION-FAILURE-OWNER" for v in verdict.violations)
+
+
+def test_verification_failure_allows_staying_at_same_layer(engine: StateMachineEngine) -> None:
+    ctx = TransitionContext(
+        from_layer=HarnessLayer.IMPLEMENTATION,
+        to_layer=HarnessLayer.IMPLEMENTATION,
+        verification_failed=True,
+    )
+    verdict = engine.evaluate(ctx)
+    assert verdict.allowed
 
 
 def test_implementation_uncontracted_returns_to_contract(engine: StateMachineEngine) -> None:

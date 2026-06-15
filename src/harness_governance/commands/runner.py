@@ -194,6 +194,7 @@ def runner_start_cmd(
             command_template=command,
             prompt_as_arg=prompt_as_arg,
             workdir=project_root,
+            stream_output=not ctx.obj.get("json_output", False),
         )
 
     if dry_run:

@@ -16,7 +16,7 @@ from pathlib import Path
 import click
 
 from ..config.defaults import DEFAULT_CONFIG_FILE, PLATFORM_SKILL_PATHS
-from ..config.settings import load_config, write_default_config
+from ..config.settings import CURRENT_SCHEMA_VERSION, load_config, write_default_config
 from ..logging_setup import get_logger
 from ..messages import bilingual
 from .init import detect_platform
@@ -240,10 +240,80 @@ def config_validate_cmd(ctx: click.Context) -> None:
         click.echo(bilingual("config.validate_passed"))
 
 
+# -- config migrate --------------------------------------------------------
+
+
+@config_group.command("migrate")
+@click.pass_context
+def config_migrate_cmd(ctx: click.Context) -> None:
+    """Migrate ``.harness/config.toml`` to the current schema version."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    json_output: bool = ctx.obj.get("json_output", False)
+
+    config_path = (project_root / DEFAULT_CONFIG_FILE).resolve()
+    if not config_path.exists():
+        raise click.ClickException(
+            bilingual("config.not_found", path=str(config_path))
+        )
+
+    # Read the raw TOML to detect the file's schema version.
+    import sys
+    if sys.version_info >= (3, 11):
+        import tomllib as _toml
+    else:
+        import tomli as _toml  # type: ignore[no-redef]
+
+    with config_path.open("rb") as fh:
+        raw = _toml.load(fh)
+
+    file_version = int(raw.get("schema_version", 0))
+
+    if file_version >= CURRENT_SCHEMA_VERSION:
+        logger.info("config already at schema v%d", file_version)
+        if json_output:
+            click.echo(json.dumps({
+                "migrated": False,
+                "version": file_version,
+            }))
+        else:
+            click.echo(bilingual("config.migrate_already_current", version=str(file_version)))
+        return
+
+    # Apply migration: rewrite the file with schema_version and any new fields.
+    from ..config.settings import _migrate
+    migrated = _migrate(raw, from_version=file_version)
+
+    # Serialize back to TOML (simple flat schema).
+    lines = [
+        "# Harness governance configuration.",
+        f"schema_version = {CURRENT_SCHEMA_VERSION}",
+    ]
+    for key, value in migrated.items():
+        if key == "schema_version":
+            continue
+        lines.append(f"{key} = {_toml_value_repr(value)}")
+    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    logger.info("migrated config from v%d to v%d", file_version, CURRENT_SCHEMA_VERSION)
+    if json_output:
+        click.echo(json.dumps({
+            "migrated": True,
+            "from": file_version,
+            "to": CURRENT_SCHEMA_VERSION,
+        }))
+    else:
+        click.echo(bilingual(
+            "config.migrate_done",
+            old=str(file_version),
+            new=str(CURRENT_SCHEMA_VERSION),
+        ))
+
+
 __all__ = [
     "config_group",
     "config_init_cmd",
     "config_show_cmd",
     "config_set_cmd",
     "config_validate_cmd",
+    "config_migrate_cmd",
 ]

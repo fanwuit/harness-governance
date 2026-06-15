@@ -41,6 +41,7 @@ def test_runner_start_subprocess_success(tmp_repo: Path) -> None:
         [
             "--project-root",
             str(tmp_repo),
+            "--json",
             "runner",
             "start",
             "--executor",

@@ -193,9 +193,16 @@ class StateMachineEngine:
             and context.to_layer is not context.from_layer
             and layer_index(context.to_layer) > layer_index(context.from_layer)
         ):
-            notes.append(
-                "Material unknown present; engine recommends entering fact-discovery "
-                "before continuing forward."
+            violations.append(
+                Violation(
+                    rule_code="T5-FACT-DISCOVERY-INTERRUPT",
+                    rule_title="Material unknown requires fact-discovery before forward progress",
+                    message=(
+                        f"Transition {context.from_layer.value} -> "
+                        f"{context.to_layer.value} moves forward while a material "
+                        "unknown is unresolved. Enter fact-discovery first."
+                    ),
+                )
             )
 
         # Rule T6: contract work repeating without implementation progress.
@@ -237,10 +244,18 @@ class StateMachineEngine:
             )
 
         # Rule T8: verification failure -> return to owner.
-        if context.verification_failed:
-            notes.append(
-                "Verification failure recorded; engine recommends returning to "
-                "the lowest layer that owns the failure cause."
+        if context.verification_failed and context.to_layer is not context.from_layer:
+            violations.append(
+                Violation(
+                    rule_code="T8-VERIFICATION-FAILURE-OWNER",
+                    rule_title="Return to lowest layer that owns the failure",
+                    message=(
+                        f"Verification failure recorded but transition "
+                        f"{context.from_layer.value} -> "
+                        f"{context.to_layer.value} does not address the cause. "
+                        "Return to the lowest layer that owns the failure first."
+                    ),
+                )
             )
 
         # Rule T9: work finishing/pausing -> review-next.
