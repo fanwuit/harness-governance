@@ -146,6 +146,11 @@ class AutonomousReadyLoop:
                 stop_for = "no_ready"
                 break
 
+            # Resolve per-change paths for checkpoint and invocation log.
+            cp_path, inv_path = self._resolve_change_paths(
+                getattr(target, "change_id", None),
+            )
+
             started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
             started = time.monotonic()
             result: ExecutionResult | None = None
@@ -186,9 +191,10 @@ class AutonomousReadyLoop:
                         duration_seconds=time.monotonic() - started,
                     )
                     invocations.append(summary)
-                    self._append_invocation(summary)
+                    self._append_invocation(summary, inv_path)
                     self._write_checkpoint(target, result=None, round_index=round_index,
-                                           stop_reason=f"error: {exc}")
+                                           stop_reason=f"error: {exc}",
+                                           checkpoint_path=cp_path)
                     return LoopResult(rounds=len(invocations), stopped_for=stop_for,
                                       invocations=invocations)
 
@@ -227,8 +233,9 @@ class AutonomousReadyLoop:
                 stderr_path=str(stderr_path) if stderr_path else None,
             )
             invocations.append(summary)
-            self._append_invocation(summary)
-            self._write_checkpoint(target, result, round_index, stop_reason=None)
+            self._append_invocation(summary, inv_path)
+            self._write_checkpoint(target, result, round_index, stop_reason=None,
+                                   checkpoint_path=cp_path)
 
             if not result.succeeded:
                 stop_for = "failed"
@@ -256,15 +263,34 @@ class AutonomousReadyLoop:
 
     # Internal helpers ----------------------------------------------------
 
+    def _resolve_change_paths(
+        self, change_id: str | None,
+    ) -> tuple[Path, Path]:
+        """Return ``(checkpoint_file, invocation_log)`` for this round.
+
+        When *change_id* is set and the corresponding packet directory
+        exists under ``docs/changes/``, paths point inside that
+        directory (per-change isolation for multi-person repos).
+        Otherwise fall back to the global defaults from ``__init__``.
+        """
+        if change_id:
+            change_dir = (self.project_root / "docs" / "changes" / change_id).resolve()
+            if change_dir.is_dir():
+                return (
+                    change_dir / ".checkpoint.md",
+                    change_dir / ".invocations.ndjson",
+                )
+        return self.checkpoint_file, self.invocation_log
+
     @staticmethod
     def _resolve_max_rounds(mode: str, requested: int) -> int:
         if mode == "boundary":
             return max(requested, DEFAULT_MAX_ROUNDS_BOUNDARY) if requested <= 1 else requested
         return max(1, requested)
 
-    def _append_invocation(self, summary: RoundSummary) -> None:
-        self.invocation_log.parent.mkdir(parents=True, exist_ok=True)
-        with self.invocation_log.open("a", encoding="utf-8") as handle:
+    def _append_invocation(self, summary: RoundSummary, log_path: Path) -> None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("a", encoding="utf-8") as handle:
             handle.write(summary.to_ndjson() + "\n")
 
     def _dump_outputs(
@@ -291,6 +317,7 @@ class AutonomousReadyLoop:
         result: ExecutionResult | None,
         round_index: int,
         stop_reason: str | None,
+        checkpoint_path: Path,
     ) -> None:
         cp = Checkpoint()
         cp.last_worker = f"round {round_index}: {queue_item.raw.splitlines()[0]}"
@@ -310,10 +337,10 @@ class AutonomousReadyLoop:
         cp.next_resume_source = str(self.queue_file)
         cp.durable_state_updated = (
             f"- queue item: {queue_item.raw.splitlines()[0]}\n"
-            f"- invocation log: {self.invocation_log}"
+            f"- invocation log: {checkpoint_path.parent / '.invocations.ndjson'}"
         )
-        self.checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
-        cp.dump(self.checkpoint_file)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        cp.dump(checkpoint_path)
 
 
 __all__ = ["AutonomousReadyLoop", "LoopResult", "RoundSummary"]

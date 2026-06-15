@@ -110,6 +110,55 @@ def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
     return None
 
 
+def _find_latest_checkpoint(
+    repo_root: Path,
+    harness_dir: Path,
+    packet_dirs: list[Path],
+) -> tuple[Checkpoint, Path]:
+    """Find the most recent checkpoint across per-change and global paths.
+
+    Per-change checkpoints (``docs/changes/<id>/.checkpoint.md``) take
+    priority; the global ``.harness/run-checkpoint.md`` is the fallback.
+    Returns ``(checkpoint, path)``.
+    """
+    candidates: list[Path] = []
+    for d in packet_dirs:
+        cp = d / ".checkpoint.md"
+        if cp.is_file():
+            candidates.append(cp)
+    global_cp = harness_dir / "run-checkpoint.md"
+    if global_cp.is_file():
+        candidates.append(global_cp)
+
+    if not candidates:
+        return Checkpoint(), global_cp
+
+    # Pick the most recently modified checkpoint.
+    best = max(candidates, key=lambda p: p.stat().st_mtime)
+    return Checkpoint.load(best), best
+
+
+def _collect_invocation_logs(
+    repo_root: Path,
+    harness_dir: Path,
+    packet_dirs: list[Path],
+) -> list[Path]:
+    """Collect all invocation log paths from per-change and global locations."""
+    paths: list[Path] = []
+    for d in packet_dirs:
+        log = d / ".invocations.ndjson"
+        if log.is_file():
+            paths.append(log)
+    global_log = harness_dir / "invocations.ndjson"
+    if global_log.is_file():
+        paths.append(global_log)
+    # Legacy codex-exec path.
+    legacy = repo_root / _LEGACY_INVOCATION_LOG
+    if legacy.is_file() and legacy not in paths:
+        paths.append(legacy)
+    return paths
+
+
 def build_status(
     repo_root: Path,
     *,
@@ -152,18 +201,17 @@ def build_status(
 
     active_plan = plan_ops.resolve_active_plan(repo_root)
 
-    checkpoint_path = harness_dir / "run-checkpoint.md"
-    checkpoint = Checkpoint.load(checkpoint_path)
+    # --- Checkpoint: prefer per-change, fall back to global ---
+    checkpoint, checkpoint_path = _find_latest_checkpoint(
+        repo_root, harness_dir, packet_dirs,
+    )
 
-    inv_log_path = harness_dir / "invocations.ndjson"
+    # --- Invocation log: aggregate from all sources ---
     invocations: list[dict] = []
-    # Backward compatibility: fall back to legacy codex-exec path.
-    if not inv_log_path.is_file():
-        legacy = repo_root / _LEGACY_INVOCATION_LOG
-        if legacy.is_file():
-            inv_log_path = legacy
-    if inv_log_path.is_file():
-        invocations, log_warnings = _read_invocation_log(inv_log_path)
+    inv_log_paths = _collect_invocation_logs(repo_root, harness_dir, packet_dirs)
+    for log_path in inv_log_paths:
+        entries, log_warnings = _read_invocation_log(log_path)
+        invocations.extend(entries)
         warnings.extend(log_warnings)
 
     verification = _summarise_verification(checkpoint, invocations)

@@ -69,3 +69,33 @@ def test_status_cli_json(tmp_repo: Path) -> None:
     payload = json.loads(result.output)
     assert "queueSummary" in payload
     assert "verification" in payload
+
+
+def test_status_aggregates_per_change_checkpoint(tmp_repo: Path) -> None:
+    """Status reads checkpoint from change packet directory."""
+    from harness_governance.file_ops.checkpoint import Checkpoint
+
+    # Create a change packet with a checkpoint
+    change_dir = tmp_repo / "docs" / "changes" / "feature-a"
+    change_dir.mkdir(parents=True)
+    cp = Checkpoint(last_worker="round 1: test task", verification="- passed")
+    cp.dump(change_dir / ".checkpoint.md")
+
+    payload = build_status(tmp_repo)
+    assert payload.checkpoint.found
+    assert "round 1" in (payload.checkpoint.last_worker or "")
+
+
+def test_status_aggregates_per_change_invocations(tmp_repo: Path) -> None:
+    """Status reads invocation log from change packet directory."""
+    change_dir = tmp_repo / "docs" / "changes" / "feature-a"
+    change_dir.mkdir(parents=True)
+    inv_log = change_dir / ".invocations.ndjson"
+    inv_log.write_text(
+        '{"round": 1, "exitCode": 0, "marker": "AUTONOMOUS_READY_DONE"}\n',
+        encoding="utf-8",
+    )
+
+    payload = build_status(tmp_repo)
+    assert payload.runner.invocation_count == 1
+    assert payload.runner.last_exit_code == 0

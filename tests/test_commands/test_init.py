@@ -308,3 +308,48 @@ def test_init_minimal_with_platform(tmp_repo: Path) -> None:
     assert result.exit_code == 0, result.output
     assert (tmp_repo / ".harness" / "config.toml").is_file()
     assert not (tmp_repo / ".cursor" / "rules" / "harness-governance.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# .gitignore: NEXT.md is personal
+# ---------------------------------------------------------------------------
+
+
+def test_init_creates_gitignore_with_next_md(tmp_repo: Path) -> None:
+    """harness init adds NEXT.md to .gitignore (personal queue, not shared)."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    gitignore = tmp_repo / ".gitignore"
+    assert gitignore.is_file()
+    content = gitignore.read_text(encoding="utf-8")
+    assert "NEXT.md" in content
+
+
+def test_init_gitignore_idempotent(tmp_repo: Path) -> None:
+    """Running init twice doesn't duplicate NEXT.md in .gitignore."""
+    runner = CliRunner()
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--force"])
+    content = (tmp_repo / ".gitignore").read_text(encoding="utf-8")
+    assert content.count("NEXT.md") == 1
+
+
+def test_init_gitignore_appends_to_existing(tmp_repo: Path) -> None:
+    """If .gitignore already has other entries, NEXT.md is appended."""
+    gitignore = tmp_repo / ".gitignore"
+    gitignore.write_text("*.pyc\n__pycache__/\n", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    content = gitignore.read_text(encoding="utf-8")
+    assert "*.pyc" in content
+    assert "NEXT.md" in content
+
+
+def test_init_minimal_skips_gitignore(tmp_repo: Path) -> None:
+    """--minimal mode does not touch .gitignore (no NEXT.md created either)."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+    assert not (tmp_repo / ".gitignore").exists()

@@ -63,6 +63,67 @@ def test_runner_start_subprocess_success(tmp_repo: Path) -> None:
     assert len(data["invocations"]) == 1
 
 
+def test_runner_writes_checkpoint_to_change_dir(tmp_repo: Path) -> None:
+    """When packet directory exists, checkpoint/invocation go inside it."""
+    _write_ready_queue(tmp_repo)
+    # Create the change packet directory
+    change_dir = tmp_repo / "docs" / "changes" / "sample-change"
+    change_dir.mkdir(parents=True)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "runner",
+            "start",
+            "--executor",
+            "subprocess",
+            "--command",
+            'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+            "--max-rounds",
+            "1",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    # Per-change isolation: checkpoint and invocation log inside packet dir
+    assert (change_dir / ".checkpoint.md").is_file()
+    assert (change_dir / ".invocations.ndjson").is_file()
+    # Global paths should NOT have been written
+    assert not (tmp_repo / ".harness" / "run-checkpoint.md").exists()
+    assert not (tmp_repo / ".harness" / "invocations.ndjson").exists()
+
+
+def test_runner_falls_back_to_global_when_no_packet_dir(tmp_repo: Path) -> None:
+    """Without a packet directory, checkpoint/invocation go to global .harness/."""
+    _write_ready_queue(tmp_repo)
+    # Do NOT create docs/changes/sample-change/
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "runner",
+            "start",
+            "--executor",
+            "subprocess",
+            "--command",
+            'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+            "--max-rounds",
+            "1",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    # Global paths should be used
+    assert (tmp_repo / ".harness" / "run-checkpoint.md").is_file()
+    assert (tmp_repo / ".harness" / "invocations.ndjson").is_file()
+
+
 # ---------------------------------------------------------------------------
 # runner start -- subprocess without --command (line 191)
 # ---------------------------------------------------------------------------

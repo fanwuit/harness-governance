@@ -46,6 +46,26 @@ Forbidden shortcut: no mock data in production
 """
 
 
+def _ensure_gitignore_entry(project_root: Path, pattern: str) -> None:
+    """Append *pattern* to ``.gitignore`` if not already present.
+
+    Creates the file when it does not exist.  Does nothing when the
+    pattern (or a leading-slash variant) is already listed.
+    """
+    gitignore = project_root / ".gitignore"
+    if gitignore.is_file():
+        existing = gitignore.read_text(encoding="utf-8").splitlines()
+        if any(line.strip() in (pattern, f"/{pattern}") for line in existing):
+            return
+        separator = "\n" if existing and existing[-1].strip() else ""
+        gitignore.write_text(
+            gitignore.read_text(encoding="utf-8") + separator + pattern + "\n",
+            encoding="utf-8",
+        )
+    else:
+        gitignore.write_text(pattern + "\n", encoding="utf-8")
+
+
 @dataclass(slots=True)
 class InitResult:
     """Result returned to the CLI layer."""
@@ -169,6 +189,9 @@ def init_cmd(
 
         changes_path = (project_root / DEFAULT_CHANGES_ROOT).resolve()
         changes_path.mkdir(parents=True, exist_ok=True)
+
+        # --- .gitignore: NEXT.md is personal, not version-controlled ---
+        _ensure_gitignore_entry(project_root, "NEXT.md")
 
     result = InitResult(
         project_root=project_root,
