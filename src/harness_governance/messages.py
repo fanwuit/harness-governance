@@ -67,6 +67,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Done. Minimal config written. Run `harness init` (without --minimal) for full setup.",
         "zh-CN": "完成。已写入最小配置。运行 `harness init`（不带 --minimal）获取完整设置。",
     },
+    "init.prompt_platform": {
+        "en": "Could not auto-detect platform. Select your AI coding tool:",
+        "zh-CN": "无法自动检测平台。请选择你的 AI 编程工具：",
+    },
+    "init.platform_selected": {
+        "en": "Selected: {platform}",
+        "zh-CN": "已选择: {platform}",
+    },
     # governed-start -------------------------------------------------------
     "governed_start.routing": {
         "en": "Routing: {path}",

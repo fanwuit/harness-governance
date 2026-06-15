@@ -77,14 +77,19 @@ class InitResult:
     notes: tuple[str, ...] = ()
 
 
-def detect_platform(project_root: Path, *, env: dict[str, str] | None = None) -> str:
+def detect_platform(
+    project_root: Path,
+    *,
+    env: dict[str, str] | None = None,
+    fallback: bool = True,
+) -> str | None:
     """Best-effort platform detection.
 
     Lookup order:
 
     1. Environment variables in :data:`ENV_HINTS` (env wins over dotfiles).
     2. Repo dotfiles in :data:`PLATFORM_HINTS`.
-    3. Fallback to ``claude-code``.
+    3. When *fallback* is True, return ``"claude-code"``; otherwise ``None``.
     """
     env_vars = env if env is not None else os.environ
     for var, platform in ENV_HINTS:
@@ -93,7 +98,7 @@ def detect_platform(project_root: Path, *, env: dict[str, str] | None = None) ->
     for hint, platform in PLATFORM_HINTS:
         if (project_root / hint).exists():
             return platform
-    return "claude-code"
+    return "claude-code" if fallback else None
 
 
 def load_skill_template(platform: str) -> str:
@@ -112,6 +117,40 @@ def write_skill_file(project_root: Path, platform: str) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(load_skill_template(platform), encoding="utf-8")
     return target
+
+
+def _is_interactive() -> bool:
+    """Return True when stdin is a TTY (i.e. not piped or running in CI)."""
+    import sys
+
+    return sys.stdin.isatty()
+
+
+_PLATFORM_DISPLAY_NAMES: dict[str, str] = {
+    "claude-code": "Claude Code",
+    "codex": "Codex",
+    "cline": "Cline",
+    "cursor": "Cursor",
+    "opencode": "OpenCode",
+    "qoderwork": "QoderWork",
+    "generic": "Generic (any agent)",
+}
+
+
+def _prompt_platform_choice() -> str:
+    """Interactively ask the user to pick a platform."""
+    platforms = list(PLATFORM_SKILL_PATHS)
+    click.echo(bilingual("init.prompt_platform"))
+    for i, p in enumerate(platforms, 1):
+        label = _PLATFORM_DISPLAY_NAMES.get(p, p)
+        click.echo(f"  {i}. {label}")
+    while True:
+        raw = click.prompt(
+            "> ",
+            type=click.IntRange(1, len(platforms)),
+            show_default=False,
+        )
+        return platforms[raw - 1]
 
 
 @click.command("init")
@@ -160,7 +199,16 @@ def init_cmd(
         raise click.UsageError(
             "--no-detect requires --platform to be set explicitly."
         )
-    detected = platform or detect_platform(project_root)
+
+    if platform:
+        detected = platform
+    else:
+        detected = detect_platform(project_root, fallback=False)
+        if detected is None:
+            if not click.get_current_context().obj.get("json_output") and _is_interactive():
+                detected = _prompt_platform_choice()
+            else:
+                detected = "claude-code"
 
     # --minimal implies skip_skill and no scaffolding
     if minimal:
