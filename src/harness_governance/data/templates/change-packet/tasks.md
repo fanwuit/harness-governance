@@ -10,13 +10,13 @@ Status: draft
 
 ## Task Checklist
 
-- [ ] 固定 proposal / scope。
-- [ ] 固定 design / boundary。
-- [ ] 固定 contract artifacts 或 blocked 原因。
-- [ ] 通过 readiness / Implementation Entry Record。
-- [ ] 实现最小 slice。
-- [ ] 运行并记录 verification。
-- [ ] Review / Next：把稳定结论同步回 ADR、README、contract、verification、queue 或项目索引。
+- [ ] Lock proposal / scope.
+- [ ] Lock design / boundary.
+- [ ] Lock contract artifacts or blocked reason.
+- [ ] Pass readiness / Implementation Entry Record.
+- [ ] Implement minimal slice.
+- [ ] Run and record verification.
+- [ ] Review / Next: promote stable conclusions back to ADR, README, contract, verification, queue, or project index.
 
 ## Blocked Items
 

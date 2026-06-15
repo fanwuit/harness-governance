@@ -2,6 +2,7 @@
 src/*.egg-info/
 build/
 dist/
+dist_test/
 __pycache__/
 *.pyc
 *.pyo

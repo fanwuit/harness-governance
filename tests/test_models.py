@@ -15,7 +15,9 @@ from harness_governance.models.schemas import (
     QueueItem,
     RoutingInput,
     RoutingResult,
-    StatusView,
+    StatusPayload,
+    StatusQueueItem,
+    StatusQueueSummary,
 )
 from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
@@ -99,11 +101,16 @@ def test_routing_result_round_trip() -> None:
     assert data["path"] == "governed-path"
 
 
-def test_status_view_serializes_with_queue_items() -> None:
-    item = QueueItem(raw="[active] x", active=True)
-    view = StatusView(
-        project_root=Path("/tmp"),
-        queue_path=Path("/tmp/NEXT.md"),
-        queue_items=(item,),
+def test_status_payload_serializes_with_queue_items() -> None:
+    payload = StatusPayload(
+        repo="/tmp",
+        generated_at="2026-06-13T00:00:00Z",
+        current_layer="implementation",
+        queue_summary=StatusQueueSummary(total=1, ready=0, active=1),
+        queue_items=(StatusQueueItem(raw="[active] x", active=True),),
     )
-    assert view.queue_items[0].active is True
+    assert payload.queue_items[0].active is True
+    # Verify JSON backward compatibility: camelCase keys.
+    data = payload.model_dump(by_alias=True)
+    assert data["queueSummary"]["total"] == 1
+    assert data["generatedAt"] == "2026-06-13T00:00:00Z"

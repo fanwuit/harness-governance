@@ -14,10 +14,16 @@ Output the routing decision + canonical disclosure block in your reply before do
 
 ```bash
 harness packet init <change-id>
-harness packet check
+harness packet init <change-id> --force   # fill missing files without overwriting
+harness packet check                       # validate all docs/changes/<id>/
+harness packet check <id-or-path>          # validate one packet
 ```
 
-Change packets are durable carriers, not gates. Implementation still requires readiness plus an Implementation Entry Record.
+A change packet is a durable carrier, not a gate; it cannot approve implementation.
+
+## Implementation entry
+
+`harness-governance` does not embed Implementation Entry Record parsing. Use the `governed-implementation-entry` skill's 9-field format; once the `harness entry check` command is published (Phase B), validation will wire in automatically.
 
 ## Planning
 

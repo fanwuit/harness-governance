@@ -13,9 +13,9 @@ from harness_governance.commands.status import build_status, format_markdown
 
 def test_status_empty_repo(tmp_repo: Path) -> None:
     payload = build_status(tmp_repo)
-    assert payload["currentLayer"] == "unknown"
-    assert payload["queueSummary"]["total"] == 0
-    assert any("Queue file not found" in w for w in payload["warnings"])
+    assert payload.current_layer == "unknown"
+    assert payload.queue_summary.total == 0
+    assert any("Queue file not found" in w for w in payload.warnings)
 
 
 def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
@@ -26,9 +26,9 @@ def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "scaffold-cli"])
     payload = build_status(tmp_repo)
-    assert payload["currentLayer"] == "implementation"
-    assert payload["queueSummary"]["active"] == 1
-    assert any(p["change_id"] == "scaffold-cli" for p in payload["packets"])
+    assert payload.current_layer == "implementation"
+    assert payload.queue_summary.active == 1
+    assert any(p.change_id == "scaffold-cli" for p in payload.packets)
 
 
 def test_status_refresh_writes_files(tmp_repo: Path) -> None:

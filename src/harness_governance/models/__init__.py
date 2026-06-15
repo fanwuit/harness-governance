@@ -11,7 +11,14 @@ from .schemas import (
     QueueItem,
     RoutingInput,
     RoutingResult,
-    StatusView,
+    StatusActivePlan,
+    StatusCheckpoint,
+    StatusPacketItem,
+    StatusPayload,
+    StatusQueueItem,
+    StatusQueueSummary,
+    StatusRunner,
+    StatusVerification,
 )
 
 __all__ = [
@@ -25,5 +32,12 @@ __all__ = [
     "QueueItem",
     "RoutingInput",
     "RoutingResult",
-    "StatusView",
+    "StatusActivePlan",
+    "StatusCheckpoint",
+    "StatusPacketItem",
+    "StatusPayload",
+    "StatusQueueItem",
+    "StatusQueueSummary",
+    "StatusRunner",
+    "StatusVerification",
 ]

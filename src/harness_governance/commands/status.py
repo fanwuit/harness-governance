@@ -20,19 +20,32 @@ from ..file_ops import plan as plan_ops
 from ..file_ops.checkpoint import Checkpoint
 from ..file_ops.queue import read_queue
 from ..messages import bilingual
-from ..models.schemas import QueueItem, StatusView
+from ..models.schemas import (
+    QueueItem,
+    StatusActivePlan,
+    StatusCheckpoint,
+    StatusPacketItem,
+    StatusPayload,
+    StatusQueueItem,
+    StatusQueueSummary,
+    StatusRunner,
+    StatusVerification,
+)
 from ..state_machine.layers import canonical_progression
 
 DEFAULT_CONFIG_PATH = Path(".harness/harness-status.config.json")
 DEFAULT_PROJECT_CONFIG: dict[str, str] = {
     "queue": "NEXT.md",
     "checkpoint": ".harness/run-checkpoint.md",
-    "invocationLog": ".harness/codex-exec-invocations.ndjson",
+    "invocationLog": ".harness/invocations.ndjson",
     "changes": "docs/changes",
     "archive": "docs/changes/archive",
     "statusMd": ".harness/status.md",
     "statusJson": ".harness/status.json",
 }
+
+# Legacy paths for backward compatibility (de-codex migration).
+_LEGACY_INVOCATION_LOG = ".harness/codex-exec-invocations.ndjson"
 
 
 def _read_invocation_log(path: Path) -> tuple[list[dict], list[str]]:
@@ -54,7 +67,7 @@ def _read_invocation_log(path: Path) -> tuple[list[dict], list[str]]:
 def _summarise_verification(
     checkpoint: Checkpoint,
     invocations: list[dict],
-) -> dict:
+) -> StatusVerification:
     last = invocations[-1] if invocations else None
     summary = None
     if last:
@@ -69,14 +82,14 @@ def _summarise_verification(
                 break
     has_pass = bool(re.search(r"\bpass(?:ed)?\b|->\s*pass\b", text))
     has_fail = bool(re.search(r"\bfail(?:ed)?\b|->\s*fail\b", text))
-    return {
-        "summary": summary,
-        "stale": (not summary) or has_fail or not has_pass,
-        "failed": has_fail,
-        "source": "invocation-log" if last and (last.get("verificationSummary") or last.get("verification")) else (
+    return StatusVerification(
+        summary=summary,
+        stale=(not summary) or has_fail or not has_pass,
+        failed=has_fail,
+        source="invocation-log" if last and (last.get("verificationSummary") or last.get("verification")) else (
             "checkpoint" if checkpoint.verification else "missing"
         ),
-    }
+    )
 
 
 def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
@@ -92,7 +105,7 @@ def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
     return None
 
 
-def build_status(repo_root: Path) -> dict:
+def build_status(repo_root: Path) -> StatusPayload:
     """Build the status payload (mirrors the legacy script, text subset)."""
     queue_path = repo_root / DEFAULT_PROJECT_CONFIG["queue"]
     items = read_queue(queue_path)
@@ -114,9 +127,13 @@ def build_status(repo_root: Path) -> dict:
     if not checkpoint_path.is_file():
         warnings.append(f"Checkpoint not found: {checkpoint_path}")
 
-    invocations, log_warnings = _read_invocation_log(
-        repo_root / DEFAULT_PROJECT_CONFIG["invocationLog"]
-    )
+    inv_log_path = repo_root / DEFAULT_PROJECT_CONFIG["invocationLog"]
+    # Backward compatibility: fall back to legacy codex-exec path.
+    if not inv_log_path.is_file():
+        legacy = repo_root / _LEGACY_INVOCATION_LOG
+        if legacy.is_file():
+            inv_log_path = legacy
+    invocations, log_warnings = _read_invocation_log(inv_log_path)
     warnings.extend(log_warnings)
     if not invocations:
         warnings.append(
@@ -124,141 +141,140 @@ def build_status(repo_root: Path) -> dict:
         )
 
     verification = _summarise_verification(checkpoint, invocations)
-    if verification["stale"]:
+    if verification.stale:
         warnings.append("Verification is missing, failed, or stale.")
 
     current_layer = _infer_current_layer(items) or "unknown"
 
-    return {
-        "repo": str(repo_root),
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "currentLayer": current_layer,
-        "queueSummary": {
-            "total": len(items),
-            "ready": sum(1 for i in items if i.ready),
-            "active": sum(1 for i in items if i.active),
-        },
-        "queueItems": [
-            {
-                "raw": i.raw,
-                "active": i.active,
-                "ready": i.ready,
-                "layer": i.layer.value if i.layer else None,
-                "change_id": i.change_id,
-            }
+    return StatusPayload(
+        repo=str(repo_root),
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        current_layer=current_layer,
+        queue_summary=StatusQueueSummary(
+            total=len(items),
+            ready=sum(1 for i in items if i.ready),
+            active=sum(1 for i in items if i.active),
+        ),
+        queue_items=tuple(
+            StatusQueueItem(
+                raw=i.raw,
+                active=i.active,
+                ready=i.ready,
+                layer=i.layer.value if i.layer else None,
+                change_id=i.change_id,
+            )
             for i in items
-        ],
-        "packets": [
-            {
-                "change_id": s.change_id,
-                "path": str(s.path),
-                "status": s.status,
-            }
+        ),
+        packets=tuple(
+            StatusPacketItem(
+                change_id=s.change_id,
+                path=str(s.path),
+                status=s.status,
+            )
             for s in summaries
-        ],
-        "activePlan": (
-            {
-                "plan_id": active_plan.plan_id,
-                "attested": active_plan.attested,
-                "task_plan_path": str(active_plan.task_plan_path),
-            }
+        ),
+        active_plan=(
+            StatusActivePlan(
+                plan_id=active_plan.plan_id,
+                attested=active_plan.attested,
+                task_plan_path=str(active_plan.task_plan_path),
+            )
             if active_plan
             else None
         ),
-        "checkpoint": {
-            "found": checkpoint_path.is_file(),
-            "path": str(checkpoint_path),
-            "last_worker": checkpoint.last_worker,
-            "verification": checkpoint.verification,
-            "stop_reason": checkpoint.stop_reason,
-        },
-        "runner": {
-            "invocationCount": len(invocations),
-            "lastRound": (invocations[-1].get("round") if invocations else None),
-            "lastExitCode": (
+        checkpoint=StatusCheckpoint(
+            found=checkpoint_path.is_file(),
+            path=str(checkpoint_path),
+            last_worker=checkpoint.last_worker,
+            verification=checkpoint.verification,
+            stop_reason=checkpoint.stop_reason,
+        ),
+        runner=StatusRunner(
+            invocation_count=len(invocations),
+            last_round=(invocations[-1].get("round") if invocations else None),
+            last_exit_code=(
                 invocations[-1].get("exitCode")
                 if invocations and isinstance(invocations[-1].get("exitCode"), int)
                 else None
             ),
-        },
-        "verification": verification,
-        "warnings": warnings,
-    }
+        ),
+        verification=verification,
+        warnings=tuple(warnings),
+    )
 
 
-def format_text(status: dict) -> str:
-    qs = status["queueSummary"]
+def format_text(status: StatusPayload) -> str:
     lines = [
-        bilingual("status.header", path=status["repo"]),
-        bilingual("status.generated", ts=status["generatedAt"]),
-        bilingual("status.current_layer", layer=status["currentLayer"]),
+        bilingual("status.header", path=status.repo),
+        bilingual("status.generated", ts=status.generated_at),
+        bilingual("status.current_layer", layer=status.current_layer),
         "",
         bilingual(
             "status.scheduler_queue",
-            total=qs["total"],
-            ready=qs["ready"],
-            active=qs["active"],
+            total=status.queue_summary.total,
+            ready=status.queue_summary.ready,
+            active=status.queue_summary.active,
         ),
     ]
 
-    if status["queueItems"]:
+    if status.queue_items:
         lines.append("")
         lines.append(bilingual("status.queue_items"))
-        for item in status["queueItems"]:
+        for item in status.queue_items:
             details = " ".join(
                 part for part in (
-                    f"layer={item['layer']}" if item["layer"] else "",
-                    f"change={item['change_id']}" if item["change_id"] else "",
+                    f"layer={item.layer}" if item.layer else "",
+                    f"change={item.change_id}" if item.change_id else "",
                 ) if part
             )
-            tag = "active" if item["active"] else "ready" if item["ready"] else "other"
-            lines.append(f"- [{tag}] {item['raw'].splitlines()[0]}{(' (' + details + ')') if details else ''}")
+            tag = "active" if item.active else "ready" if item.ready else "other"
+            lines.append(f"- [{tag}] {item.raw.splitlines()[0]}{(' (' + details + ')') if details else ''}")
 
-    if status["packets"]:
+    if status.packets:
         lines.append("")
         lines.append(bilingual("status.change_packets"))
-        for p in status["packets"]:
-            lines.append(f"- [{p['status']}] {p['change_id']}")
+        for p in status.packets:
+            lines.append(f"- [{p.status}] {p.change_id}")
 
-    if status["activePlan"]:
-        plan = status["activePlan"]
-        state = bilingual("status.plan_state_attested") if plan["attested"] else bilingual("status.plan_state_unattested")
+    if status.active_plan is not None:
+        plan = status.active_plan
+        state = bilingual("status.plan_state_attested") if plan.attested else bilingual("status.plan_state_unattested")
         lines.append("")
-        lines.append(bilingual("status.active_plan", plan_id=plan["plan_id"], state=state))
+        lines.append(bilingual("status.active_plan", plan_id=plan.plan_id, state=state))
 
-    if status["checkpoint"]["found"]:
-        ck = status["checkpoint"]
+    if status.checkpoint.found:
+        ck = status.checkpoint
         lines.append("")
         lines.append(bilingual("status.checkpoint_header"))
-        if ck["last_worker"]:
-            lines.append("- " + bilingual("status.last_worker", value=ck["last_worker"]))
-        if ck["stop_reason"]:
-            lines.append("- " + bilingual("status.stop_reason", value=ck["stop_reason"]))
+        if ck.last_worker:
+            lines.append("- " + bilingual("status.last_worker", value=ck.last_worker))
+        if ck.stop_reason:
+            lines.append("- " + bilingual("status.stop_reason", value=ck.stop_reason))
 
-    state = bilingual("status.verification_stale") if status["verification"]["stale"] else bilingual("status.verification_fresh")
+    state = bilingual("status.verification_stale") if status.verification.stale else bilingual("status.verification_fresh")
     lines.append("")
     lines.append(
         bilingual(
             "status.verification_line",
             state=state,
-            summary=status["verification"]["summary"] or "missing",
+            summary=status.verification.summary or "missing",
         )
     )
 
-    if status["warnings"]:
+    if status.warnings:
         lines.append("")
         lines.append(bilingual("status.warnings_header"))
-        for w in status["warnings"]:
+        for w in status.warnings:
             lines.append(f"- {w}")
 
     return "\n".join(lines) + "\n"
 
 
-def format_markdown(status: dict) -> str:
+def format_markdown(status: StatusPayload) -> str:
     """Markdown view (subset of the legacy ``formatMarkdown``)."""
     progression = canonical_progression()
     try:
-        current_index = progression.index(status["currentLayer"])
+        current_index = progression.index(status.current_layer)
     except ValueError:
         current_index = -1
     timeline_parts: list[str] = []
@@ -274,54 +290,54 @@ def format_markdown(status: dict) -> str:
     lines = [
         "# Harness Status",
         "",
-        f"Generated: {status['generatedAt']}",
-        f"Repo: {status['repo']}",
+        f"Generated: {status.generated_at}",
+        f"Repo: {status.repo}",
         "",
         f"Harness: {timeline}",
-        f"Current layer: {status['currentLayer']}",
+        f"Current layer: {status.current_layer}",
         "",
         "## Scheduler Queue",
         "",
-        f"Scheduler total: {status['queueSummary']['total']}; "
-        f"ready: {status['queueSummary']['ready']}; "
-        f"active: {status['queueSummary']['active']}",
+        f"Scheduler total: {status.queue_summary.total}; "
+        f"ready: {status.queue_summary.ready}; "
+        f"active: {status.queue_summary.active}",
         "",
     ]
-    if not status["queueItems"]:
+    if not status.queue_items:
         lines.append("- " + bilingual("status.no_scheduled_items"))
     else:
-        for item in status["queueItems"]:
-            tag = "active" if item["active"] else "ready" if item["ready"] else "other"
-            lines.append(f"- [{tag}] {item['raw'].splitlines()[0]}")
+        for item in status.queue_items:
+            tag = "active" if item.active else "ready" if item.ready else "other"
+            lines.append(f"- [{tag}] {item.raw.splitlines()[0]}")
     lines.append("")
     lines.append("## Change Packets")
     lines.append("")
-    if not status["packets"]:
+    if not status.packets:
         lines.append("- " + bilingual("status.no_change_packets"))
     else:
-        for p in status["packets"]:
-            lines.append(f"- [{p['status']}] {p['change_id']}")
+        for p in status.packets:
+            lines.append(f"- [{p.status}] {p.change_id}")
     lines.append("")
     lines.append("## Runner")
     lines.append("")
-    ck = status["checkpoint"]
-    lines.append(f"- Checkpoint: {ck['path']} ({'found' if ck['found'] else 'missing'})")
-    lines.append(f"- Last worker: {ck['last_worker'] or 'unknown'}")
-    lines.append(f"- Stop reason: {ck['stop_reason'] or 'none'}")
-    lines.append(f"- Invocation count: {status['runner']['invocationCount']}")
+    ck = status.checkpoint
+    lines.append(f"- Checkpoint: {ck.path} ({'found' if ck.found else 'missing'})")
+    lines.append(f"- Last worker: {ck.last_worker or 'unknown'}")
+    lines.append(f"- Stop reason: {ck.stop_reason or 'none'}")
+    lines.append(f"- Invocation count: {status.runner.invocation_count}")
     lines.append("")
     lines.append("## Verification")
     lines.append("")
-    lines.append(f"- Source: {status['verification']['source']}")
-    lines.append(f"- Stale: {'yes' if status['verification']['stale'] else 'no'}")
-    lines.append(f"- Summary: {status['verification']['summary'] or 'missing'}")
+    lines.append(f"- Source: {status.verification.source}")
+    lines.append(f"- Stale: {'yes' if status.verification.stale else 'no'}")
+    lines.append(f"- Summary: {status.verification.summary or 'missing'}")
     lines.append("")
     lines.append("## Warnings")
     lines.append("")
-    if not status["warnings"]:
+    if not status.warnings:
         lines.append("- none")
     else:
-        for w in status["warnings"]:
+        for w in status.warnings:
             lines.append(f"- {w}")
     return "\n".join(lines) + "\n"
 
@@ -347,12 +363,12 @@ def status_cmd(ctx: click.Context, fmt: str, refresh: bool) -> None:
         status_json = project_root / DEFAULT_PROJECT_CONFIG["statusJson"]
         status_md.parent.mkdir(parents=True, exist_ok=True)
         status_md.write_text(format_markdown(status), encoding="utf-8")
-        status_json.write_text(_json.dumps(status, indent=2), encoding="utf-8")
+        status_json.write_text(status.model_dump_json(indent=2, by_alias=True), encoding="utf-8")
         click.echo(bilingual("status.wrote_md", path=str(status_md)))
         click.echo(bilingual("status.wrote_md", path=str(status_json)))
 
     if ctx.obj.get("json_output") or fmt == "json":
-        click.echo(_json.dumps(status, indent=2))
+        click.echo(status.model_dump_json(indent=2, by_alias=True))
         return
     if fmt == "markdown":
         click.echo(format_markdown(status), nl=False)
@@ -365,4 +381,5 @@ __all__ = [
     "build_status",
     "format_markdown",
     "format_text",
+    "StatusPayload",
 ]

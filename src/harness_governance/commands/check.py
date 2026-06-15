@@ -130,17 +130,18 @@ def check_entry(repo_root: Path) -> CheckResult:
     """Run the implementation entry record check."""
     files = discover_entry_files(repo_root)
     all_errors: list[str] = []
+    findings: list[CheckFinding] = []
     for file in files:
-        all_errors.extend(check_entry_file(file, repo_root=repo_root))
-    findings = tuple(
-        CheckFinding(check="entry", target=str(file), level="error", message=err)
-        for file in files
-        for err in [e for e in all_errors if str(file) in e]
-    )
+        file_errors = check_entry_file(file, repo_root=repo_root)
+        all_errors.extend(file_errors)
+        for err in file_errors:
+            findings.append(
+                CheckFinding(check="entry", target=str(file), level="error", message=err)
+            )
     return CheckResult(
         check="entry",
         passed=not all_errors,
-        findings=findings,
+        findings=tuple(findings),
         inspected=len(files),
     )
 

@@ -10,16 +10,22 @@ Before any work, classify and disclose:
 harness governed-start "<task description>" [--files a.py,b.py] [--contracts] [--external] [--unclear]
 ```
 
-The command returns the routing decision plus the canonical disclosure block. Cite it in your reply before doing anything else.
+Do not skip this step. Fast path returns briefly; trivial / governed must output the disclosure block.
 
 ## Change packets
 
 ```bash
 harness packet init <change-id>
-harness packet check
+harness packet init <change-id> --force   # fill missing files without overwriting
+harness packet check                       # validate all docs/changes/<id>/
+harness packet check <id-or-path>          # validate one packet
 ```
 
-A change packet is a durable carrier, not a gate. Implementation still requires readiness plus an Implementation Entry Record.
+A change packet is a durable carrier, not a gate; it cannot approve implementation.
+
+## Implementation entry
+
+`harness-governance` does not embed Implementation Entry Record parsing. Use the `governed-implementation-entry` skill's 9-field format; once the `harness entry check` command is published (Phase B), validation will wire in automatically.
 
 ## Planning
 
@@ -29,19 +35,31 @@ harness plan attest
 harness plan complete
 ```
 
-## Status / verification / close
+## Status & checks
 
 ```bash
-harness status
+harness status                 # Markdown view
+harness status --json          # JSON view
+harness check --all            # routing + packets + entry + inventory
+```
+
+## Verification
+
+```bash
 harness verify <preset>
-harness review close <task-id> --evidence "..."
+```
+
+## Close
+
+```bash
+harness review close <task-id> --evidence "..." --risks "..."
 ```
 
 ## Rules
 
-- Do not enter `implementation` before `readiness` unless the user explicitly asks for a throwaway prototype.
-- Persisted data, external side effects, public contracts, or production runtime behavior exclude the prototype exception.
+- Do not skip `readiness` before `implementation` unless the user explicitly scopes the work as a throwaway prototype.
+- Persisted data, external side effects, public contracts, and production runtime behavior exclude the prototype exception.
 - Always enter `review-next` when work finishes or pauses.
-- Promote durable findings into ADR / schema / fixture / queue; chat-only conclusions are not durable state.
+- Promote important state into durable artifacts (ADR, schema, fixture, queue) instead of leaving it in chat.
 
 Run `harness --help` for the full command tree.

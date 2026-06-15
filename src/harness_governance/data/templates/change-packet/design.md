@@ -25,6 +25,6 @@
 
 ## Harness Constraints
 
-- 不压缩 `Architecture -> ADR -> Contract -> Readiness -> Implementation` 链路。
-- `tasks.md` 不能作为实现批准；implementation 仍需要 readiness 和 Implementation Entry Record。
+- Do not compress the `Architecture -> ADR -> Contract -> Readiness -> Implementation` chain.
+- `tasks.md` cannot serve as implementation approval; implementation still requires readiness and an Implementation Entry Record.
 

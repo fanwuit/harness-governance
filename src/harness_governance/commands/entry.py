@@ -15,6 +15,7 @@ import click
 from ..file_ops import entry as entry_ops
 from ..messages import bilingual
 from ..models.schemas import CheckResult, EntryRecord
+from ..state_machine.layers import HarnessLayer
 
 _PLACEHOLDER = re.compile(r"^(?:\s*|tbd|todo|missing|n/a|\?)$", re.IGNORECASE)
 
@@ -219,10 +220,7 @@ def entry_check_cmd(
     "--layer",
     "layer",
     required=True,
-    type=click.Choice([layer.value for layer in __import__(
-        "harness_governance.state_machine.layers",
-        fromlist=["HarnessLayer"],
-    ).HarnessLayer]),
+    type=click.Choice([layer.value for layer in HarnessLayer]),
     help="Current harness layer.",
 )
 @click.option(
@@ -273,8 +271,6 @@ def entry_record_cmd(
     By default prints to stdout. With ``--output`` writes to the given file.
     The block can then be pasted into chat, a status file, or a review doc.
     """
-    from harness_governance.state_machine.layers import HarnessLayer
-
     record = EntryRecord(
         current_layer=HarnessLayer(layer),
         target=target,

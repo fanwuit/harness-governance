@@ -21,7 +21,7 @@ DEFAULT_PLANNING_ROOT = Path(".planning")
 DEFAULT_CHECKPOINT_FILE = DEFAULT_HARNESS_DIR / "run-checkpoint.md"
 DEFAULT_STATUS_FILE = DEFAULT_HARNESS_DIR / "status.md"
 DEFAULT_STATUS_JSON = DEFAULT_HARNESS_DIR / "status.json"
-DEFAULT_INVOCATIONS_LOG = DEFAULT_HARNESS_DIR / "codex-exec-invocations.ndjson"
+DEFAULT_INVOCATIONS_LOG = DEFAULT_HARNESS_DIR / "invocations.ndjson"
 
 # Status values used by change packets. ``check-change-packet.mjs``
 # rejects anything outside this set.
@@ -45,6 +45,7 @@ PLATFORM_SKILL_PATHS: dict[str, Path] = {
     "codex": Path(".codex/skills/harness-governance/SKILL.md"),
     "cline": Path(".clinerules/harness-governance.md"),
     "cursor": Path(".cursor/rules/harness-governance.md"),
+    "qoderwork": Path("AGENTS.md"),
     "generic": Path("AGENTS.md"),
 }
 
@@ -54,6 +55,7 @@ PLATFORM_HINTS: tuple[tuple[str, str], ...] = (
     (".codex", "codex"),
     (".clinerules", "cline"),
     (".cursor", "cursor"),
+    (".qoderwork", "qoderwork"),
     ("AGENTS.md", "generic"),
 )
 
@@ -63,4 +65,5 @@ ENV_HINTS: tuple[tuple[str, str], ...] = (
     ("CODEX_HOME", "codex"),
     ("CLINE_SESSION", "cline"),
     ("CURSOR_TRACE_ID", "cursor"),
+    ("QODERWORK_SESSION", "qoderwork"),
 )

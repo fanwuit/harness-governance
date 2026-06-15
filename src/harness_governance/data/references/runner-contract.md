@@ -2,16 +2,16 @@
 
 ## 目的
 
-`autonomous-ready-loop` 通过一次只运行一个可丢弃的 Codex worker，避免上下文窗口持续膨胀。runner 负责重复调度，仓库文件负责记忆，模型只负责一次有边界的执行尝试。
+`autonomous-ready-loop` 通过一次只运行一个可丢弃的 agent worker，避免上下文窗口持续膨胀。runner 负责重复调度，仓库文件负责记忆，模型只负责一次有边界的执行尝试。
 
 ## 角色
 
-- Runner：启动新的 `codex exec` worker，捕获输出，执行轮数/时间限制，检查 marker，并在风险出现时停止。
+- Runner：启动新的 external agent worker（`codex exec`、`subprocess` 或 `orchestrator`），捕获输出，执行轮数/时间限制，检查 marker，并在风险出现时停止。
 - Worker：读取仓库说明，执行一个 ready 项或有限批次，更新持久化文件，运行验证，并输出 marker。
 - Queue file：定义下一个可执行项和阶段边界。例如 `NEXT.md`、`TODO.md`、issue export 或 backlog JSON。`NEXT.md` 应作为 scheduler，只保留可执行 `[ready]` 和必要时短暂 `[active]`。
 - Done archive：保存已完成 change packet 或 done 历史，默认 `docs/changes/archive/<YYYY-MM-DD>-<change-id>/`；完成记录不要长期留在 scheduler。
 - Checkpoint：记录上一个 worker 做了什么，以及下一个 worker 如何不依赖聊天历史继续。
-- Invocation log：记录每一次 `codex exec` 调用的命令、开始/结束时间、退出码、marker、输出文件路径和摘要。
+- Invocation log：记录每一次 agent 调用的命令、开始/结束时间、退出码、marker、输出文件路径和摘要。
 - Status output：由通用 `harness-visualization` 生成 `.harness/status.md` 和 `.harness/status.json`，供人类和后续 agent 查看当前 layer、scheduler queue、done archive、task packet、runner 和 verification 状态。
 
 ## 运行模式
@@ -54,14 +54,13 @@
 
 ## 调用记录要求
 
-runner 必须把所有 `codex exec` 调用记录持久化，不只是在终端打印最近一次输出。
+runner 必须把所有 agent 调用记录持久化，不只是在终端打印最近一次输出。
 
 建议路径：
 
-- `.harness/codex-exec-invocations.ndjson`：每行一条结构化调用记录。
-- `.harness/codex-exec/<timestamp>-stdout.txt`：单轮 stdout。
-- `.harness/codex-exec/<timestamp>-stderr.txt`：单轮 stderr。
-- `.harness/last-codex-message.md`：最近一轮最终回复，供 marker 解析。
+- `.harness/invocations.ndjson`：每行一条结构化调用记录。
+- `.harness/worker-output/<timestamp>-stdout.txt`：单轮 stdout。
+- `.harness/worker-output/<timestamp>-stderr.txt`：单轮 stderr。
 - `.harness/status.md`：人类可读状态仪表。
 - `.harness/status.json`：agent、TUI 或 Web UI 消费的机器状态。
 - `.harness/harness-status.config.json`：仅当项目路径不符合默认约定时才需要。
@@ -123,10 +122,10 @@ runner 会在 worker 退出后刷新 `.harness/status.md` 和 `.harness/status.j
 
 ## Runner 安全默认值
 
-- 使用 `codex exec`，不要使用交互式长聊天线程承载循环。
-- 优先使用 `--sandbox workspace-write`。
-- 不要把交互入口的 `--ask-for-approval` 传给 `codex exec`；非交互 worker 应依赖 `--sandbox workspace-write` 和失败退出机制。
-- 不要使用 `--dangerously-bypass-approvals-and-sandbox`，除非外部环境已经单独沙箱化，且用户明确要求。
+- 使用独立 agent 进程（`codex exec`、`subprocess` 或 `orchestrator` subagent），不要使用交互式长聊天线程承载循环。
+- 优先使用沙箱模式（如 `--sandbox workspace-write`）。
+- 不要把交互入口的审批标志传给非交互 worker；worker 应依赖沙箱和失败退出机制。
+- 不要使用绕过审批和沙箱的标志，除非外部环境已经单独沙箱化，且用户明确要求。
 - 默认使用 `BoundedBatch` 和小 `MaxRounds`；当用户目标是自动完成当前阶段时，显式使用 `RunUntilBoundary`。
 - 把 worker 的最终消息写到文件，并从该文件解析 marker。
 

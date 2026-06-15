@@ -32,6 +32,36 @@ existing methodology verbatim:
 * **Markdown file conventions**: `NEXT.md`, `docs/changes/<id>/`,
   `.planning/<id>/`, `.harness/run-checkpoint.md`.
 
+## How It Works
+
+Every engineering task moves through a **12-layer state machine**:
+
+```
+intake → orientation → idea → fact-discovery → brainstorming → brief
+       → architecture → adr → contract → readiness → implementation
+       → verification → review-next
+```
+
+The state machine enforces nine transition rules — for example, a
+readiness gate must pass before implementation starts, and architectural
+decisions must be recorded as durable ADRs rather than left in chat.
+Violations are reported without side effects, so the caller (human or
+agent) decides how to respond.
+
+Before any work begins, the CLI classifies the request as **Fast**
+(pure question, no file changes), **Trivial** (single-file safe change
+with a clear verification command), or **Governed** (anything touching
+contracts, persistence, deployment, or multiple layers). Fast and
+Trivial tasks skip the full pipeline; Governed tasks produce a
+canonical disclosure block and enter the layer progression.
+
+When a Governed task spans more than one layer, it gets a **change
+packet** — a directory under `docs/changes/<id>/` containing five
+template files: `proposal.md`, `design.md`, `tasks.md`, `contracts.md`,
+and `verification.md`. The packet is the durable carrier for everything
+the state machine needs to track. See the [glossary](./GLOSSARY.md)
+for a full list of terms.
+
 ## Install
 
 ```bash
@@ -71,7 +101,7 @@ For a longer walkthrough see [`QUICKSTART.md`](./QUICKSTART.md).
 
 | Command | Purpose |
 |---|---|
-| `harness init [--platform {claude-code,codex,cline,generic}] [--force]` | Write `.harness/config.toml` + per-platform skill adapter |
+| `harness init [--platform {claude-code,codex,cline,cursor,qoderwork,generic}] [--force]` | Write `.harness/config.toml` + per-platform skill adapter |
 | `harness governed-start "<task>" [--files …] [--contracts] [--external] [--unclear]` | Classify and produce the canonical disclosure block |
 | `harness packet init <id>` / `check [target …]` | Manage change packets under `docs/changes/<id>/` |
 | `harness entry {check,record}` | Validate / render Implementation Entry Records |
@@ -125,6 +155,33 @@ The state machine engine evaluates proposed transitions against the
 9-rule policy and reports violations without side effects — every
 caller collects violations and decides what to do.
 
+## Skill Map
+
+The 25 bundled skills are grouped by when you need them:
+
+**Start here** — entry points and routing:
+`harness-engineering` (main governed entry), `governed-implementation-entry`
+(entry record validation), `review-next-governance` (closing and review),
+`skill-use-transparency` (agent disclosure), `agent-routing-guard` (layer-aware routing).
+
+**Core pipeline** — the governance backbone:
+`contract-first-development`, `implementation-readiness-gate`,
+`adr-writing`, `architecture-boundary-design`, `change-packet-protocol`,
+`state-machine-layers`, `transition-rules`.
+
+**Execution** — autonomous and semi-autonomous loops:
+`autonomous-ready-loop`, `execution-prompt-authoring`, `agent-role-isolation`,
+`subagent-runner`.
+
+**Supporting** — cross-cutting concerns:
+`bilingual-output`, `verification-presets`, `planning-carrier`,
+`config-management`, `status-dashboard`, `inventory-check`,
+`governed-start-classifier`, `packet-check`, `entry-check`,
+`review-close`, `session-catchup`.
+
+Each skill ships as a standalone Markdown file under `data/skills/` and is
+referenced by the per-platform adapter written by `harness init`.
+
 ## Compatibility & parity
 
 The CLI is parity-tested against the legacy `.mjs` / `.sh` / `.py`
@@ -152,9 +209,9 @@ pip install -e .[test]
 pytest
 ```
 
-165 tests cover the state machine, file ops, models, every CLI
+321 tests cover the state machine, file ops, models, every CLI
 subcommand, the autonomous loop with a subprocess executor, session
-catchup, and the bilingual message catalog.
+catchup, the bilingual message catalog, and the 9-role Subagent Runner.
 
 ## License
 

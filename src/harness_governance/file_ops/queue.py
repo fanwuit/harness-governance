@@ -111,4 +111,64 @@ def format_queue(items: Iterable[QueueItem]) -> str:
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
-__all__ = ["parse_queue", "read_queue", "format_queue"]
+# Extended inline field keys beyond the core Layer/Change/Packetization/Evidence.
+# Used by extract_ready_block_fields() for Subagent runner variable extraction.
+_EXTENDED_FIELD_KEYS = frozenset({
+    "layer", "change", "packetization", "evidence",
+    "role",
+    "forbidden shortcut",
+    "forbidden scope",
+    "verification command",
+    "verification commands",
+    "done when",
+    "allowed assumptions",
+    "expected behavior",
+    "failure behavior",
+    "owner files",
+    "success criteria",
+    "non-goals",
+    "non goals",
+    "stop conditions",
+})
+
+
+def extract_ready_block_fields(raw: str) -> dict[str, str]:
+    """Extract ``Key: Value`` inline fields from a ready block's raw text.
+
+    Extends the core four fields (Layer, Change, Packetization, Evidence)
+    with role-specific fields used by the Subagent runner for template
+    variable extraction. Multi-line values (continuation lines that do
+    not match any known key) are appended to the preceding key.
+
+    Returns a dict with lower-cased keys.
+    """
+    result: dict[str, str] = {}
+    current_key: str | None = None
+    buffer: list[str] = []
+
+    for line in raw.splitlines():
+        stripped = line.strip().lstrip("-").strip()
+        if not stripped:
+            continue
+
+        colon_idx = stripped.find(":")
+        if colon_idx > 0:
+            candidate = stripped[:colon_idx].strip().lower()
+            if candidate in _EXTENDED_FIELD_KEYS:
+                if current_key is not None:
+                    result[current_key] = "\n".join(buffer).strip()
+                current_key = candidate
+                value = stripped[colon_idx + 1:].strip()
+                buffer = [value] if value else []
+                continue
+
+        if current_key is not None:
+            buffer.append(stripped)
+
+    if current_key is not None:
+        result[current_key] = "\n".join(buffer).strip()
+
+    return result
+
+
+__all__ = ["parse_queue", "read_queue", "format_queue", "extract_ready_block_fields"]

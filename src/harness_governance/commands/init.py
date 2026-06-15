@@ -20,6 +20,31 @@ from ..messages import bilingual
 
 _SKILLS_PACKAGE = "harness_governance.data.skills"
 
+_NEXT_MD_TEMPLATE = """\
+<!-- Harness Governance Queue (NEXT.md)
+
+Status labels: [ready] [active] [blocked] [done] [not-now]
+Fields:  - Layer: <layer-name>
+         - Change: <change-id>       (links to docs/changes/<id>/)
+         Role: <role-name>
+         Verification command: <cmd>
+         Done when: <criteria>
+         Forbidden shortcut: <what to avoid>
+
+Uncomment the example below or replace with your own queue items.
+-->
+
+<!--
+[ready] Example: implement feature X
+- Layer: implementation
+- Change: feature-x
+Role: Implementer
+Verification command: npm test
+Done when: feature X works end-to-end
+Forbidden shortcut: no mock data in production
+-->
+"""
+
 
 @dataclass(slots=True)
 class InitResult:
@@ -121,6 +146,17 @@ def init_cmd(
         else:
             skill_path = write_skill_file(project_root, detected)
             notes.append(bilingual("init.skill_created", path=str(skill_path)))
+
+    # --- Scaffolding: NEXT.md + docs/changes/ ---
+    from ..config.defaults import DEFAULT_CHANGES_ROOT, DEFAULT_QUEUE_FILE
+
+    next_path = (project_root / DEFAULT_QUEUE_FILE).resolve()
+    if not next_path.exists():
+        next_path.write_text(_NEXT_MD_TEMPLATE, encoding="utf-8")
+        notes.append(f"Created {next_path}")
+
+    changes_path = (project_root / DEFAULT_CHANGES_ROOT).resolve()
+    changes_path.mkdir(parents=True, exist_ok=True)
 
     result = InitResult(
         project_root=project_root,

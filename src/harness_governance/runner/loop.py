@@ -215,7 +215,7 @@ class AutonomousReadyLoop:
     ) -> tuple[Path | None, Path | None]:
         if not result.stdout and not result.stderr:
             return None, None
-        out_dir = self.project_root / ".harness" / "codex-exec"
+        out_dir = self.project_root / ".harness" / "worker-output"
         out_dir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         stdout_path = out_dir / f"{stamp}-round{round_index}-stdout.txt"

@@ -25,7 +25,7 @@ class HarnessConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    agent_platform: Literal["claude-code", "codex", "cline", "generic"] = "claude-code"
+    agent_platform: Literal["claude-code", "codex", "cline", "cursor", "qoderwork", "generic"] = "claude-code"
     project_root: Path = Field(default_factory=Path.cwd)
     queue_file: Path = Path("NEXT.md")
     changes_root: Path = Path("docs/changes")
@@ -154,19 +154,6 @@ class PlanningSession(BaseModel):
     attestation_sha256: str | None = None
 
 
-class StatusView(BaseModel):
-    """Aggregate dashboard view emitted by ``harness status``."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    project_root: Path
-    queue_path: Path | None
-    queue_items: tuple["QueueItem", ...] = ()
-    packets: tuple[ChangePacketSummary, ...] = ()
-    active_plan: PlanningSession | None = None
-    checkpoint_present: bool = False
-
-
 class QueueItem(BaseModel):
     """One entry of ``NEXT.md``.
 
@@ -185,4 +172,107 @@ class QueueItem(BaseModel):
     evidence: str | None = None
 
 
-StatusView.model_rebuild()
+class StatusQueueItem(BaseModel):
+    """Queue item as rendered in the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    raw: str
+    active: bool = False
+    ready: bool = False
+    layer: str | None = None
+    change_id: str | None = None
+
+
+class StatusQueueSummary(BaseModel):
+    """Queue summary counters."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total: int = 0
+    ready: int = 0
+    active: int = 0
+
+
+class StatusPacketItem(BaseModel):
+    """Change packet as rendered in the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    change_id: str
+    path: str
+    status: str = "draft"
+
+
+class StatusActivePlan(BaseModel):
+    """Active planning session as rendered in the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    plan_id: str
+    attested: bool = False
+    task_plan_path: str
+
+
+class StatusCheckpoint(BaseModel):
+    """Checkpoint snapshot for the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    found: bool = False
+    path: str = ""
+    last_worker: str = ""
+    verification: str = ""
+    stop_reason: str = ""
+
+
+class StatusRunner(BaseModel):
+    """Runner stats for the status payload."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    invocation_count: int = Field(default=0, alias="invocationCount")
+    last_round: int | None = Field(default=None, alias="lastRound")
+    last_exit_code: int | None = Field(default=None, alias="lastExitCode")
+
+
+class StatusVerification(BaseModel):
+    """Verification summary for the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str | None = None
+    stale: bool = True
+    failed: bool = False
+    source: str = "missing"
+
+
+class StatusPayload(BaseModel):
+    """Aggregate dashboard emitted by ``harness status``.
+
+    Replaces the legacy :class:`StatusView` (which was too minimal to
+    represent the full status JSON contract). Both ``format_text`` and
+    ``format_markdown`` accept this model.
+
+    Field aliases preserve the camelCase JSON keys used by the legacy
+    ``harness-visualization/scripts/harness-status.mjs`` so downstream
+    consumers of ``.harness/status.json`` are not broken.
+    """
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    repo: str
+    generated_at: str = Field(alias="generatedAt")
+    current_layer: str = Field(alias="currentLayer")
+    queue_summary: StatusQueueSummary = Field(
+        default_factory=StatusQueueSummary, alias="queueSummary"
+    )
+    queue_items: tuple[StatusQueueItem, ...] = Field(
+        default_factory=tuple, alias="queueItems"
+    )
+    packets: tuple[StatusPacketItem, ...] = ()
+    active_plan: StatusActivePlan | None = Field(default=None, alias="activePlan")
+    checkpoint: StatusCheckpoint = Field(default_factory=StatusCheckpoint)
+    runner: StatusRunner = Field(default_factory=StatusRunner)
+    verification: StatusVerification = Field(default_factory=StatusVerification)
+    warnings: tuple[str, ...] = ()

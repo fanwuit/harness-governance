@@ -24,9 +24,11 @@ Done. Your agent will now use harness governance for engineering work.
 If you use a different agent platform:
 
 ```bash
-harness init --platform codex    # writes .codex/skills/...
-harness init --platform cline    # writes .clinerules/
-harness init --platform generic  # writes AGENTS.md
+harness init --platform codex      # writes .codex/skills/...
+harness init --platform cline      # writes .clinerules/
+harness init --platform cursor     # writes .cursor/rules/
+harness init --platform qoderwork  # writes AGENTS.md
+harness init --platform generic    # writes AGENTS.md
 ```
 
 ## 2. Classify your first task (30 s)
@@ -69,7 +71,33 @@ harness packet check
 # Change packet check passed: 1 packet(s).
 ```
 
-## 4. Plan, attest, and check the harness (2 min)
+## 4. Use the queue (NEXT.md)
+
+`harness init` creates a `NEXT.md` file in your project root. This is
+the task queue that `harness status` and the autonomous runner read
+from. Each item starts with a status label and optional metadata:
+
+```markdown
+[ready] Add /v2/widgets endpoint
+- Layer: implementation
+- Change: add-v2-widgets
+Role: Implementer
+Verification command: npm test
+Done when: endpoint returns 200 with valid JSON
+Forbidden shortcut: no mock data in production
+```
+
+Status labels: `[ready]` (can start now), `[active]` (in progress),
+`[blocked]` (waiting on dependency), `[done]` (completed),
+`[not-now]` (parked). The runner picks the first `[ready]` or
+`[active]` item.
+
+```bash
+harness status              # see queue + packets + checkpoint
+harness status --json       # machine-readable
+```
+
+## 5. Plan, attest, and check the harness (2 min)
 
 ```bash
 harness plan init add-v2-widgets    # creates .planning/2026-06-13-add-v2-widgets/
@@ -79,9 +107,21 @@ harness check --all                 # routing + packets + entry + inventory
 harness status --refresh            # write .harness/status.{md,json}
 ```
 
-## 5. Hand off to the autonomous runner (1 min)
+## 6. Hand off to the autonomous runner (1 min)
 
-When you want to let the queue drive a Codex / Claude worker:
+The runner has three executors. **Orchestrator** is the most universal —
+it generates a complete prompt document that any agent can load:
+
+```bash
+# generate an orchestrator prompt (platform-aware from .harness/config.toml)
+harness runner start --executor orchestrator --dry-run
+
+# write the prompt to a file for your agent to load
+harness runner start --executor orchestrator --output prompt.md
+```
+
+**Subprocess** wraps any external command. The command receives the
+prompt via `{prompt}` substitution or as a CLI argument:
 
 ```bash
 # dry-run prints the prompt that would be sent
@@ -90,12 +130,28 @@ harness runner start \
     --command 'echo "{prompt}"' \
     --dry-run
 
-# real run (requires codex CLI on PATH)
+# Codex
 harness runner start \
-    --executor codex \
-    --max-rounds 5 \
-    --verification routing-guardrails
+    --executor subprocess \
+    --command 'codex exec' \
+    --max-rounds 5
+
+# Claude Code
+harness runner start \
+    --executor subprocess \
+    --command 'claude --print' \
+    --max-rounds 5
+
+# any other agent with a CLI
+harness runner start \
+    --executor subprocess \
+    --command 'your-agent-cli --prompt' \
+    --prompt-as-arg \
+    --max-rounds 3
 ```
+
+All modes support `--verification routing-guardrails` to run a
+sanity check after each round.
 
 ## Optional: bilingual output
 

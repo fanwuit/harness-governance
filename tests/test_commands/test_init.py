@@ -130,3 +130,99 @@ def test_init_skip_skill(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0
     assert not (tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]).exists()
+
+
+# ---------------------------------------------------------------------------
+# Phase 1: scaffolding + cursor bug fix
+# ---------------------------------------------------------------------------
+
+def test_init_creates_next_md(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    next_file = tmp_repo / "NEXT.md"
+    assert next_file.is_file()
+    content = next_file.read_text(encoding="utf-8")
+    assert "Status labels" in content
+    assert "[ready]" in content
+
+
+def test_init_does_not_overwrite_existing_next_md(tmp_repo: Path) -> None:
+    next_file = tmp_repo / "NEXT.md"
+    next_file.write_text("[ready] My existing task\n", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    assert "My existing task" in next_file.read_text(encoding="utf-8")
+
+
+def test_init_creates_changes_dir(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_repo / "docs" / "changes").is_dir()
+
+
+def test_init_cursor_config_valid(tmp_repo: Path) -> None:
+    """Cursor config must be loadable by Pydantic without validation error."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_repo / ".cursor" / "rules" / "harness-governance.md").is_file()
+
+    # Config must be parseable — this was the bug: cursor was not in Literal
+    from harness_governance.config.settings import load_config
+    config = load_config(tmp_repo)
+    assert config.agent_platform == "cursor"
+
+
+def test_init_cursor_skill_has_cursor_content(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / ".cursor" / "rules" / "harness-governance.md"
+    content = skill.read_text(encoding="utf-8")
+    assert "Cursor" in content
+    assert "harness" in content
+
+
+# ---------------------------------------------------------------------------
+# Phase 2: qoderwork platform
+# ---------------------------------------------------------------------------
+
+def test_init_detects_qoderwork(tmp_repo: Path) -> None:
+    (tmp_repo / ".qoderwork").mkdir()
+    assert detect_platform(tmp_repo) == "qoderwork"
+
+
+def test_init_qoderwork_writes_skill(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "qoderwork"],
+    )
+    assert result.exit_code == 0, result.output
+    # qoderwork uses AGENTS.md convention
+    skill = tmp_repo / "AGENTS.md"
+    assert skill.is_file()
+    content = skill.read_text(encoding="utf-8")
+    assert "QoderWork" in content
+    assert "harness" in content
+
+
+def test_init_qoderwork_config_valid(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "qoderwork"],
+    )
+    assert result.exit_code == 0, result.output
+    from harness_governance.config.settings import load_config
+    config = load_config(tmp_repo)
+    assert config.agent_platform == "qoderwork"

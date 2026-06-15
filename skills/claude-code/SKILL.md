@@ -32,7 +32,18 @@ harness packet check <id-or-path>   # 校验指定 packet
 
 ## 实现入口（写代码前）
 
-`harness-governance` 不内嵌 Implementation Entry Record 的解析；请使用 `governed-implementation-entry` skill 的 9 字段格式；待 Phase B 的 `harness entry check` 命令发布后，校验会自动接入。
+校验：
+```bash
+harness entry check                # 校验全部入口记录
+harness entry check <file>         # 校验指定文件
+```
+
+记录：
+```bash
+harness entry record --target ... --scope ... --layer implementation \
+    --contract-evidence ... --verification-command "pytest" \
+    --review-next-state ... --stop-conditions ...
+```
 
 ## 规划
 

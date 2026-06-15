@@ -45,7 +45,7 @@ from .plan import (
     plan_show_cmd,
 )
 from .review import review_close_cmd, review_group
-from .runner import runner_group, runner_start_cmd
+from .runner import runner_group, runner_start_cmd, runner_render_cmd, runner_parse_result_cmd
 from .status import build_status, format_markdown, format_text, status_cmd
 from .verify import verify_cmd
 
@@ -90,6 +90,8 @@ __all__ = [
     "config_init_cmd",
     "runner_group",
     "runner_start_cmd",
+    "runner_render_cmd",
+    "runner_parse_result_cmd",
     "check",
     "config_cmd",
     "entry",

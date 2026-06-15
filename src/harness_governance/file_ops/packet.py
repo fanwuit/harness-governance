@@ -319,6 +319,39 @@ def _has_archive_backlink(text: str) -> bool:
     return bool(_BACKLINK_TARGET_RE.search(text) and _BACKLINK_ACTION_RE.search(text))
 
 
+def extract_task_packet_sections(text: str) -> dict[str, str]:
+    """Extract ``## Heading`` sections from a task-packet Markdown file.
+
+    Returns a dict mapping lower-cased heading text to the section body
+    (everything between the heading and the next heading of equal or
+    higher level). Used by the Subagent runner's variable extractor to
+    pull OWNER_FILES, EXPECTED_BEHAVIOR, FAILURE_BEHAVIOR, etc. from
+    ``tasks.md``.
+    """
+    sections: dict[str, str] = {}
+    current_heading: str | None = None
+    buffer: list[str] = []
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            if current_heading is not None:
+                sections[current_heading] = "\n".join(buffer).strip()
+            current_heading = stripped[3:].strip().lower()
+            buffer = []
+        elif stripped.startswith("# ") and current_heading is not None:
+            sections[current_heading] = "\n".join(buffer).strip()
+            current_heading = None
+            buffer = []
+        elif current_heading is not None:
+            buffer.append(line)
+
+    if current_heading is not None:
+        sections[current_heading] = "\n".join(buffer).strip()
+
+    return sections
+
+
 __all__ = [
     "init_packet",
     "check_packet",
@@ -327,4 +360,5 @@ __all__ = [
     "resolve_packet_path",
     "load_packet_template",
     "packet_dir",
+    "extract_task_packet_sections",
 ]

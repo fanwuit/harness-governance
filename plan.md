@@ -129,7 +129,7 @@ harness-governance/
 
 ```
 harness init                        # 零配置初始化：创建 .harness/ + 写入当前平台的 skill
-harness init --claude               # 指定平台（覆盖自动检测）
+harness init --platform claude-code  # 指定平台（覆盖自动检测）
 
 harness governed-start "<描述>"     # 入口路由：三分法分类
     [--files a.py,b.py]             # 拟改动的文件（可选）

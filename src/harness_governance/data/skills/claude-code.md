@@ -1,40 +1,33 @@
 # Harness Governance (Claude Code)
 
-你是本项目的 AI 工程治理助手，使用 `harness` CLI 强制 12 层状态机。
+Use the `harness` CLI for all engineering work in this project. It encodes the local 12-layer governance state machine.
 
-## 入口
+## Entry
 
-每次接到开发任务时，先做分类与披露：
+Before any work, classify and disclose:
 
 ```bash
-harness governed-start "<任务描述>" [--files a.py,b.py] [--contracts] [--external] [--unclear]
+harness governed-start "<task description>" [--files a.py,b.py] [--contracts] [--external] [--unclear]
 ```
 
-不要跳过这一步骤。Fast path 才会简短返回；trivial / governed 必须输出披露块。
+Do not skip this step. Fast path returns briefly; trivial / governed must output the disclosure block.
 
-## 变更包（跨层/跨会话）
-
-创建：
+## Change packets
 
 ```bash
 harness packet init <change-id>
-harness packet init <change-id> --force   # 填充缺失文件，不覆盖已有文件
+harness packet init <change-id> --force   # fill missing files without overwriting
+harness packet check                       # validate all docs/changes/<id>/
+harness packet check <id-or-path>          # validate one packet
 ```
 
-校验：
+A change packet is a durable carrier, not a gate; it cannot approve implementation.
 
-```bash
-harness packet check                # 校验全部 docs/changes/<id>/
-harness packet check <id-or-path>   # 校验指定 packet
-```
+## Implementation entry
 
-变更包是 durable carrier，不是 gate；它不能批准 implementation。
+`harness-governance` does not embed Implementation Entry Record parsing. Use the `governed-implementation-entry` skill's 9-field format; once the `harness entry check` command is published (Phase B), validation will wire in automatically.
 
-## 实现入口（写代码前）
-
-`harness-governance` 不内嵌 Implementation Entry Record 的解析；请使用 `governed-implementation-entry` skill 的 9 字段格式；待 Phase B 的 `harness entry check` 命令发布后，校验会自动接入。
-
-## 规划
+## Planning
 
 ```bash
 harness plan init [slug]
@@ -42,31 +35,31 @@ harness plan attest
 harness plan complete
 ```
 
-## 状态与检查
+## Status & checks
 
 ```bash
-harness status                 # Markdown 视图
-harness status --json          # JSON 视图
-harness check --all            # 全部 routing/packets/entry/inventory 检查
+harness status                 # Markdown view
+harness status --json          # JSON view
+harness check --all            # routing + packets + entry + inventory
 ```
 
-## 验证
+## Verification
 
 ```bash
 harness verify <preset>
 ```
 
-## 关闭
+## Close
 
 ```bash
 harness review close <task-id> --evidence "..." --risks "..."
 ```
 
-## 关键规则
+## Rules
 
-- 不跳过 `readiness` 直接进入 `implementation`，除非显式标记为 throwaway prototype。
-- 持久化数据、外部副作用、公开契约、生产 runtime 默认排除 prototype 例外。
-- 工作结束或暂停必须进入 `review-next`。
-- 重要的状态变化写到对应的稳定产物（ADR、schema、fixture、queue），不要只留在聊天里。
+- Do not skip `readiness` before `implementation` unless the user explicitly scopes the work as a throwaway prototype.
+- Persisted data, external side effects, public contracts, and production runtime behavior exclude the prototype exception.
+- Always enter `review-next` when work finishes or pauses.
+- Promote important state into durable artifacts (ADR, schema, fixture, queue) instead of leaving it in chat.
 
-运行 `harness --help` 查看完整命令树。
+Run `harness --help` for the full command tree.
