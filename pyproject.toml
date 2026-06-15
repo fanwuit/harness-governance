@@ -30,12 +30,12 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/user/harness-governance"
-Issues = "https://github.com/user/harness-governance/issues"
-Documentation = "https://github.com/user/harness-governance#readme"
+Repository = "https://github.com/fanwuit/my-agent-first-skills"
+Issues = "https://github.com/fanwuit/my-agent-first-skills/issues"
+Documentation = "https://github.com/fanwuit/my-agent-first-skills#readme"
 
 [project.optional-dependencies]
-test = ["pytest>=7.0"]
+test = ["pytest>=7.0", "pytest-cov>=4.0"]
 
 [project.scripts]
 harness = "harness_governance.cli:main"
