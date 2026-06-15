@@ -15,12 +15,15 @@ from typing import Iterable
 
 import click
 
+from ..config.settings import load_config
 from ..file_ops import packet as packet_ops
 from ..file_ops import plan as plan_ops
 from ..file_ops.checkpoint import Checkpoint
 from ..file_ops.queue import read_queue
+from ..logging_setup import get_logger
 from ..messages import bilingual
 from ..models.schemas import (
+    HarnessConfig,
     QueueItem,
     StatusActivePlan,
     StatusCheckpoint,
@@ -32,6 +35,8 @@ from ..models.schemas import (
     StatusVerification,
 )
 from ..state_machine.layers import canonical_progression
+
+logger = get_logger("status")
 
 DEFAULT_CONFIG_PATH = Path(".harness/harness-status.config.json")
 DEFAULT_PROJECT_CONFIG: dict[str, str] = {
@@ -105,9 +110,24 @@ def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
     return None
 
 
-def build_status(repo_root: Path) -> StatusPayload:
-    """Build the status payload (mirrors the legacy script, text subset)."""
-    queue_path = repo_root / DEFAULT_PROJECT_CONFIG["queue"]
+def build_status(
+    repo_root: Path,
+    *,
+    config: HarnessConfig | None = None,
+) -> StatusPayload:
+    """Build the status payload (mirrors the legacy script, text subset).
+
+    When *config* is provided, path fields from
+    :class:`~harness_governance.models.schemas.HarnessConfig` are used
+    instead of the hardcoded :data:`DEFAULT_PROJECT_CONFIG`.  When
+    ``None``, the config is loaded automatically from *repo_root*.
+    """
+    if config is None:
+        config = load_config(repo_root)
+    logger.debug("using config: queue_file=%s changes_root=%s harness_dir=%s",
+                 config.queue_file, config.changes_root, config.harness_dir)
+
+    queue_path = config.queue_file  # already absolute after load_config
     items = read_queue(queue_path)
     queue_present = queue_path.is_file()
 
@@ -122,12 +142,12 @@ def build_status(repo_root: Path) -> StatusPayload:
     ]
 
     active_plan = plan_ops.resolve_active_plan(repo_root)
-    checkpoint_path = repo_root / DEFAULT_PROJECT_CONFIG["checkpoint"]
+    checkpoint_path = config.harness_dir / "run-checkpoint.md"
     checkpoint = Checkpoint.load(checkpoint_path)
     if not checkpoint_path.is_file():
         warnings.append(f"Checkpoint not found: {checkpoint_path}")
 
-    inv_log_path = repo_root / DEFAULT_PROJECT_CONFIG["invocationLog"]
+    inv_log_path = config.harness_dir / "invocations.ndjson"
     # Backward compatibility: fall back to legacy codex-exec path.
     if not inv_log_path.is_file():
         legacy = repo_root / _LEGACY_INVOCATION_LOG
@@ -137,7 +157,7 @@ def build_status(repo_root: Path) -> StatusPayload:
     warnings.extend(log_warnings)
     if not invocations:
         warnings.append(
-            f"Invocation log not found or empty: {DEFAULT_PROJECT_CONFIG['invocationLog']}"
+            f"Invocation log not found or empty: {config.harness_dir / 'invocations.ndjson'}"
         )
 
     verification = _summarise_verification(checkpoint, invocations)
@@ -356,11 +376,12 @@ def format_markdown(status: StatusPayload) -> str:
 def status_cmd(ctx: click.Context, fmt: str, refresh: bool) -> None:
     """Aggregate queue, packets, checkpoint, and verification."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
-    status = build_status(project_root)
+    config = load_config(project_root)
+    status = build_status(project_root, config=config)
 
     if refresh:
-        status_md = project_root / DEFAULT_PROJECT_CONFIG["statusMd"]
-        status_json = project_root / DEFAULT_PROJECT_CONFIG["statusJson"]
+        status_md = config.harness_dir / "status.md"
+        status_json = config.harness_dir / "status.json"
         status_md.parent.mkdir(parents=True, exist_ok=True)
         status_md.write_text(format_markdown(status), encoding="utf-8")
         status_json.write_text(status.model_dump_json(indent=2, by_alias=True), encoding="utf-8")

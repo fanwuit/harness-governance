@@ -84,7 +84,21 @@ def load_config(
         if key in raw:
             payload[key] = _coerce_path(raw[key], base=root)
 
-    return HarnessConfig.model_validate(payload)
+    config = HarnessConfig.model_validate(payload)
+
+    # Ensure all path fields are absolute, resolving defaults against root.
+    # When no config file exists the Pydantic defaults are relative; this
+    # guarantees downstream consumers always receive absolute paths.
+    _path_fields = ("queue_file", "changes_root", "planning_root", "harness_dir")
+    path_overrides: dict[str, Path] = {}
+    for key in _path_fields:
+        value = getattr(config, key)
+        if not value.is_absolute():
+            path_overrides[key] = root / value
+    if path_overrides:
+        config = config.model_copy(update=path_overrides)
+
+    return config
 
 
 def write_default_config(

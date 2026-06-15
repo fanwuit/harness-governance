@@ -1,0 +1,42 @@
+# Pre-commit hooks for harness-governance.
+#
+# Usage — add to your project's .pre-commit-config.yaml:
+#
+#   repos:
+#     - repo: https://github.com/fanwuit/my-agent-first-skills
+#       rev: v0.1.0
+#       hooks:
+#         - id: harness-check
+#
+# These hooks run project-level governance checks, not per-file linting.
+# ``pass_filenames`` is false because checks operate on the repo as a whole.
+
+- id: harness-check
+  name: Harness governance checks
+  description: Run all harness governance checks (routing, packets, entry, inventory).
+  entry: harness check --all
+  language: python
+  pass_filenames: false
+  always_run: false
+  files: \.(md|toml)$
+  stages: [pre-commit]
+
+- id: harness-check-packets
+  name: Harness change-packet check
+  description: Validate change-packet structure under docs/changes/.
+  entry: harness check packets
+  language: python
+  pass_filenames: false
+  always_run: false
+  files: ^docs/changes/
+  stages: [pre-commit]
+
+- id: harness-check-entry
+  name: Harness entry-record check
+  description: Validate Implementation Entry Records.
+  entry: harness check entry
+  language: python
+  pass_filenames: false
+  always_run: false
+  files: \.md$
+  stages: [pre-commit]
