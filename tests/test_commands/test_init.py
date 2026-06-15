@@ -261,3 +261,50 @@ def test_init_opencode_config_valid(tmp_repo: Path) -> None:
     from harness_governance.config.settings import load_config
     config = load_config(tmp_repo)
     assert config.agent_platform == "opencode"
+
+
+# ---------------------------------------------------------------------------
+# --minimal mode (friction reduction)
+# ---------------------------------------------------------------------------
+
+
+def test_init_minimal_creates_only_config(tmp_repo: Path) -> None:
+    """--minimal writes only config.toml; no skill adapter, NEXT.md, or scaffolding."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+    # Config must exist
+    assert (tmp_repo / ".harness" / "config.toml").is_file()
+    # Skill adapter must NOT exist
+    assert not (tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]).exists()
+    # NEXT.md must NOT exist
+    assert not (tmp_repo / "NEXT.md").exists()
+    # docs/changes/ must NOT exist
+    assert not (tmp_repo / "docs" / "changes").exists()
+    # Output should mention minimal
+    assert "minimal" in result.output.lower() or "最小" in result.output
+
+
+def test_init_minimal_json_output(tmp_repo: Path) -> None:
+    """--minimal with --json produces valid JSON with expected fields."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "--json", "init", "--minimal"]
+    )
+    assert result.exit_code == 0, result.output
+    import json
+    data = json.loads(result.output)
+    assert data["config_path"] is not None
+    assert data["skill_path"] is None
+
+
+def test_init_minimal_with_platform(tmp_repo: Path) -> None:
+    """--minimal with explicit platform writes only config."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--minimal", "--platform", "cursor"],
+    )
+    assert result.exit_code == 0, result.output
+    assert (tmp_repo / ".harness" / "config.toml").is_file()
+    assert not (tmp_repo / ".cursor" / "rules" / "harness-governance.md").exists()

@@ -286,8 +286,10 @@ class TestBuildStatus:
         assert not any("Queue file not found" in w for w in payload.warnings)
 
     def test_no_invocation_log_produces_warning(self, tmp_repo: Path) -> None:
+        """Uninitialized project: single not_initialized notice, no per-file warnings."""
         payload = build_status(tmp_repo)
-        assert any("invocation log" in w.lower() for w in payload.warnings)
+        assert any("not initialized" in w.lower() or "未初始化" in w for w in payload.warnings)
+        assert not any("invocation log" in w.lower() for w in payload.warnings)
 
     def test_last_exit_code_non_int_returns_none(self, tmp_repo: Path) -> None:
         """If exitCode is not an int, last_exit_code should be None."""
@@ -297,8 +299,9 @@ class TestBuildStatus:
         assert payload.runner.last_exit_code is None
 
     def test_checkpoint_not_found_warning(self, tmp_repo: Path) -> None:
+        """Uninitialized project suppresses per-file warnings including checkpoint."""
         payload = build_status(tmp_repo)
-        assert any("Checkpoint not found" in w for w in payload.warnings)
+        assert not any("Checkpoint not found" in w for w in payload.warnings)
 
     def test_with_queue_items_infers_layer(self, tmp_repo: Path) -> None:
         (tmp_repo / "NEXT.md").write_text(

@@ -114,6 +114,24 @@ def governed_start_cmd(
         )
         return
 
+    is_verbose = ctx.obj.get("verbose", False)
+    is_fast = result.path is RoutingPath.FAST_PATH
+    is_trivial = result.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+    # Fast-path: one-liner unless --verbose
+    if is_fast and not is_verbose:
+        click.echo(bilingual("governed_start.fast_ok"))
+        click.echo(result.recommended_next_command)
+        return
+
+    # Trivial: compact output, no disclosure block, queue optional
+    if is_trivial and not is_verbose:
+        click.echo(bilingual("governed_start.routing", path=result.path.value))
+        click.echo(bilingual("governed_start.rationale", text=result.rationale))
+        click.echo(result.recommended_next_command)
+        return
+
+    # Governed path (or any path with --verbose): full disclosure
     click.echo(bilingual("governed_start.routing", path=result.path.value))
     click.echo(bilingual("governed_start.rationale", text=result.rationale))
     if result.current_layer:

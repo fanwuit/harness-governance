@@ -119,6 +119,12 @@ def write_skill_file(project_root: Path, platform: str) -> Path:
     default=False,
     help="Skip auto-detection; require --platform to be set explicitly.",
 )
+@click.option(
+    "--minimal",
+    is_flag=True,
+    default=False,
+    help="Only write .harness/config.toml; skip skill adapter, NEXT.md, and scaffolding.",
+)
 @click.pass_context
 def init_cmd(
     ctx: click.Context,
@@ -126,6 +132,7 @@ def init_cmd(
     force: bool,
     skip_skill: bool,
     no_detect: bool,
+    minimal: bool,
 ) -> None:
     """Initialize harness governance in the current project."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd()).resolve()
@@ -134,6 +141,10 @@ def init_cmd(
             "--no-detect requires --platform to be set explicitly."
         )
     detected = platform or detect_platform(project_root)
+
+    # --minimal implies skip_skill and no scaffolding
+    if minimal:
+        skip_skill = True
 
     config_path = write_default_config(project_root, agent_platform=detected, force=force)
     notes: list[str] = [f"Detected platform: {detected}"]
@@ -147,16 +158,17 @@ def init_cmd(
             skill_path = write_skill_file(project_root, detected)
             notes.append(bilingual("init.skill_created", path=str(skill_path)))
 
-    # --- Scaffolding: NEXT.md + docs/changes/ ---
-    from ..config.defaults import DEFAULT_CHANGES_ROOT, DEFAULT_QUEUE_FILE
+    # --- Scaffolding: NEXT.md + docs/changes/ (skipped in --minimal mode) ---
+    if not minimal:
+        from ..config.defaults import DEFAULT_CHANGES_ROOT, DEFAULT_QUEUE_FILE
 
-    next_path = (project_root / DEFAULT_QUEUE_FILE).resolve()
-    if not next_path.exists():
-        next_path.write_text(_NEXT_MD_TEMPLATE, encoding="utf-8")
-        notes.append(f"Created {next_path}")
+        next_path = (project_root / DEFAULT_QUEUE_FILE).resolve()
+        if not next_path.exists():
+            next_path.write_text(_NEXT_MD_TEMPLATE, encoding="utf-8")
+            notes.append(f"Created {next_path}")
 
-    changes_path = (project_root / DEFAULT_CHANGES_ROOT).resolve()
-    changes_path.mkdir(parents=True, exist_ok=True)
+        changes_path = (project_root / DEFAULT_CHANGES_ROOT).resolve()
+        changes_path.mkdir(parents=True, exist_ok=True)
 
     result = InitResult(
         project_root=project_root,
@@ -181,6 +193,13 @@ def init_cmd(
                 indent=2,
             )
         )
+        return
+
+    if minimal:
+        click.echo(bilingual("init.detected", platform=result.detected_platform))
+        if result.config_path:
+            click.echo(bilingual("init.config_created", path=str(result.config_path)))
+        click.echo(bilingual("init.minimal_done"))
         return
 
     click.echo(bilingual("init.detected", platform=result.detected_platform))

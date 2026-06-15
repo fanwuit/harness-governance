@@ -121,19 +121,28 @@ def build_status(
     :class:`~harness_governance.models.schemas.HarnessConfig` are used
     instead of the hardcoded :data:`DEFAULT_PROJECT_CONFIG`.  When
     ``None``, the config is loaded automatically from *repo_root*.
+
+    Gracefully degrades when the project is not initialized (no
+    ``.harness/config.toml``): returns a clean empty state with a
+    single informational notice instead of noisy warnings.
     """
     if config is None:
         config = load_config(repo_root)
     logger.debug("using config: queue_file=%s changes_root=%s harness_dir=%s",
                  config.queue_file, config.changes_root, config.harness_dir)
 
+    # Detect uninitialized project: no config file and no .harness directory.
+    harness_dir = config.harness_dir
+    config_file = harness_dir / "config.toml"
+    initialized = config_file.is_file() or harness_dir.is_dir()
+
     queue_path = config.queue_file  # already absolute after load_config
     items = read_queue(queue_path)
-    queue_present = queue_path.is_file()
 
     warnings: list[str] = []
-    if not queue_present:
-        warnings.append(f"Queue file not found: {queue_path}")
+    if not initialized:
+        warnings.append(bilingual("status.not_initialized"))
+    # Clean: no queue items is a valid state — no warning needed.
 
     packet_dirs = packet_ops.discover_packets(repo_root)
     summaries = [
@@ -142,26 +151,24 @@ def build_status(
     ]
 
     active_plan = plan_ops.resolve_active_plan(repo_root)
-    checkpoint_path = config.harness_dir / "run-checkpoint.md"
-    checkpoint = Checkpoint.load(checkpoint_path)
-    if not checkpoint_path.is_file():
-        warnings.append(f"Checkpoint not found: {checkpoint_path}")
 
-    inv_log_path = config.harness_dir / "invocations.ndjson"
+    checkpoint_path = harness_dir / "run-checkpoint.md"
+    checkpoint = Checkpoint.load(checkpoint_path)
+
+    inv_log_path = harness_dir / "invocations.ndjson"
+    invocations: list[dict] = []
     # Backward compatibility: fall back to legacy codex-exec path.
     if not inv_log_path.is_file():
         legacy = repo_root / _LEGACY_INVOCATION_LOG
         if legacy.is_file():
             inv_log_path = legacy
-    invocations, log_warnings = _read_invocation_log(inv_log_path)
-    warnings.extend(log_warnings)
-    if not invocations:
-        warnings.append(
-            f"Invocation log not found or empty: {config.harness_dir / 'invocations.ndjson'}"
-        )
+    if inv_log_path.is_file():
+        invocations, log_warnings = _read_invocation_log(inv_log_path)
+        warnings.extend(log_warnings)
 
     verification = _summarise_verification(checkpoint, invocations)
-    if verification.stale:
+    # Only flag verification staleness if the project is initialized.
+    if initialized and verification.stale:
         warnings.append("Verification is missing, failed, or stale.")
 
     current_layer = _infer_current_layer(items) or "unknown"

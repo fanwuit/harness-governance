@@ -63,6 +63,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Done. Your agent will now use harness governance for engineering work.",
         "zh-CN": "完成。智能体现在会使用 harness 治理方法进行工程工作。",
     },
+    "init.minimal_done": {
+        "en": "Done. Minimal config written. Run `harness init` (without --minimal) for full setup.",
+        "zh-CN": "完成。已写入最小配置。运行 `harness init`（不带 --minimal）获取完整设置。",
+    },
     # governed-start -------------------------------------------------------
     "governed_start.routing": {
         "en": "Routing: {path}",
@@ -88,18 +92,22 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Next: {cmd}",
         "zh-CN": "下一步: {cmd}",
     },
+    "governed_start.fast_ok": {
+        "en": "fast-path: go ahead",
+        "zh-CN": "fast-path: 直接进行",
+    },
     "governed_start.recommendation.fast": {
         "en": "Answer the question directly; no harness command needed.",
         "zh-CN": "直接回答问题；不需要执行 harness 命令。",
     },
     "governed_start.recommendation.trivial": {
         "en": (
-            "Write a short Trivial Safe Change Entry, run the verification "
-            "command, then `harness review close <task-id>`."
+            "Make the change directly, run the verification command. "
+            "No need to add to the queue for trivial changes."
         ),
         "zh-CN": (
-            "写一段 Trivial Safe Change Entry、运行验证命令，"
-            "然后 `harness review close <task-id>`。"
+            "直接修改代码并运行验证命令。"
+            "琐碎修改无需加入队列。"
         ),
     },
     "governed_start.recommendation.governed": {
@@ -419,6 +427,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "status.wrote_md": {
         "en": "Wrote {path}",
         "zh-CN": "已写入 {path}",
+    },
+    "status.not_initialized": {
+        "en": "Project not initialized. Run `harness init` to set up governance.",
+        "zh-CN": "项目未初始化。运行 `harness init` 设置治理。",
     },
     # verify ---------------------------------------------------------------
     "verify.passed": {
