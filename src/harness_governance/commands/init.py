@@ -45,6 +45,73 @@ Forbidden shortcut: no mock data in production
 -->
 """
 
+_AGENTS_MD_MARKER_BEGIN = "<!-- harness-governance: triggers -->"
+_AGENTS_MD_MARKER_END = "<!-- /harness-governance -->"
+
+
+def _build_agents_triggers_block(skill_ref: str) -> str:
+    """Build the trigger block to embed in AGENTS.md.
+
+    *skill_ref* is the path to the platform-specific skill file
+    (e.g. ``.codex/skills/harness-governance/SKILL.md``), or an empty
+    string when AGENTS.md itself is the full skill file.
+    """
+    ref_line = f"\n详细命令参考: `{skill_ref}`\n" if skill_ref else ""
+    return f"""\
+{_AGENTS_MD_MARKER_BEGIN}
+## Harness Governance 触发规则
+
+在执行以下任务前，你**必须**先运行分类命令：
+- 实现功能、修复 bug、重构代码
+- 任何文件修改
+- 用户请求开发、调试、验证相关工作
+
+```bash
+harness governed-start "<任务描述>"
+```
+
+根据输出的 disclosure 决定后续流程。不要跳过此步骤。{ref_line}
+{_AGENTS_MD_MARKER_END}
+"""
+
+
+def _ensure_agents_md_triggers(
+    project_root: Path,
+    skill_ref: str,
+    *,
+    force: bool = False,
+) -> Path:
+    """Ensure AGENTS.md contains the harness trigger block.
+
+    * If AGENTS.md does not exist, create it with the trigger block.
+    * If it exists but lacks the marker, append the block.
+    * If it already has the marker and *force* is False, do nothing.
+    * If *force* is True, replace the existing block.
+
+    Returns the path to AGENTS.md.
+    """
+    agents_md = (project_root / "AGENTS.md").resolve()
+    block = _build_agents_triggers_block(skill_ref)
+
+    if agents_md.is_file():
+        content = agents_md.read_text(encoding="utf-8")
+        if _AGENTS_MD_MARKER_BEGIN in content:
+            if force:
+                # Replace existing block
+                start = content.index(_AGENTS_MD_MARKER_BEGIN)
+                end = content.index(_AGENTS_MD_MARKER_END) + len(_AGENTS_MD_MARKER_END)
+                content = content[:start] + block + content[end:]
+                agents_md.write_text(content, encoding="utf-8")
+            # else: already present, no-op
+            return agents_md
+        # Marker not found — append
+        separator = "\n\n" if content and not content.endswith("\n\n") else ""
+        agents_md.write_text(content + separator + block, encoding="utf-8")
+    else:
+        agents_md.write_text(block + "\n", encoding="utf-8")
+
+    return agents_md
+
 
 def _ensure_gitignore_entry(project_root: Path, pattern: str) -> None:
     """Append *pattern* to ``.gitignore`` if not already present.
@@ -275,6 +342,26 @@ def init_cmd(
         else:
             skill_path = write_skill_file(project_root, detected)
             notes.append(bilingual("init.skill_created", path=str(skill_path)))
+
+    # --- AGENTS.md triggers (always, except --minimal or --skip-skill) ---
+    if not minimal and not skip_skill:
+        if all_platforms:
+            # Multi-platform: reference is generic
+            agents_md = _ensure_agents_md_triggers(
+                project_root, skill_ref="", force=force,
+            )
+        elif detected in ("generic", "qoderwork"):
+            # AGENTS.md is the full skill file — triggers with no external ref
+            agents_md = _ensure_agents_md_triggers(
+                project_root, skill_ref="", force=force,
+            )
+        else:
+            # Other platform: reference the platform-specific skill file
+            skill_rel = PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])
+            agents_md = _ensure_agents_md_triggers(
+                project_root, skill_ref=str(skill_rel), force=force,
+            )
+        notes.append(f"AGENTS.md triggers: {agents_md}")
 
     # --- Scaffolding: NEXT.md + docs/changes/ (skipped in --minimal mode) ---
     if not minimal:

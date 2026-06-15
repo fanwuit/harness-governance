@@ -437,3 +437,120 @@ def test_init_all_platforms_force_overwrites(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0
     assert "custom codex" not in codex_skill.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# AGENTS.md triggers (universal entry point)
+# ---------------------------------------------------------------------------
+
+
+def test_init_codex_creates_agents_md_triggers(tmp_repo: Path) -> None:
+    """Selecting codex also creates AGENTS.md with trigger rules."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    assert result.exit_code == 0, result.output
+    agents_md = tmp_repo / "AGENTS.md"
+    assert agents_md.is_file()
+    content = agents_md.read_text(encoding="utf-8")
+    assert "harness-governance: triggers" in content
+    assert "governed-start" in content
+    # Should reference the codex skill file (normalize path separators)
+    content_normalized = content.replace("\\", "/")
+    assert ".codex/skills/harness-governance/SKILL.md" in content_normalized
+
+
+def test_init_agents_md_appends_to_existing(tmp_repo: Path) -> None:
+    """If AGENTS.md already exists, triggers are appended, not overwritten."""
+    agents_md = tmp_repo / "AGENTS.md"
+    agents_md.write_text("# My Project\n\nSome custom content.\n", encoding="utf-8")
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    assert result.exit_code == 0, result.output
+    content = agents_md.read_text(encoding="utf-8")
+    assert "My Project" in content  # Original content preserved
+    assert "Some custom content" in content
+    assert "harness-governance: triggers" in content  # Triggers appended
+
+
+def test_init_agents_md_idempotent(tmp_repo: Path) -> None:
+    """Running init twice doesn't duplicate the trigger block."""
+    runner = CliRunner()
+    runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    content = (tmp_repo / "AGENTS.md").read_text(encoding="utf-8")
+    assert content.count("harness-governance: triggers") == 1
+
+
+def test_init_agents_md_force_replaces_triggers(tmp_repo: Path) -> None:
+    """--force replaces the existing trigger block."""
+    runner = CliRunner()
+    runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    # Tamper with the trigger block
+    agents_md = tmp_repo / "AGENTS.md"
+    content = agents_md.read_text(encoding="utf-8")
+    content = content.replace("governed-start", "TAMPERED")
+    agents_md.write_text(content, encoding="utf-8")
+    # Force re-init should restore the trigger block
+    runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex", "--force"],
+    )
+    restored = agents_md.read_text(encoding="utf-8")
+    assert "governed-start" in restored
+    assert "TAMPERED" not in restored
+
+
+def test_init_all_platforms_creates_agents_md_triggers(tmp_repo: Path) -> None:
+    """--all-platforms creates AGENTS.md with generic triggers (no platform-specific ref)."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"]
+    )
+    assert result.exit_code == 0, result.output
+    agents_md = tmp_repo / "AGENTS.md"
+    assert agents_md.is_file()
+    content = agents_md.read_text(encoding="utf-8")
+    assert "harness-governance: triggers" in content
+    assert "governed-start" in content
+
+
+def test_init_minimal_skips_agents_md_triggers(tmp_repo: Path) -> None:
+    """--minimal does not create AGENTS.md triggers."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--minimal"],
+    )
+    assert result.exit_code == 0, result.output
+    assert not (tmp_repo / "AGENTS.md").exists()
+
+
+def test_init_generic_agents_md_has_triggers(tmp_repo: Path) -> None:
+    """For generic platform, AGENTS.md contains both skill content and triggers."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "generic"],
+    )
+    assert result.exit_code == 0, result.output
+    content = (tmp_repo / "AGENTS.md").read_text(encoding="utf-8")
+    # Full skill content
+    assert "Harness Governance" in content
+    assert "governed-start" in content
+    # Trigger block (no external ref since AGENTS.md is the skill file)
+    assert "harness-governance: triggers" in content
