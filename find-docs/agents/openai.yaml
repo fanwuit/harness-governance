@@ -1,4 +1,0 @@
-interface:
-  display_name: "Find Docs"
-  short_description: "Look up current non-OpenAI developer docs."
-  default_prompt: "Use $find-docs to resolve the library ID, fetch current docs, and answer with version-aware API guidance."

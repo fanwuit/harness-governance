@@ -1,4 +1,0 @@
-interface:
-  display_name: "Observable Fact Discovery"
-  short_description: "把未知行为转化为可复查事实记录。"
-  default_prompt: "使用 $observable-fact-discovery 探索这个未知行为，区分事实、假设和推断，并写成可复查记录。"

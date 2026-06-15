@@ -1,4 +1,0 @@
-interface:
-  display_name: "Harness Status Dashboard"
-  short_description: "Summarize runner, queue, marker, and verification state."
-  default_prompt: "Use $harness-status-dashboard to build a status report from queue, checkpoint, marker, and verification records."

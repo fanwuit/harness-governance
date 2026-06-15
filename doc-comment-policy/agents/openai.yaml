@@ -1,4 +1,0 @@
-interface:
-  display_name: "Doc Comment Policy"
-  short_description: "标准化代码文档注释，避免模板噪音和生成文档格式失真"
-  default_prompt: "Use $doc-comment-policy to standardize API documentation comments without forcing noisy templates."

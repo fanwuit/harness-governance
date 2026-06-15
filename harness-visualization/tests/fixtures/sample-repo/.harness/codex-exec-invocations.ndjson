@@ -1,1 +1,0 @@
-{"startedAt":"2026-06-09T00:00:00.000Z","finishedAt":"2026-06-09T00:01:00.000Z","round":4,"queueItem":"Parse runner records","exitCode":0,"marker":"AUTONOMOUS_READY_DONE","stdoutPath":".harness/codex-exec/round-4-stdout.txt","stderrPath":".harness/codex-exec/round-4-stderr.txt","verificationSummary":"node --test harness-visualization/tests/*.test.mjs -> pass"}

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent 防复犯护栏"
-  short_description: "沉淀 agent 易复犯错误"
-  default_prompt: "使用 $agent-mistake-guard 为当前项目创建或更新一份简洁的 agent 防复犯护栏。"

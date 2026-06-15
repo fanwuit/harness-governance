@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codebase Orientation"
-  short_description: "Map an unfamiliar codebase quickly."
-  default_prompt: "Use $codebase-orientation to map entry points, key modules, local run steps, and safe starter tasks."

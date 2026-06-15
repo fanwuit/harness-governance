@@ -1,4 +1,0 @@
-interface:
-  display_name: "Document Gardener"
-  short_description: "Find and repair documentation drift"
-  default_prompt: "Use $document-gardener to scan this repository for stale documentation and fix only governance drift."

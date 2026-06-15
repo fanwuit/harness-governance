@@ -1,4 +1,0 @@
-interface:
-  display_name: "Contract First Development"
-  short_description: "先固定可检查契约，再进入最小实现。"
-  default_prompt: "使用 $contract-first-development 先为这个行为设计 contract、fixture 和 check，再实现。"

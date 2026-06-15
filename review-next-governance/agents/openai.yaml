@@ -1,4 +1,0 @@
-interface:
-  display_name: "Review Next Governance"
-  short_description: "把完成证据、风险和下一步写回队列。"
-  default_prompt: "使用 $review-next-governance 根据本轮验证结果更新完成摘要、风险和下一步队列。"

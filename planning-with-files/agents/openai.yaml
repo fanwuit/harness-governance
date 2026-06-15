@@ -1,4 +1,0 @@
-interface:
-  display_name: "Planning With Files"
-  short_description: "Use persistent markdown files for complex tasks."
-  default_prompt: "Use $planning-with-files to create or resume task_plan.md, findings.md, and progress.md when no project queue exists."

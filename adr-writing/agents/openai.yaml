@@ -1,4 +1,0 @@
-interface:
-  display_name: "ADR Writing"
-  short_description: "把架构取舍固化为可验证的 ADR。"
-  default_prompt: "使用 $adr-writing 将这个架构判断或关键取舍写成 ADR。"

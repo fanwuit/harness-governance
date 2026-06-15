@@ -1,4 +1,0 @@
-interface:
-  display_name: "Brainstorm To Brief"
-  short_description: "把模糊想法收敛为可执行 Brief。"
-  default_prompt: "使用 $brainstorm-to-brief 将这个想法通过受约束头脑风暴收敛成 brief。"

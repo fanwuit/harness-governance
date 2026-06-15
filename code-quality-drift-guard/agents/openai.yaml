@@ -1,4 +1,0 @@
-interface:
-  display_name: "Code Quality Drift Guard"
-  short_description: "Find lightweight code quality drift candidates."
-  default_prompt: "Use $code-quality-drift-guard to scan for orphan scripts, naming drift, duplicate helpers, file growth, and unused-file candidates."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent Role Isolation"
-  short_description: "隔离规划、测试、实现和验收职责"
-  default_prompt: "Use $agent-role-isolation to split planning, testing, implementation, and review responsibilities before coding."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Architecture Boundary Design"
-  short_description: "从 Brief 推导系统边界、职责和数据流。"
-  default_prompt: "使用 $architecture-boundary-design 根据 brief 设计系统边界、职责、数据流和需要 ADR 的决策点。"

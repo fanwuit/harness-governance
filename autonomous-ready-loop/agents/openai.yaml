@@ -1,4 +1,0 @@
-interface:
-  display_name: "Autonomous Ready Loop"
-  short_description: "用短会话和 checkpoint 自动推进 ready 队列。"
-  default_prompt: "使用 $autonomous-ready-loop 建立或运行带 checkpoint、handoff 和边界保护的 Codex runner。"

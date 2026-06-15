@@ -1,4 +1,0 @@
-interface:
-  display_name: "Debugging Checklist"
-  short_description: "Prepare a concise human debugging checklist."
-  default_prompt: "Use $debugging-checklist to produce an ordered debugging checklist for a human handoff."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Contract Growth Control"
-  short_description: "Stop over-contracting before it stalls coding"
-  default_prompt: "Use $contract-growth-control to decide whether another contract is justified or implementation should start."
