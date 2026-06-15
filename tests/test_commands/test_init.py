@@ -353,3 +353,87 @@ def test_init_minimal_skips_gitignore(tmp_repo: Path) -> None:
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
     assert result.exit_code == 0, result.output
     assert not (tmp_repo / ".gitignore").exists()
+
+
+# ---------------------------------------------------------------------------
+# --all-platforms: multi-platform skill generation
+# ---------------------------------------------------------------------------
+
+
+def test_init_all_platforms_creates_all_skills(tmp_repo: Path) -> None:
+    """--all-platforms writes skill files for every supported platform."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"]
+    )
+    assert result.exit_code == 0, result.output
+    # Every platform's skill file must exist
+    for plat, rel in PLATFORM_SKILL_PATHS.items():
+        skill = tmp_repo / rel
+        assert skill.is_file(), f"Missing skill file for {plat}: {skill}"
+
+
+def test_init_all_platforms_config_is_multi(tmp_repo: Path) -> None:
+    """--all-platforms sets agent_platform to 'multi' in config."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"]
+    )
+    assert result.exit_code == 0, result.output
+    from harness_governance.config.settings import load_config
+    config = load_config(tmp_repo)
+    assert config.agent_platform == "multi"
+
+
+def test_init_all_platforms_skip_skill_conflict(tmp_repo: Path) -> None:
+    """--all-platforms and --skip-skill are mutually exclusive."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--all-platforms", "--skip-skill"],
+    )
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
+def test_init_all_platforms_json_output(tmp_repo: Path) -> None:
+    """--all-platforms JSON output includes skill_paths array."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "--json", "init", "--all-platforms"],
+    )
+    assert result.exit_code == 0, result.output
+    import json
+    data = json.loads(result.output)
+    assert data["detected_platform"] == "multi"
+    assert "skill_paths" in data
+    # 7 platforms but generic and qoderwork share AGENTS.md → 6 unique paths
+    unique_paths = set(str(p) for p in data["skill_paths"])
+    assert len(unique_paths) == len(set(PLATFORM_SKILL_PATHS.values()))
+
+
+def test_init_all_platforms_idempotent(tmp_repo: Path) -> None:
+    """Running --all-platforms twice without --force is a no-op for skills."""
+    runner = CliRunner()
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"])
+    second = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"]
+    )
+    assert second.exit_code == 0
+    assert "already exists" in second.output or "Done." in second.output
+
+
+def test_init_all_platforms_force_overwrites(tmp_repo: Path) -> None:
+    """--all-platforms --force overwrites customized skill files."""
+    runner = CliRunner()
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--all-platforms"])
+    # Customize one skill file
+    codex_skill = tmp_repo / PLATFORM_SKILL_PATHS["codex"]
+    codex_skill.write_text("# custom codex\n", encoding="utf-8")
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--all-platforms", "--force"],
+    )
+    assert result.exit_code == 0
+    assert "custom codex" not in codex_skill.read_text(encoding="utf-8")

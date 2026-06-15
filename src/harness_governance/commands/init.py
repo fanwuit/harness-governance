@@ -74,6 +74,7 @@ class InitResult:
     detected_platform: str
     config_path: Path | None
     skill_path: Path | None
+    skill_paths: tuple[Path, ...] = ()
     notes: tuple[str, ...] = ()
 
 
@@ -137,17 +138,31 @@ _PLATFORM_DISPLAY_NAMES: dict[str, str] = {
 }
 
 
-def _prompt_platform_choice() -> str:
-    """Interactively ask the user to pick a platform."""
+def _prompt_platform_choice(default: str | None = None) -> str:
+    """Interactively ask the user to pick a platform.
+
+    When *default* is given, the user can press Enter to accept it.
+    """
     platforms = list(PLATFORM_SKILL_PATHS)
-    click.echo(bilingual("init.prompt_platform"))
+    default_label = _PLATFORM_DISPLAY_NAMES.get(default, default) if default else None
+
+    if default:
+        click.echo(bilingual("init.prompt_platform_with_default", default=default_label))
+    else:
+        click.echo(bilingual("init.prompt_platform"))
+
+    default_idx = platforms.index(default) + 1 if default and default in platforms else None
+
     for i, p in enumerate(platforms, 1):
         label = _PLATFORM_DISPLAY_NAMES.get(p, p)
-        click.echo(f"  {i}. {label}")
+        marker = " ←" if default_idx and i == default_idx else ""
+        click.echo(f"  {i}. {label}{marker}")
+
     while True:
         raw = click.prompt(
             "> ",
             type=click.IntRange(1, len(platforms)),
+            default=default_idx,
             show_default=False,
         )
         return platforms[raw - 1]
@@ -184,6 +199,13 @@ def _prompt_platform_choice() -> str:
     default=False,
     help="Only write .harness/config.toml; skip skill adapter, NEXT.md, and scaffolding.",
 )
+@click.option(
+    "--all-platforms",
+    "all_platforms",
+    is_flag=True,
+    default=False,
+    help="Write skill adapters for ALL supported platforms.",
+)
 @click.pass_context
 def init_cmd(
     ctx: click.Context,
@@ -192,6 +214,7 @@ def init_cmd(
     skip_skill: bool,
     no_detect: bool,
     minimal: bool,
+    all_platforms: bool,
 ) -> None:
     """Initialize harness governance in the current project."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd()).resolve()
@@ -199,16 +222,23 @@ def init_cmd(
         raise click.UsageError(
             "--no-detect requires --platform to be set explicitly."
         )
+    if all_platforms and skip_skill:
+        raise click.UsageError(
+            "--all-platforms and --skip-skill are mutually exclusive."
+        )
 
-    if platform:
+    if all_platforms:
+        detected = "multi"
+    elif platform:
         detected = platform
     else:
-        detected = detect_platform(project_root, fallback=False)
-        if detected is None:
-            if not click.get_current_context().obj.get("json_output") and _is_interactive():
-                detected = _prompt_platform_choice()
-            else:
-                detected = "claude-code"
+        auto_detected = detect_platform(project_root, fallback=False)
+        if not click.get_current_context().obj.get("json_output") and _is_interactive():
+            # Always prompt in interactive mode, with detected platform as default
+            detected = _prompt_platform_choice(default=auto_detected)
+        else:
+            # Non-interactive: use detected or fallback to claude-code
+            detected = auto_detected or "claude-code"
 
     # --minimal implies skip_skill and no scaffolding
     if minimal:
@@ -218,7 +248,27 @@ def init_cmd(
     notes: list[str] = [f"Detected platform: {detected}"]
 
     skill_path: Path | None = None
-    if not skip_skill:
+    skill_paths: list[Path] = []
+
+    if all_platforms:
+        # Write skill files for ALL supported platforms
+        seen_paths: set[Path] = set()
+        for plat in sorted(PLATFORM_SKILL_PATHS):
+            target = (project_root / PLATFORM_SKILL_PATHS[plat]).resolve()
+            # Track unique paths only (generic and qoderwork share AGENTS.md)
+            if target not in seen_paths:
+                seen_paths.add(target)
+                skill_paths.append(target)
+            if target.exists() and not force:
+                notes.append(bilingual("init.skill_exists", path=str(target)))
+            else:
+                write_skill_file(project_root, plat)
+                notes.append(bilingual("init.skill_created", path=str(target)))
+        # skill_path points to the primary detected platform's file if it was written
+        primary_rel = PLATFORM_SKILL_PATHS.get(platform or "generic", PLATFORM_SKILL_PATHS["generic"])
+        primary = (project_root / primary_rel).resolve()
+        skill_path = primary if primary.exists() else (skill_paths[0] if skill_paths else None)
+    elif not skip_skill:
         existing = (project_root / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])).resolve()
         if existing.exists() and not force:
             notes.append(bilingual("init.skill_exists", path=str(existing)))
@@ -246,6 +296,7 @@ def init_cmd(
         detected_platform=detected,
         config_path=config_path,
         skill_path=skill_path,
+        skill_paths=tuple(skill_paths),
         notes=tuple(notes),
     )
 
@@ -259,6 +310,7 @@ def init_cmd(
                     "detected_platform": result.detected_platform,
                     "config_path": str(result.config_path) if result.config_path else None,
                     "skill_path": str(result.skill_path) if result.skill_path else None,
+                    "skill_paths": [str(p) for p in result.skill_paths],
                     "notes": list(result.notes),
                 },
                 indent=2,
@@ -276,7 +328,12 @@ def init_cmd(
     click.echo(bilingual("init.detected", platform=result.detected_platform))
     if result.config_path:
         click.echo(bilingual("init.config_created", path=str(result.config_path)))
-    if result.skill_path:
+    if result.skill_paths:
+        # Multi-platform mode: list all created skill files
+        click.echo(bilingual("init.all_skills_header"))
+        for p in result.skill_paths:
+            click.echo(f"  - {p}")
+    elif result.skill_path:
         click.echo(bilingual("init.skill_created", path=str(result.skill_path)))
     for note in result.notes:
         if note.startswith("Detected platform"):

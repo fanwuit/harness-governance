@@ -59,6 +59,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Skill file already exists at {path}; use --force to overwrite.",
         "zh-CN": "skill 文件已存在于 {path}；使用 --force 覆盖。",
     },
+    "init.all_skills_header": {
+        "en": "Created skill adapters for all platforms:",
+        "zh-CN": "已创建所有平台的 skill 适配文件：",
+    },
     "init.done": {
         "en": "Done. Your agent will now use harness governance for engineering work.",
         "zh-CN": "完成。智能体现在会使用 harness 治理方法进行工程工作。",
@@ -70,6 +74,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "init.prompt_platform": {
         "en": "Could not auto-detect platform. Select your AI coding tool:",
         "zh-CN": "无法自动检测平台。请选择你的 AI 编程工具：",
+    },
+    "init.prompt_platform_with_default": {
+        "en": "Detected: {default}. Press Enter to confirm, or select another:",
+        "zh-CN": "检测到: {default}。按 Enter 确认，或选择其他平台：",
     },
     "init.platform_selected": {
         "en": "Selected: {platform}",
