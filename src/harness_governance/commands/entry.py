@@ -121,7 +121,7 @@ def check_file(file: Path, repo_root: Path | None = None) -> list[str]:
     return errors
 
 
-def discover_entry_files(repo_root: Path) -> list[Path]:
+def discover_entry_files(repo_root: Path, marker: str = "Implementation Entry Record") -> list[Path]:
     """Return the default set of entry-record files to check.
 
     Mirrors the legacy discovery: ``governed-implementation-entry/tests/fixtures/valid-entry-record.md``
@@ -168,7 +168,15 @@ def entry_check_cmd(
 ) -> None:
     """Validate entry records in the current repo or the given files."""
     root = repo_root or ctx.obj.get("project_root", Path.cwd())
-    files = list(targets) if targets else discover_entry_files(root)
+    # Load entry_block_marker from config
+    marker = "Implementation Entry Record"
+    try:
+        from ..config import load_config
+        cfg = load_config(root)
+        marker = cfg.entry_block_marker
+    except Exception:
+        pass
+    files = list(targets) if targets else discover_entry_files(root, marker=marker)
     all_errors: list[str] = []
     for file in files:
         all_errors.extend(check_file(file, repo_root=root))

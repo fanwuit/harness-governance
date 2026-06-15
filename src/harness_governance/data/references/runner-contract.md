@@ -82,7 +82,7 @@ runner 必须把所有 agent 调用记录持久化，不只是在终端打印最
 
 ## 状态刷新要求
 
-runner 模板应在以下时机自动调用通用 `harness-visualization/scripts/harness-status.mjs --write-md --write-json`：
+runner 模板应在以下时机自动调用 `harness status --refresh`：
 
 - worker 正常完成并跑完匹配 verification 后。
 - runner 写入 timeout、failed、blocked、boundary 或 unrecognized marker checkpoint 后。
@@ -96,9 +96,9 @@ runner 模板只能执行受控 verification preset，不应把 queue 文本、c
 
 当前通用预设：
 
-- `routing-guardrails`：运行 `python harness-engineering/scripts/check-routing-guardrails.py`。
-- `harness-visualization-tests`：运行 `node --test harness-visualization/tests/harness-status.test.mjs`。
-- `all-local-checks`：串联 routing guardrail、harness visualization tests 和 autonomous runner 静态检查。
+- `routing-guardrails`：运行 `harness check routing`。
+- `all-local-checks`：运行 `harness check all`。
+- `all-local-checks`：串联所有本地检查（routing、packets、entry、inventory）。
 
 如果项目需要更多验证命令，应先把它们登记成新的 runner preset，并在 runner asset 和对应测试中同步更新。`VerificationCommand` 只能作为 preset 名称使用，不能作为未审计命令行透传。
 

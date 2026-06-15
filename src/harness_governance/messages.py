@@ -339,6 +339,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "lists missing/disabled skill: {skill}",
         "zh-CN": "列出了不存在或已禁用的 skill: {skill}",
     },
+    "check.frequency_note": {
+        "en": "Check frequency: {frequency}",
+        "zh-CN": "检查频率: {frequency}",
+    },
     # status ---------------------------------------------------------------
     "status.header": {
         "en": "Harness status for {path}",
@@ -447,6 +451,42 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "runner.dry_run_no_item": {
         "en": "dry-run: no ready or active queue item",
         "zh-CN": "dry-run: 队列中没有 ready 或 active 条目",
+    },
+    "runner.orchestrator_written": {
+        "en": "Orchestrator prompt written to: {path}",
+        "zh-CN": "编排提示已写入: {path}",
+    },
+    "runner.unresolved_variables": {
+        "en": "Warning: {count} unresolved variables: {vars}",
+        "zh-CN": "警告: {count} 个未解析变量: {vars}",
+    },
+    "runner.command_required": {
+        "en": "--command is required when --executor=subprocess.",
+        "zh-CN": "--executor=subprocess 时必须指定 --command。",
+    },
+    "runner.unknown_verification": {
+        "en": "Unknown verification preset: {preset!r}. Available: {available}.",
+        "zh-CN": "未知的验证 preset: {preset!r}。可用: {available}。",
+    },
+    "runner.no_ready_item": {
+        "en": "No [ready] or [active] item found in queue.",
+        "zh-CN": "队列中未找到 [ready] 或 [active] 条目。",
+    },
+    "runner.render_written": {
+        "en": "Rendered {role} prompt written to: {path}",
+        "zh-CN": "{role} 提示已渲染并写入: {path}",
+    },
+    "runner.render_unresolved": {
+        "en": "Warning: {count} unresolved variables: {vars}",
+        "zh-CN": "警告: {count} 个未解析变量: {vars}",
+    },
+    "runner.codex_not_found": {
+        "en": "codex CLI not found on PATH. Install Codex CLI or use SubprocessAgentExecutor with a different command.",
+        "zh-CN": "PATH 中未找到 codex CLI。请安装 Codex CLI 或使用其他命令的 SubprocessAgentExecutor。",
+    },
+    "runner.timed_out": {
+        "en": "[harness runner] timed out after {seconds}s",
+        "zh-CN": "[harness runner] 超时，已运行 {seconds}s",
     },
 }
 

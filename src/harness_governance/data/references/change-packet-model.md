@@ -65,10 +65,10 @@ harness-engineering/templates/change-packet/
 Initialize a packet with:
 
 ```text
-node harness-engineering/scripts/init-change-packet.mjs <change-id>
+harness packet init <change-id>
 ```
 
-The script writes `docs/changes/<change-id>/` using the native templates. It does not create `openspec/`, does not apply changes, and does not archive completed work.
+The command writes `docs/changes/<change-id>/` using the native templates. It does not create `openspec/`, does not apply changes, and does not archive completed work.
 
 ## File Responsibilities
 
@@ -134,13 +134,13 @@ Rules:
 Run:
 
 ```text
-node harness-engineering/scripts/check-change-packet.mjs [packet-path-or-id ...]
+harness packet check [packet-path-or-id ...]
 ```
 
 or through the root wrapper:
 
 ```text
-npm run check:packets
+harness check packets
 ```
 
 The checker enforces only mechanical packet hygiene:

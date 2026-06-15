@@ -39,6 +39,16 @@ _OLD_CHAIN = re.compile(
 )
 
 
+def _get_check_frequency(repo_root: Path) -> str:
+    """Load check_frequency from project config, defaulting to 'targeted'."""
+    try:
+        from ..config import load_config
+        cfg = load_config(repo_root)
+        return cfg.check_frequency
+    except Exception:
+        return "targeted"
+
+
 def _find_enabled_skills(repo_root: Path) -> list[Path]:
     """Find every ``*/SKILL.md`` excluding system / router skills."""
     skip = {".system", "harness-engineering", "skill-use-transparency"}
@@ -292,6 +302,9 @@ def check_inventory_cmd(ctx: click.Context) -> None:
 def check_all_cmd(ctx: click.Context) -> None:
     """Run every check; aggregate pass/fail."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    if not ctx.obj.get("json_output"):
+        freq = _get_check_frequency(project_root)
+        click.echo(bilingual("check.frequency_note", frequency=freq))
     results: list[CheckResult] = [
         check_routing(project_root),
         check_packets(project_root),

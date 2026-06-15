@@ -55,6 +55,9 @@ class TransitionContext:
     work_finished_or_paused:
         Whether the work is at a stopping point (forces review-next
         per rule T9).
+    contract_work_repeating:
+        Whether contract/check/readiness work is repeating without
+        implementation progress (triggers rule T6).
     """
 
     from_layer: HarnessLayer
@@ -67,6 +70,7 @@ class TransitionContext:
     implementation_reveals_uncontracted_behavior: bool = False
     verification_failed: bool = False
     work_finished_or_paused: bool = False
+    contract_work_repeating: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -185,6 +189,28 @@ class StateMachineEngine:
             notes.append(
                 "Material unknown present; engine recommends entering fact-discovery "
                 "before continuing forward."
+            )
+
+        # Rule T6: contract work repeating without implementation progress.
+        if (
+            context.contract_work_repeating
+            and context.to_layer is HarnessLayer.CONTRACT
+            and context.from_layer in (
+                HarnessLayer.CONTRACT,
+                HarnessLayer.READINESS,
+                HarnessLayer.VERIFICATION,
+            )
+        ):
+            violations.append(
+                Violation(
+                    rule_code="T6-CONTRACT-GROWTH-CONTROL",
+                    rule_title="Use contract-growth-control when contract work stalls",
+                    message=(
+                        "Contract/check/readiness work is repeating without "
+                        "implementation progress. Use contract-growth-control "
+                        "to diagnose the stall before continuing contract work."
+                    ),
+                )
             )
 
         # Rule T7: implementation reveals uncontracted behavior -> return to contract.

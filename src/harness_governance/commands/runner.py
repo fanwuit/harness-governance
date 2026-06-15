@@ -171,15 +171,16 @@ def runner_start_cmd(
             output_path = (project_root / output_file).resolve()
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(prompt.text, encoding="utf-8")
-            click.echo(f"Orchestrator prompt written to: {output_path}")
+            click.echo(bilingual("runner.orchestrator_written", path=str(output_path)))
         else:
             click.echo(prompt.text)
 
         if prompt.missing_variables:
+            vars_preview = ", ".join(prompt.missing_variables[:5])
+            if len(prompt.missing_variables) > 5:
+                vars_preview += "..."
             click.echo(
-                f"\nWarning: {len(prompt.missing_variables)} unresolved variables: "
-                f"{', '.join(prompt.missing_variables[:5])}"
-                + ("..." if len(prompt.missing_variables) > 5 else ""),
+                "\n" + bilingual("runner.unresolved_variables", count=str(len(prompt.missing_variables)), vars=vars_preview),
                 err=True,
             )
         return
@@ -188,7 +189,7 @@ def runner_start_cmd(
         agent = CodexCliExecutor(model=model, workdir=project_root)
     else:
         if not command:
-            raise click.ClickException("--command is required when --executor=subprocess.")
+            raise click.ClickException(bilingual("runner.command_required"))
         agent = SubprocessAgentExecutor(
             command_template=command,
             prompt_as_arg=prompt_as_arg,
@@ -236,7 +237,7 @@ def runner_start_cmd(
         from .verify import _PRESETS
         if verification not in _PRESETS:
             raise click.ClickException(
-                f"Unknown verification preset: {verification!r}. Available: {', '.join(sorted(_PRESETS))}."
+                bilingual("runner.unknown_verification", preset=verification, available=", ".join(sorted(_PRESETS)))
             )
         # Delegate to verify for a sanity check after the loop.
         ctx.invoke(verify_cmd, preset=verification)
@@ -303,7 +304,7 @@ def runner_render_cmd(
         (i for i in items if i.active), None
     )
     if target is None:
-        raise click.ClickException("No [ready] or [active] item found in queue.")
+        raise click.ClickException(bilingual("runner.no_ready_item"))
 
     extractor = VariableExtractor()
     variables = extractor.extract_for_role(project_root, target, role)
@@ -315,16 +316,17 @@ def runner_render_cmd(
         output_path = (project_root / output_file).resolve()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(rendered, encoding="utf-8")
-        click.echo(f"Rendered {role} prompt written to: {output_path}")
+        click.echo(bilingual("runner.render_written", role=role, path=str(output_path)))
     else:
         click.echo(rendered)
 
     unresolved = renderer.find_unresolved(rendered)
     if unresolved:
+        unresolved_preview = ", ".join(unresolved[:5])
+        if len(unresolved) > 5:
+            unresolved_preview += "..."
         click.echo(
-            f"\nWarning: {len(unresolved)} unresolved variables: "
-            f"{', '.join(unresolved[:5])}"
-            + ("..." if len(unresolved) > 5 else ""),
+            "\n" + bilingual("runner.render_unresolved", count=str(len(unresolved)), vars=unresolved_preview),
             err=True,
         )
 

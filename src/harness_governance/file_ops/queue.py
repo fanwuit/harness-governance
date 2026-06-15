@@ -56,8 +56,17 @@ def parse_queue(markdown: str) -> list[QueueItem]:
     return items
 
 
-def read_queue(queue_path: Path) -> list[QueueItem]:
-    """Read and parse a NEXT.md file."""
+def read_queue(
+    queue_path: Path,
+    blocked_statuses: tuple[str, ...] = ("blocked", "archived"),
+) -> list[QueueItem]:
+    """Read and parse a NEXT.md file.
+
+    *blocked_statuses* documents which tag values the governance model
+    treats as non-actionable.  The default matches the schema default in
+    :class:`HarnessConfig`.  Callers may pass ``cfg.blocked_statuses``
+    from the project config to override.
+    """
     if not queue_path.is_file():
         return []
     return parse_queue(queue_path.read_text(encoding="utf-8"))

@@ -25,4 +25,4 @@ These practices are companion-only inputs. They provide evidence and next-layer 
 
 ## Verification
 
-When these practices are added or changed, use targeted governance checks first. Run `npm run check:all` only at phase closeout, before commit / PR / release, or when the change touches validation machinery or has unclear impact.
+When these practices are added or changed, use targeted governance checks first. Run `harness check all` only at phase closeout, before commit / PR / release, or when the change touches validation machinery or has unclear impact.
