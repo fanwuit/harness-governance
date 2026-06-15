@@ -209,7 +209,7 @@ pip install -e .[test]
 pytest
 ```
 
-321 tests cover the state machine, file ops, models, every CLI
+329 tests cover the state machine, file ops, models, every CLI
 subcommand, the autonomous loop with a subprocess executor, session
 catchup, the bilingual message catalog, and the 9-role Subagent Runner.
 
