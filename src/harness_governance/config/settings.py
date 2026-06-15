@@ -15,8 +15,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from ..logging_setup import get_logger
 from ..models.schemas import HarnessConfig
 from .defaults import DEFAULT_CONFIG_FILE
+
+logger = get_logger("config")
 
 if sys.version_info >= (3, 11):  # pragma: no cover - branch covered by version gate
     import tomllib as _toml
@@ -61,8 +64,12 @@ def load_config(
 
     raw: dict[str, object] = {}
     if cfg_path.is_file():
+        logger.debug("reading config: %s", cfg_path)
         with cfg_path.open("rb") as handle:
             raw = _toml.load(handle)
+        logger.info("loaded %d field(s) from %s", len(raw), cfg_path)
+    else:
+        logger.debug("no config file at %s; using defaults", cfg_path)
 
     payload: dict[str, object] = dict(raw)
     payload.setdefault("project_root", root)

@@ -21,6 +21,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: Software Development",
 ]
 dependencies = [
@@ -36,6 +37,13 @@ Documentation = "https://github.com/fanwuit/my-agent-first-skills#readme"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-cov>=4.0"]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "ruff>=0.4",
+  "mypy>=1.10",
+  "pre-commit>=3.7",
+]
 
 [project.scripts]
 harness = "harness_governance.cli:main"

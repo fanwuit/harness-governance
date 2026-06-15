@@ -34,6 +34,7 @@ from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.status import status_cmd
 from .commands.verify import verify_cmd
+from .logging_setup import setup_logging
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -45,13 +46,20 @@ from .commands.verify import verify_cmd
     help="Project root (defaults to current directory).",
 )
 @click.option("--json", "json_output", is_flag=True, default=False, help="Emit machine-readable JSON output.")
+@click.option("--verbose", "-v", "verbose", is_flag=True, default=False, help="Show informational messages (INFO level).")
+@click.option("--debug", "-d", "debug", is_flag=True, default=False, help="Show detailed diagnostic output (DEBUG level).")
 @click.version_option(__version__, prog_name="harness")
 @click.pass_context
-def cli(ctx: click.Context, project_root: Path | None, json_output: bool) -> None:
+def cli(ctx: click.Context, project_root: Path | None, json_output: bool, verbose: bool, debug: bool) -> None:
     """harness governance CLI — AI engineering workflow enforcement."""
+    if verbose and debug:
+        raise click.UsageError("--verbose and --debug are mutually exclusive.")
     ctx.ensure_object(dict)
     ctx.obj["project_root"] = (project_root or Path.cwd()).resolve()
     ctx.obj["json_output"] = json_output
+    ctx.obj["verbose"] = verbose
+    ctx.obj["debug"] = debug
+    setup_logging(verbose=verbose, debug=debug)
 
 
 cli.add_command(init_cmd)

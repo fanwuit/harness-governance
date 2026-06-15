@@ -12,11 +12,14 @@ permutations without touching the filesystem.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Iterable
 
 from .layers import HarnessLayer, layer_index
 from .transitions import TRANSITION_RULES
+
+logger = logging.getLogger("harness.engine")
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +105,10 @@ class StateMachineEngine:
 
     def evaluate(self, context: TransitionContext) -> TransitionVerdict:
         """Return a verdict describing whether ``context`` is allowed."""
+        logger.debug(
+            "evaluating transition: %s -> %s",
+            context.from_layer.value, context.to_layer.value,
+        )
         violations: list[Violation] = []
         notes: list[str] = []
 
@@ -253,6 +260,17 @@ class StateMachineEngine:
             )
 
         allowed = not violations
+        if violations:
+            logger.info(
+                "transition %s -> %s BLOCKED: %d violation(s): %s",
+                context.from_layer.value, context.to_layer.value,
+                len(violations), ", ".join(v.rule_code for v in violations),
+            )
+        else:
+            logger.debug(
+                "transition %s -> %s allowed",
+                context.from_layer.value, context.to_layer.value,
+            )
         return TransitionVerdict(
             allowed=allowed,
             violations=tuple(violations),

@@ -447,6 +447,34 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Agent platform: {platform}",
         "zh-CN": "智能体平台: {platform}",
     },
+    "config.show_header": {
+        "en": "Configuration: {path}",
+        "zh-CN": "配置文件: {path}",
+    },
+    "config.not_found": {
+        "en": "Config file not found: {path}. Run `harness config init` first.",
+        "zh-CN": "未找到配置文件: {path}。请先运行 `harness config init`。",
+    },
+    "config.set_bad_format": {
+        "en": "Invalid format: {value!r}. Expected key=value.",
+        "zh-CN": "格式无效: {value!r}。请使用 key=value 格式。",
+    },
+    "config.unknown_field": {
+        "en": "Unknown config field: {field!r}.",
+        "zh-CN": "未知的配置字段: {field!r}。",
+    },
+    "config.set_ok": {
+        "en": "Set {key} = {value}",
+        "zh-CN": "已设置 {key} = {value}",
+    },
+    "config.validate_passed": {
+        "en": "Configuration is valid.",
+        "zh-CN": "配置文件验证通过。",
+    },
+    "config.validate_failed": {
+        "en": "Configuration validation failed: {error}",
+        "zh-CN": "配置文件验证失败: {error}",
+    },
     # runner ---------------------------------------------------------------
     "runner.dry_run_no_item": {
         "en": "dry-run: no ready or active queue item",

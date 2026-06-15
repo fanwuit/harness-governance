@@ -7,10 +7,13 @@ so the rules can be cited verbatim in user-facing output.
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Iterable
 
 from .layers import HarnessLayer
+
+logger = logging.getLogger("harness.classification")
 
 
 class RoutingPath(str, Enum):
@@ -127,6 +130,11 @@ def classify(
 
     if not has_file_changes and not is_public_contract and not has_external_side_effect:
         if not is_unclear_or_high_risk:
+            logger.info("classified as fast-path")
+            logger.debug(
+                "fast-path flags: file_changes=%s public=%s external=%s unclear=%s",
+                has_file_changes, is_public_contract, has_external_side_effect, is_unclear_or_high_risk,
+            )
             return RoutingDecision(
                 path=RoutingPath.FAST_PATH,
                 rationale=(
@@ -142,6 +150,7 @@ def classify(
         and not is_unclear_or_high_risk
         and not _mentions_public_contract_keyword(description_lc)
     ):
+        logger.info("classified as trivial-safe-change")
         return RoutingDecision(
             path=RoutingPath.TRIVIAL_SAFE_CHANGE,
             rationale=(
@@ -151,6 +160,12 @@ def classify(
             ),
         )
 
+    logger.info("classified as governed-path")
+    logger.debug(
+        "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s",
+        has_file_changes, is_public_contract, has_external_side_effect,
+        is_unclear_or_high_risk, _mentions_public_contract_keyword(description_lc),
+    )
     return RoutingDecision(
         path=RoutingPath.GOVERNED_PATH,
         rationale=_governed_rationale(
