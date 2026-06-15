@@ -68,4 +68,5 @@ ENV_HINTS: tuple[tuple[str, str], ...] = (
     ("CLINE_SESSION", "cline"),
     ("CURSOR_TRACE_ID", "cursor"),
     ("QODERWORK_SESSION", "qoderwork"),
+    ("OPENCODE_SESSION", "opencode"),
 )

@@ -23,7 +23,7 @@ A change packet is a durable carrier, not a gate; it cannot approve implementati
 
 ## Implementation entry
 
-`harness-governance` does not embed Implementation Entry Record parsing. Use the `governed-implementation-entry` skill's 9-field format; once the `harness entry check` command is published (Phase B), validation will wire in automatically.
+Run `harness entry check` to validate entry records against the 9-field format.
 
 ## Planning
 

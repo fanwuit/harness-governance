@@ -6,6 +6,7 @@ Implement only the fixed contract slice. Do not modify contracts, tests written 
 
 ## Approved Inputs
 
+- QUEUE_ITEM: the raw queue item text providing context and scope
 - OWNER_FILES: files you should modify
 - CONTRACTS: exact contract/ADR/check requirements to satisfy
 - ALLOWED_ASSUMPTIONS: assumptions you may rely on

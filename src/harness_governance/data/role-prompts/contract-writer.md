@@ -11,6 +11,7 @@ Do NOT write implementation code, modify product files outside the contract scop
 
 ## Approved Inputs
 
+- QUEUE_ITEM: the raw queue item text providing context and scope
 - SCOPE: the scope definition from the Planner or ready item
 - OWNER_FILES: files you should create or modify for contracts
 - EXPECTED_BEHAVIOR: exact expected behavior the contracts must capture
