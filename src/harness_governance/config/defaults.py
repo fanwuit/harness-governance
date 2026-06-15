@@ -58,7 +58,6 @@ PLATFORM_HINTS: tuple[tuple[str, str], ...] = (
     (".cursor", "cursor"),
     (".qoderwork", "qoderwork"),
     (".opencode", "opencode"),
-    ("AGENTS.md", "generic"),
 )
 
 # Env vars that hint at a specific platform regardless of repo dotfiles.
