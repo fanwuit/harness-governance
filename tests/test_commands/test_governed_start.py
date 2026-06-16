@@ -95,6 +95,36 @@ def test_governed_start_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> Non
     assert "9.9.9" in payload["skill_version_warning"]
 
 
+def test_governed_start_skips_agents_md(tmp_repo: Path, monkeypatch) -> None:
+    """AGENTS.md is a user-maintained project doc, NOT a skill template.
+
+    The fresh skill file for generic/qoderwork lives at AGENTS.md per
+    PLATFORM_SKILL_PATHS, but real-world AGENTS.md is full of project
+    rules (typically starting with ``# AGENTS.md``) — comparing it to
+    a skill template yields a false-positive staleness warning.
+
+    Fix: skip files that do not start with YAML frontmatter.
+    """
+    from harness_governance.commands import init as init_mod
+    from harness_governance.commands.governed_start import _check_skill_freshness
+
+    new_template = (
+        "---\nname: harness-governance\ndescription: new\n---\n\n"
+        "<!-- harness-skill-version: 9.9.9 -->\nbody"
+    )
+    monkeypatch.setattr(init_mod, "load_skill_template", lambda p: new_template)
+
+    # User's real-world AGENTS.md: no YAML frontmatter.
+    (tmp_repo / "AGENTS.md").write_text(
+        "# AGENTS.md\n\n13KB of project rules go here...\n",
+        encoding="utf-8",
+    )
+
+    assert _check_skill_freshness(tmp_repo) is None, (
+        "AGENTS.md without frontmatter was wrongly flagged as stale"
+    )
+
+
 def test_governed_start_includes_companions(tmp_repo: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(

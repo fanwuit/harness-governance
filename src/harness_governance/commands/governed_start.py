@@ -34,6 +34,11 @@ def _check_skill_freshness(project_root: Path) -> str | None:
     project (claude-code + codex + …) still gets caught when at least
     one adapter is stale. Reads only the first ~1 KB of each file to
     keep the check fast on large monorepos.
+
+    Files that do not start with YAML frontmatter (``---``) are
+    skipped: AGENTS.md, README.md, and similar project docs are
+    *user-maintained* and not skill templates, so comparing them to a
+    skill template would produce false positives.
     """
     from .init import extract_skill_version, load_skill_template
 
@@ -49,6 +54,10 @@ def _check_skill_freshness(project_root: Path) -> str | None:
             # Strip BOM defensively before searching.
             if text.startswith("﻿"):
                 text = text[1:]
+            # Skip non-skill files: AGENTS.md, README.md, etc. are
+            # user-maintained project docs, not skill templates.
+            if not text.lstrip().startswith("---"):
+                continue
             disk_ver = extract_skill_version(text)
         except OSError:
             continue
