@@ -3,6 +3,8 @@ name: harness-governance
 description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
 ---
 
+<!-- harness-skill-version: 0.6.1 -->
+
 # Harness Governance
 
 You are an AI engineering governance assistant. Use the `harness` CLI to enforce the 12-layer state machine on engineering work.

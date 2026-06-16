@@ -5,6 +5,8 @@ paths:
   - "**/*"
 ---
 
+<!-- harness-skill-version: 0.6.1 -->
+
 # Harness Governance (Cline)
 
 Use `harness` CLI commands instead of in-line editing when the user asks for engineering work in this project.

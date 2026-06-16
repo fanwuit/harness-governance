@@ -8,6 +8,7 @@ re-running without ``--force`` is a no-op.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -19,6 +20,24 @@ from ..config.settings import write_default_config
 from ..messages import bilingual
 
 _SKILLS_PACKAGE = "harness_governance.data.skills"
+
+# Sentinel that marks a skill template's version. Embedded as an HTML
+# comment so it stays invisible to agents and platform loaders, but is
+# trivial to grep / regex out for staleness checks.
+_SKILL_VERSION_RE = re.compile(
+    r"<!--\s*harness-skill-version:\s*([0-9][0-9A-Za-z\.\-+]*)\s*-->"
+)
+
+
+def extract_skill_version(content: str) -> str | None:
+    """Return the version sentinel embedded in *content*, or None.
+
+    Templates written before 0.6.1 do not carry a sentinel; in that
+    case the function returns ``None`` so the caller can treat the
+    file as "version unknown" and trigger an upgrade prompt.
+    """
+    m = _SKILL_VERSION_RE.search(content)
+    return m.group(1) if m else None
 
 _NEXT_MD_TEMPLATE = """\
 <!-- Harness Governance Queue (NEXT.md)
@@ -199,11 +218,20 @@ def load_skill_template(platform: str) -> str:
 
 
 def write_skill_file(project_root: Path, platform: str) -> Path:
-    """Write the per-platform skill adapter; returns the path."""
+    """Write the per-platform skill adapter; returns the path.
+
+    Defensively strips a leading UTF-8 BOM (U+FEFF) from the template
+    before writing. Some platforms (notably codex) reject the file
+    when the very first byte is not ``-``; a BOM in the template would
+    silently propagate into every user project.
+    """
     rel = PLATFORM_SKILL_PATHS.get(platform, PLATFORM_SKILL_PATHS["generic"])
     target = (project_root / rel).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(load_skill_template(platform), encoding="utf-8")
+    content = load_skill_template(platform)
+    if content.startswith("﻿"):
+        content = content[1:]
+    target.write_text(content, encoding="utf-8")
     return target
 
 
@@ -347,19 +375,51 @@ def init_cmd(
             if target not in seen_paths:
                 seen_paths.add(target)
                 skill_paths.append(target)
+            template_ver = extract_skill_version(load_skill_template(plat))
             if target.exists() and not force:
-                notes.append(bilingual("init.skill_exists", path=str(target)))
+                disk_ver = extract_skill_version(target.read_text(encoding="utf-8"))
+                if template_ver and disk_ver == template_ver:
+                    notes.append(f"skill up-to-date (v{template_ver}): {target}")
+                else:
+                    notes.append(
+                        bilingual(
+                            "init.skill_outdated",
+                            path=str(target),
+                            disk_ver=disk_ver or "unknown",
+                            template_ver=template_ver or "unknown",
+                        )
+                    )
             else:
                 write_skill_file(project_root, plat)
-                notes.append(bilingual("init.skill_created", path=str(target)))
+                notes.append(
+                    bilingual(
+                        "init.skill_created",
+                        path=str(target),
+                        version=template_ver or "",
+                    )
+                    if template_ver
+                    else bilingual("init.skill_created", path=str(target))
+                )
         # skill_path points to the primary detected platform's file if it was written
         primary_rel = PLATFORM_SKILL_PATHS.get(platform or "generic", PLATFORM_SKILL_PATHS["generic"])
         primary = (project_root / primary_rel).resolve()
         skill_path = primary if primary.exists() else (skill_paths[0] if skill_paths else None)
     elif not skip_skill:
         existing = (project_root / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])).resolve()
+        template_ver = extract_skill_version(load_skill_template(detected))
         if existing.exists() and not force:
-            notes.append(bilingual("init.skill_exists", path=str(existing)))
+            disk_ver = extract_skill_version(existing.read_text(encoding="utf-8"))
+            if template_ver and disk_ver == template_ver:
+                notes.append(f"skill up-to-date (v{template_ver}): {existing}")
+            else:
+                notes.append(
+                    bilingual(
+                        "init.skill_outdated",
+                        path=str(existing),
+                        disk_ver=disk_ver or "unknown",
+                        template_ver=template_ver or "unknown",
+                    )
+                )
         else:
             skill_path = write_skill_file(project_root, detected)
             notes.append(bilingual("init.skill_created", path=str(skill_path)))

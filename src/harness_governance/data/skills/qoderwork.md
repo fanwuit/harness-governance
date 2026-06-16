@@ -3,6 +3,8 @@ name: harness-governance
 description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
 ---
 
+<!-- harness-skill-version: 0.6.1 -->
+
 # Harness Governance (QoderWork)
 
 Use `harness` CLI commands to govern engineering work in this project. Invoke these commands via Bash tool or shell access instead of editing governance files directly.

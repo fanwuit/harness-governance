@@ -67,6 +67,7 @@ class RoutingResult(BaseModel):
     primary_skill: str | None = None
     disclosure: str
     recommended_next_command: str
+    skill_version_warning: str | None = None
 
 
 class ChangePacketSummary(BaseModel):

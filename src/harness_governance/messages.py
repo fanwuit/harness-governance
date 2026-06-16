@@ -59,6 +59,18 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Skill file already exists at {path}; use --force to overwrite.",
         "zh-CN": "skill 文件已存在于 {path}；使用 --force 覆盖。",
     },
+    "init.skill_outdated": {
+        "en": (
+            "Skill file at {path} is v{disk_ver}, but the installed "
+            "harness-governance template is v{template_ver}. Re-run "
+            "`harness init --force` (or this command with --force) to upgrade."
+        ),
+        "zh-CN": (
+            "{path} 的 skill 文件版本为 v{disk_ver}，但已安装的 "
+            "harness-governance 模板是 v{template_ver}。重新运行 "
+            "`harness init --force`（或本命令加 --force）升级。"
+        ),
+    },
     "init.all_skills_header": {
         "en": "Created skill adapters for all platforms:",
         "zh-CN": "已创建所有平台的 skill 适配文件：",

@@ -38,6 +38,87 @@ def test_init_force_overwrites_skill(tmp_repo: Path) -> None:
     assert "custom" not in skill.read_text(encoding="utf-8")
 
 
+def test_write_skill_file_strips_bom(tmp_repo: Path, monkeypatch) -> None:
+    """write_skill_file must defensively strip a leading UTF-8 BOM.
+
+    Regression: 0.6.0 shipped with BOM-contaminated templates, which
+    silently propagated into every user project. codex (and other
+    strict loaders) then rejected the file with 'missing YAML
+    frontmatter'. The fix is to strip BOM in write_skill_file itself
+    so the user's project never sees it, regardless of template state.
+    """
+    from harness_governance.commands import init as init_mod
+
+    def fake_load(platform: str) -> str:
+        return "﻿---\nname: test\n---\nbody\n"
+
+    monkeypatch.setattr(init_mod, "load_skill_template", fake_load)
+    target = init_mod.write_skill_file(tmp_repo, "claude-code")
+    raw = target.read_bytes()
+    assert not raw.startswith(b"\xef\xbb\xbf"), (
+        f"BOM leaked into {target}: first 5 bytes = {raw[:5]!r}"
+    )
+    text = target.read_text(encoding="utf-8")
+    assert text.startswith("---"), f"frontmatter missing, got: {text[:20]!r}"
+
+
+def test_extract_skill_version() -> None:
+    from harness_governance.commands.init import extract_skill_version
+
+    assert extract_skill_version("---\nname: x\n---\n\n<!-- harness-skill-version: 0.6.1 -->\nbody") == "0.6.1"
+    assert extract_skill_version("---\nname: x\n---\nbody") is None
+    # Defensive: BOM must not break parsing
+    assert extract_skill_version("﻿<!-- harness-skill-version: 0.7.0 -->") == "0.7.0"
+    # Edge cases
+    assert extract_skill_version("harness-skill-version: 0.6.0 (no markers)") is None
+    assert extract_skill_version("<!--harness-skill-version:1.2.3-->") == "1.2.3"
+
+
+def test_init_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:
+    """When the on-disk skill is older than the installed template, init
+    must NOT auto-overwrite without --force, and must emit a warning
+    telling the user to upgrade.
+    """
+    from harness_governance.commands import init as init_mod
+
+    new_template = (
+        "---\nname: harness-governance\ndescription: new\n---\n\n"
+        "<!-- harness-skill-version: 9.9.9 -->\nbody"
+    )
+
+    monkeypatch.setattr(init_mod, "load_skill_template", lambda p: new_template)
+
+    # Simulate an old skill file already on disk (no version sentinel).
+    skill_path = tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]
+    skill_path.parent.mkdir(parents=True, exist_ok=True)
+    skill_path.write_text("---\nname: x\n---\nold body\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+    assert "older" in result.output.lower() or "v" in result.output
+    # Critical: file must NOT have been overwritten without --force.
+    on_disk = skill_path.read_text(encoding="utf-8")
+    assert "old body" in on_disk, "init silently overwrote old skill"
+    assert "9.9.9" not in on_disk
+
+    # With --force, the file is upgraded and carries the new sentinel.
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--force"])
+    assert result.exit_code == 0, result.output
+    upgraded = skill_path.read_text(encoding="utf-8")
+    assert "old body" not in upgraded
+    assert "9.9.9" in upgraded
+
+
+def test_init_reports_up_to_date(tmp_repo: Path) -> None:
+    """After init, re-running without --force must report 'up-to-date'."""
+    runner = CliRunner()
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    second = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert second.exit_code == 0
+    assert "up-to-date" in second.output or "up to date" in second.output.lower()
+
+
 def test_init_detects_claude_code(tmp_repo: Path) -> None:
     (tmp_repo / ".claude").mkdir()
     assert detect_platform(tmp_repo) == "claude-code"

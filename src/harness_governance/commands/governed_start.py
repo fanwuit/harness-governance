@@ -15,6 +15,7 @@ from ..models.schemas import RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import classify, RoutingPath
 from ..state_machine.layers import HarnessLayer
+from ..config.defaults import PLATFORM_SKILL_PATHS
 
 
 def _build_recommendation(path: RoutingPath) -> str:
@@ -25,7 +26,46 @@ def _build_recommendation(path: RoutingPath) -> str:
     return "governed_start.recommendation.governed"
 
 
-def _evaluate(input_model: RoutingInput) -> RoutingResult:
+def _check_skill_freshness(project_root: Path) -> str | None:
+    """Return a one-line warning if the on-disk skill is older than the
+    installed template, else None.
+
+    Scans every supported platform's skill path so a multi-platform
+    project (claude-code + codex + …) still gets caught when at least
+    one adapter is stale. Reads only the first ~1 KB of each file to
+    keep the check fast on large monorepos.
+    """
+    from .init import extract_skill_version, load_skill_template
+
+    warnings: list[str] = []
+    for plat, rel in PLATFORM_SKILL_PATHS.items():
+        target = (project_root / rel).resolve()
+        if not target.is_file():
+            continue
+        try:
+            with target.open("rb") as f:
+                raw = f.read(2048)
+            text = raw.decode("utf-8", errors="replace")
+            # Strip BOM defensively before searching.
+            if text.startswith("﻿"):
+                text = text[1:]
+            disk_ver = extract_skill_version(text)
+        except OSError:
+            continue
+        template = load_skill_template(plat)
+        template_ver = extract_skill_version(template)
+        if template_ver and disk_ver != template_ver:
+            warnings.append(f"{plat}: v{disk_ver or 'unknown'} → v{template_ver}")
+    if not warnings:
+        return None
+    joined = "; ".join(warnings)
+    return (
+        f"⚠ harness skill in this project is older than the installed "
+        f"template ({joined}). Run `harness init --force` to upgrade."
+    )
+
+
+def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
     decision = classify(
         input_model.description,
         has_file_changes=input_model.has_file_changes,
@@ -35,6 +75,7 @@ def _evaluate(input_model: RoutingInput) -> RoutingResult:
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
     rec_key = _build_recommendation(decision.path)
+    skill_warning = _check_skill_freshness(project_root)
     return RoutingResult(
         path=decision.path,
         rationale=decision.rationale,
@@ -42,6 +83,7 @@ def _evaluate(input_model: RoutingInput) -> RoutingResult:
         primary_skill=decision.primary_skill,
         disclosure=disclosure,
         recommended_next_command=bilingual(rec_key),
+        skill_version_warning=skill_warning,
     )
 
 
@@ -94,12 +136,12 @@ def governed_start_cmd(
         is_unclear_or_high_risk=unclear,
         companion_skills=tuple(companions),
     )
-    result = _evaluate(payload)
+    project_root: Path = ctx.obj["project_root"]
+    result = _evaluate(payload, project_root)
 
     # Create a governance session for governed-path tasks.
     session_id: str | None = None
     if result.path is RoutingPath.GOVERNED_PATH:
-        project_root: Path = ctx.obj["project_root"]
         from datetime import datetime, timezone
 
         session_id = generate_session_id(description)
@@ -120,7 +162,7 @@ def governed_start_cmd(
     try:
         from ..priority import detect_competing_skills
 
-        competing = detect_competing_skills(ctx.obj["project_root"])
+        competing = detect_competing_skills(project_root)
         if competing:
             names = ", ".join(c.skill_name for c in competing[:5])
             if len(competing) > 5:
@@ -145,6 +187,7 @@ def governed_start_cmd(
                     "disclosure": result.disclosure,
                     "recommended_next_command": result.recommended_next_command,
                     "session_id": session_id,
+                    "skill_version_warning": result.skill_version_warning,
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -155,6 +198,10 @@ def governed_start_cmd(
     is_verbose = ctx.obj.get("verbose", False)
     is_fast = result.path is RoutingPath.FAST_PATH
     is_trivial = result.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+    # Skill-version staleness warning (printed once, regardless of path)
+    if result.skill_version_warning:
+        click.echo(result.skill_version_warning, err=True)
 
     # Fast-path: one-liner unless --verbose
     if is_fast and not is_verbose:
