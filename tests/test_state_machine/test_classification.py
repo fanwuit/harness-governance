@@ -103,3 +103,81 @@ def test_disclosure_does_not_duplicate_primary_skill() -> None:
     text = decision.to_disclosure()
     local_line = next(line for line in text.splitlines() if line.startswith("Local governance skills:"))
     assert local_line.count("harness-engineering") == 1
+
+
+# ---------------------------------------------------------------------------
+# Work action keywords (description-based file-change inference)
+# ---------------------------------------------------------------------------
+
+
+def test_chinese_develop_keyword_upgrades_from_fast_path() -> None:
+    """Description with '开发' should NOT be fast path even without flags."""
+    decision = classify(
+        "这个前端设计完全没有按照原型来，需要重新对齐原型，进行开发",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+    assert "implies file modifications" in decision.rationale
+
+
+def test_chinese_fix_keyword_upgrades_from_fast_path() -> None:
+    """Description with '修复' should NOT be fast path even without flags."""
+    decision = classify(
+        "修复登录页面的样式问题",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+
+
+def test_chinese_refactor_keyword_upgrades_from_trivial() -> None:
+    """Description with '重构' + has_file_changes should NOT be trivial."""
+    decision = classify(
+        "重构用户模块的代码结构",
+        has_file_changes=True,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+
+
+def test_english_implement_keyword_upgrades_from_fast_path() -> None:
+    """English 'implement' should NOT be fast path even without flags."""
+    decision = classify(
+        "implement the user authentication module",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+
+
+def test_no_work_keyword_still_fast_path() -> None:
+    """Descriptions without work keywords should remain fast path."""
+    decision = classify(
+        "explain how the routing system works",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.FAST_PATH
+
+
+def test_chinese_readonly_query_still_fast_path() -> None:
+    """Chinese read-only query without work keywords remains fast path."""
+    decision = classify(
+        "这个项目的架构是什么样的",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.FAST_PATH

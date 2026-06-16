@@ -44,6 +44,43 @@ PUBLIC_CONTRACT_KEYWORDS: tuple[str, ...] = (
     "payment",
 )
 
+# Work-action keywords that signal the task involves file modifications.
+# When the description contains any of these, the classifier should NOT
+# return Fast Path even when no explicit flags are set.
+# Source: common engineering verbs in both English and Chinese.
+WORK_ACTION_KEYWORDS: tuple[str, ...] = (
+    # English
+    "implement",
+    "develop",
+    "fix",
+    "refactor",
+    "rewrite",
+    "build",
+    "debug",
+    "migrate",
+    "redesign",
+    "optimize",
+    "integrate",
+    "adapt",
+    "align",
+    # Chinese
+    "开发",
+    "实现",
+    "修复",
+    "重构",
+    "对齐",
+    "修改",
+    "重写",
+    "添加",
+    "删除",
+    "优化",
+    "迁移",
+    "适配",
+    "集成",
+    "部署",
+    "调整",
+)
+
 
 class RoutingDecision:
     """Result of classifying an incoming request."""
@@ -128,12 +165,14 @@ def classify(
     """
     description_lc = description.lower()
 
+    mentions_work = _mentions_work_action_keyword(description_lc)
+
     if not has_file_changes and not is_public_contract and not has_external_side_effect:
-        if not is_unclear_or_high_risk:
+        if not is_unclear_or_high_risk and not mentions_work:
             logger.info("classified as fast-path")
             logger.debug(
-                "fast-path flags: file_changes=%s public=%s external=%s unclear=%s",
-                has_file_changes, is_public_contract, has_external_side_effect, is_unclear_or_high_risk,
+                "fast-path flags: file_changes=%s public=%s external=%s unclear=%s work_kw=%s",
+                has_file_changes, is_public_contract, has_external_side_effect, is_unclear_or_high_risk, mentions_work,
             )
             return RoutingDecision(
                 path=RoutingPath.FAST_PATH,
@@ -149,6 +188,7 @@ def classify(
         and not has_external_side_effect
         and not is_unclear_or_high_risk
         and not _mentions_public_contract_keyword(description_lc)
+        and not mentions_work
     ):
         logger.info("classified as trivial-safe-change")
         return RoutingDecision(
@@ -162,9 +202,9 @@ def classify(
 
     logger.info("classified as governed-path")
     logger.debug(
-        "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s",
+        "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s work_kw=%s",
         has_file_changes, is_public_contract, has_external_side_effect,
-        is_unclear_or_high_risk, _mentions_public_contract_keyword(description_lc),
+        is_unclear_or_high_risk, _mentions_public_contract_keyword(description_lc), mentions_work,
     )
     return RoutingDecision(
         path=RoutingPath.GOVERNED_PATH,
@@ -174,6 +214,7 @@ def classify(
             has_external_side_effect=has_external_side_effect,
             is_unclear_or_high_risk=is_unclear_or_high_risk,
             mentions_public_keyword=_mentions_public_contract_keyword(description_lc),
+            mentions_work_keyword=mentions_work,
         ),
         current_layer=HarnessLayer.INTAKE_ORIENTATION,
         primary_skill="harness-engineering",
@@ -184,6 +225,10 @@ def _mentions_public_contract_keyword(description_lc: str) -> bool:
     return any(keyword in description_lc for keyword in PUBLIC_CONTRACT_KEYWORDS)
 
 
+def _mentions_work_action_keyword(description_lc: str) -> bool:
+    return any(keyword in description_lc for keyword in WORK_ACTION_KEYWORDS)
+
+
 def _governed_rationale(
     *,
     has_file_changes: bool,
@@ -191,6 +236,7 @@ def _governed_rationale(
     has_external_side_effect: bool,
     is_unclear_or_high_risk: bool,
     mentions_public_keyword: bool,
+    mentions_work_keyword: bool = False,
 ) -> str:
     reasons: list[str] = []
     if is_public_contract or mentions_public_keyword:
@@ -199,6 +245,8 @@ def _governed_rationale(
         reasons.append("produces external side effects or persisted data")
     if is_unclear_or_high_risk:
         reasons.append("scope, risk, or requirements are unclear")
+    if mentions_work_keyword and not reasons:
+        reasons.append("description implies file modifications")
     if has_file_changes and not reasons:
         reasons.append("requires multi-layer governance")
     return "Governed path: " + "; ".join(reasons) + "."
