@@ -17,6 +17,7 @@ from ..commands.entry import discover_entry_files
 from ..file_ops import packet as packet_ops
 from ..messages import bilingual
 from ..models.schemas import CheckFinding, CheckResult
+from ..priority import check_priority
 from ..state_machine.engine import (
     StateMachineEngine,
     TransitionContext,
@@ -297,6 +298,43 @@ def check_inventory_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_inventory(project_root))
 
 
+@check_group.command("priority")
+@click.option(
+    "--fix", "fix_mode", is_flag=True, default=False,
+    help="Apply fixes to neutralise competing skills.",
+)
+@click.pass_context
+def check_priority_cmd(ctx: click.Context, fix_mode: bool) -> None:
+    """Check for skills that could hijack entry routing before harness governance."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+
+    if fix_mode:
+        from ..priority import apply_all_fixes, detect_competing_skills
+
+        competing = detect_competing_skills(project_root)
+        if not competing:
+            click.echo(bilingual("priority.nothing_to_fix"))
+            return
+        results = apply_all_fixes(project_root, competing)
+        for r in results:
+            if r.success:
+                click.echo(bilingual("priority.fix_applied", action=r.action, path=str(r.path), new_path=str(r.new_path or "")))
+                if r.detail:
+                    click.echo(f"  {r.detail}")
+            else:
+                click.echo(bilingual("priority.fix_failed", path=str(r.path), detail=r.detail))
+        click.echo("")
+        # Re-run check after fix to show current state.
+        from ..priority import check_priority as _cp
+
+        result = _cp(project_root)
+    else:
+        from ..priority import check_priority as _cp
+
+        result = _cp(project_root)
+    _emit(ctx, result)
+
+
 @check_group.command("all")
 @click.pass_context
 def check_all_cmd(ctx: click.Context) -> None:
@@ -307,6 +345,7 @@ def check_all_cmd(ctx: click.Context) -> None:
         click.echo(bilingual("check.frequency_note", frequency=freq))
     results: list[CheckResult] = [
         check_routing(project_root),
+        check_priority(project_root),
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
@@ -326,9 +365,11 @@ __all__ = [
     "check_packets_cmd",
     "check_entry_cmd",
     "check_inventory_cmd",
+    "check_priority_cmd",
     "check_all_cmd",
     "check_routing",
     "check_packets",
     "check_entry",
     "check_inventory",
+    "check_priority",
 ]

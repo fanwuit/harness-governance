@@ -367,6 +367,63 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Check frequency: {frequency}",
         "zh-CN": "检查频率: {frequency}",
     },
+    # priority --------------------------------------------------------------
+    "priority.no_competing": {
+        "en": "No competing skills found across {platforms} platform(s).",
+        "zh-CN": "在 {platforms} 个平台上未发现竞争 skill。",
+    },
+    "priority.competing_summary": {
+        "en": "{count} competing skill(s) found across {platforms} platform(s).",
+        "zh-CN": "在 {platforms} 个平台上发现 {count} 个竞争 skill。",
+    },
+    "priority.fix_hint": {
+        "en": "Run `harness check priority --fix` to neutralize them.",
+        "zh-CN": "运行 `harness check priority --fix` 以消除它们。",
+    },
+    "priority.finding_reason": {
+        "en": "{path}: {reason}",
+        "zh-CN": "{path}: {reason}",
+    },
+    "priority.reason.always_apply": {
+        "en": "alwaysApply=true in frontmatter",
+        "zh-CN": "frontmatter 中声明了 alwaysApply=true",
+    },
+    "priority.reason.before_any_response": {
+        "en": "'before any response' in description",
+        "zh-CN": "描述中包含 'before any response'",
+    },
+    "priority.reason.session_start": {
+        "en": "'session start' in description",
+        "zh-CN": "描述中包含 'session start'",
+    },
+    "priority.reason.starting_any_conversation": {
+        "en": "'starting any conversation' in description",
+        "zh-CN": "描述中包含 'starting any conversation'",
+    },
+    "priority.reason.body_trigger": {
+        "en": "trigger phrase in skill body: {phrase}",
+        "zh-CN": "skill 正文含触发短语: {phrase}",
+    },
+    "priority.nothing_to_fix": {
+        "en": "No competing skills to fix.",
+        "zh-CN": "没有需要修复的竞争 skill。",
+    },
+    "priority.fix_applied": {
+        "en": "[{action}] {path} -> {new_path}",
+        "zh-CN": "[{action}] {path} -> {new_path}",
+    },
+    "priority.fix_failed": {
+        "en": "Failed to fix {path}: {detail}",
+        "zh-CN": "修复 {path} 失败: {detail}",
+    },
+    "priority.fix_skipped_exists": {
+        "en": "Skipped {path}: target {new_path} already exists.",
+        "zh-CN": "跳过 {path}: 目标 {new_path} 已存在。",
+    },
+    "priority.runtime_warning": {
+        "en": "WARNING: {count} competing skill(s) detected: {names}. Run `harness check priority --fix`.",
+        "zh-CN": "警告: 检测到 {count} 个竞争 skill: {names}。运行 `harness check priority --fix`。",
+    },
     # status ---------------------------------------------------------------
     "status.header": {
         "en": "Harness status for {path}",

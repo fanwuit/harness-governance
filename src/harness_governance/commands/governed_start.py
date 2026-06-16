@@ -116,6 +116,22 @@ def governed_start_cmd(
 
         logging.getLogger("harness").info("session created: %s", session_path)
 
+    # Layer 4: runtime competing-skill warning (soft check, never blocks)
+    try:
+        from ..priority import detect_competing_skills
+
+        competing = detect_competing_skills(ctx.obj["project_root"])
+        if competing:
+            names = ", ".join(c.skill_name for c in competing[:5])
+            if len(competing) > 5:
+                names += f" (+{len(competing) - 5} more)"
+            click.echo(
+                bilingual("priority.runtime_warning", count=len(competing), names=names),
+                err=True,
+            )
+    except Exception:
+        pass  # priority scan must never block governed-start
+
     if ctx.obj.get("json_output"):
         import json
 
