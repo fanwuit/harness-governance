@@ -1,4 +1,6 @@
 ---
+name: harness-governance
+description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
 paths:
   - "**/*"
 ---

@@ -655,3 +655,65 @@ def test_init_windsurf_skill_has_frontmatter(tmp_repo: Path) -> None:
     assert content.startswith("---")
     assert "name: harness-governance" in content
     assert "description:" in content
+
+
+def test_init_cline_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """Cline skill must have YAML frontmatter with paths + description."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "cline"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["cline"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
+    assert 'paths:' in content
+    assert '"**/*"' in content
+
+
+def test_init_opencode_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """OpenCode skill must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "opencode"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["opencode"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
+
+
+def test_init_qoderwork_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """QoderWork skill (AGENTS.md) must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "qoderwork"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["qoderwork"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
+
+
+def test_init_generic_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """Generic skill (AGENTS.md) must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "generic"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["generic"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
