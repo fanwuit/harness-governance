@@ -59,46 +59,54 @@ PLATFORM_SKILL_PATHS_BY_TIER: dict[str, dict[str, Path]] = {
         "strict": Path(".claude/skills/harness-governance-strict/SKILL.md"),
         "standard": Path(".claude/skills/harness-governance-standard/SKILL.md"),
         "light": Path(".claude/skills/harness-governance-light/SKILL.md"),
+        "monitor": Path(".claude/skills/harness-governance-monitor/SKILL.md"),
     },
     "codex": {
         "strict": Path(".agents/skills/harness-governance-strict/SKILL.md"),
         "standard": Path(".agents/skills/harness-governance-standard/SKILL.md"),
         "light": Path(".agents/skills/harness-governance-light/SKILL.md"),
+        "monitor": Path(".agents/skills/harness-governance-monitor/SKILL.md"),
     },
     "cline": {
         "strict": Path(".clinerules/harness-governance-strict.md"),
         "standard": Path(".clinerules/harness-governance-standard.md"),
         "light": Path(".clinerules/harness-governance-light.md"),
+        "monitor": Path(".clinerules/harness-governance-monitor.md"),
     },
     "cursor": {
         "strict": Path(".cursor/rules/harness-governance-strict.mdc"),
         "standard": Path(".cursor/rules/harness-governance-standard.mdc"),
         "light": Path(".cursor/rules/harness-governance-light.mdc"),
+        "monitor": Path(".cursor/rules/harness-governance-monitor.mdc"),
     },
     "opencode": {
         "strict": Path(".opencode/agents/harness-governance-strict.md"),
         "standard": Path(".opencode/agents/harness-governance-standard.md"),
         "light": Path(".opencode/agents/harness-governance-light.md"),
+        "monitor": Path(".opencode/agents/harness-governance-monitor.md"),
     },
     "windsurf": {
         "strict": Path(".windsurf/skills/harness-governance-strict/SKILL.md"),
         "standard": Path(".windsurf/skills/harness-governance-standard/SKILL.md"),
         "light": Path(".windsurf/skills/harness-governance-light/SKILL.md"),
+        "monitor": Path(".windsurf/skills/harness-governance-monitor/SKILL.md"),
     },
     "qoderwork": {
         "strict": Path("AGENTS.md"),
         "standard": Path("AGENTS.md"),
         "light": Path("AGENTS.md"),
+        "monitor": Path("AGENTS.md"),
     },
     "generic": {
         "strict": Path("AGENTS.md"),
         "standard": Path("AGENTS.md"),
         "light": Path("AGENTS.md"),
+        "monitor": Path("AGENTS.md"),
     },
 }
 
 # Backward-compatible tier list for iteration.
-GOVERNANCE_TIERS: tuple[str, ...] = ("strict", "standard", "light")
+GOVERNANCE_TIERS: tuple[str, ...] = ("strict", "standard", "light", "monitor")
 
 # Detection priority: first match wins.
 PLATFORM_HINTS: tuple[tuple[str, str], ...] = (

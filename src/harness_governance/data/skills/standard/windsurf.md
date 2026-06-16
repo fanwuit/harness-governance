@@ -90,14 +90,26 @@ This adds the implementation entry record to the Markdown stream.
 
 ```bash
 harness check routing     # validate routing decision consistency
+harness check docs        # stale ADRs, broken links, version drift
 harness check packets     # validate all change packets
+harness check entry       # Implementation Entry Record check
+harness check inventory   # README skill table vs disk
+harness check priority    # competing skill detection
 harness check all         # run all checks
+```
+
+## Session
+
+```bash
+harness session show     # active session detail
+harness session list     # all sessions
 ```
 
 ## Status
 
 ```bash
 harness status
+harness status --json     # machine-readable
 ```
 
 ## Verification
@@ -121,7 +133,17 @@ harness layer advance <layer> --confirmed  # advance to next layer (after gate c
 harness gate check <layer>           # verify layer gate (exit 0=pass, 1=fail)
 harness gate status                  # show lock-file status for all layers
 harness gate status <layer>          # show lock-file status for one layer
+harness gate timing                  # per-layer wall-clock timing analysis
 harness gate reset <layer> --confirmed  # reset a gate lock
+```
+
+## Monitor
+
+Use `/harness-governance-monitor` for project health checks (doc drift, timing, status).
+
+```bash
+harness check docs --self    # harness self-documentation checks
+harness gate timing --all    # all sessions timing
 ```
 
 ## Review

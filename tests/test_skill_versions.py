@@ -53,10 +53,15 @@ def _list_skill_files() -> list[tuple[str, str, str]]:
 
 _ALL_SKILLS = _list_skill_files()
 
+# Governance tiers only — monitor is read-only, no gate/subagent content.
+_GOVERNANCE_SKILLS = [
+    (t, p, c) for t, p, c in _ALL_SKILLS if t != "monitor"
+]
 
-def test_all_24_skill_files_exist() -> None:
-    """8 platforms × 3 tiers = 24 tiered skill files."""
-    assert len(_ALL_SKILLS) == 24, f"Expected 24 skill files, found {len(_ALL_SKILLS)}"
+
+def test_all_skill_files_exist() -> None:
+    """8 platforms × 4 tiers (strict/standard/light/monitor) = 32 skill files."""
+    assert len(_ALL_SKILLS) == 32, f"Expected 32 skill files, found {len(_ALL_SKILLS)}"
 
     # Verify every combination is covered.
     found = {(t, p) for t, p, _ in _ALL_SKILLS}
@@ -78,9 +83,10 @@ class TestSkillVersionSentinels:
 
 
 class TestGateCheckInstruction:
-    """Every skill file must contain the hard gate check instruction."""
+    """Every governance skill file (strict/standard/light) must contain the
+    hard gate check instruction. Monitor tier is read-only and does not gate."""
 
-    @pytest.mark.parametrize("tier,platform,content", _ALL_SKILLS)
+    @pytest.mark.parametrize("tier,platform,content", _GOVERNANCE_SKILLS)
     def test_has_gate_check_instruction(self, tier: str, platform: str, content: str) -> None:
         assert "harness gate check implementation" in content, (
             f"{tier}/{platform} missing 'harness gate check implementation'"
@@ -149,11 +155,24 @@ class TestTierSpecificContent:
             f"standard/{platform} should mention standard governance"
         )
 
+    @pytest.mark.parametrize("platform", list(_PLATFORM_EXTS))
+    def test_monitor_mentions_read_only(self, platform: str) -> None:
+        content = _get_skill_content("monitor", platform)
+        assert content is not None, f"monitor/{platform} not found"
+        assert "read-only" in content.lower() or "只读" in content, (
+            f"monitor/{platform} should mention read-only constraint"
+        )
+        assert "harness check docs" in content, (
+            f"monitor/{platform} should reference harness check docs"
+        )
+
 
 class TestSubagentDispatch:
-    """Every skill file must contain the Subagent Dispatch section (v0.7.1)."""
+    """Every governance skill file (strict/standard/light) must contain the
+    Subagent Dispatch section (v0.7.1). Monitor tier is read-only and
+    does not dispatch subagents."""
 
-    @pytest.mark.parametrize("tier,platform,content", _ALL_SKILLS)
+    @pytest.mark.parametrize("tier,platform,content", _GOVERNANCE_SKILLS)
     def test_has_subagent_dispatch_section(
         self, tier: str, platform: str, content: str
     ) -> None:
@@ -161,7 +180,7 @@ class TestSubagentDispatch:
             f"{tier}/{platform} missing '## Subagent Dispatch' section"
         )
 
-    @pytest.mark.parametrize("tier,platform,content", _ALL_SKILLS)
+    @pytest.mark.parametrize("tier,platform,content", _GOVERNANCE_SKILLS)
     def test_has_context_isolation_rules(
         self, tier: str, platform: str, content: str
     ) -> None:
