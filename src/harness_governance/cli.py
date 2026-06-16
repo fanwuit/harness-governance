@@ -26,6 +26,7 @@ from . import __version__
 from .commands.check import check_group
 from .commands.config_cmd import config_group
 from .commands.entry import entry_group
+from .commands.gate import gate_group
 from .commands.governed_start import governed_start_cmd
 from .commands.init import init_cmd
 from .commands.layer import layer_group
@@ -76,6 +77,7 @@ cli.add_command(review_group)
 cli.add_command(config_group)
 cli.add_command(runner_group)
 cli.add_command(layer_group)
+cli.add_command(gate_group)
 cli.add_command(session_group)
 
 

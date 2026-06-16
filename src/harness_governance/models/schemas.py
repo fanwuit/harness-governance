@@ -54,6 +54,7 @@ class RoutingInput(BaseModel):
     has_external_side_effect: bool = False
     is_unclear_or_high_risk: bool = False
     companion_skills: tuple[str, ...] = ()
+    rigor_tier: str | None = None  # explicit --rigor override (light/standard/strict)
 
 
 class RoutingResult(BaseModel):
@@ -68,6 +69,7 @@ class RoutingResult(BaseModel):
     disclosure: str
     recommended_next_command: str
     skill_version_warning: str | None = None
+    rigor_tier: str | None = None  # resolved rigor tier for this session
 
 
 class ChangePacketSummary(BaseModel):
@@ -260,6 +262,70 @@ class StatusSessionItem(BaseModel):
     current_layer: str | None = None
     description: str = ""
     change_id: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Rigor tier and gate models (v0.7.0)
+# ---------------------------------------------------------------------------
+
+
+class QAPair(BaseModel):
+    """One question/answer exchange recorded in a session."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    layer: str  # HarnessLayer value
+    question: str
+    answer: str
+    timestamp: str  # ISO 8601 UTC
+
+
+class GateStatus(BaseModel):
+    """Result of a :class:`LayerGateEngine` check for one layer."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    layer: str
+    passed: bool
+    questions_answered: int = 0
+    questions_required: int = 0
+    artifacts_found: tuple[str, ...] = ()
+    artifacts_missing: tuple[str, ...] = ()
+    confirmation_items_met: tuple[str, ...] = ()
+    confirmation_items_unmet: tuple[str, ...] = ()
+    checked_at: str = ""
+
+
+class GateResult(BaseModel):
+    """Aggregate result of ``harness gate check``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    check: str = "layer-gate"
+    layer: str
+    passed: bool
+    findings: tuple[CheckFinding, ...] = ()
+    status: GateStatus | None = None
+
+
+class RigorProfile(BaseModel):
+    """Describes the governance profile for a given rigor tier."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tier: str  # RigorTier value
+    required_layers: tuple[str, ...] = ()
+    min_questions_per_layer: dict[str, int] = {}
+    auto_interrupt_on_unknowns: bool = False
+
+
+class GateCheckInput(BaseModel):
+    """Input to ``harness gate check`` command."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    layer: str
+    session_id: str | None = None
 
 
 class StatusPayload(BaseModel):

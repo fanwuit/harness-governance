@@ -15,6 +15,14 @@ from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
 
 
+_MOCK_INTAKE_QA: tuple[dict[str, str], ...] = (
+    {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+    {"layer": "intake-orientation", "question": "Q2", "answer": "A2", "timestamp": "2026-06-16T10:00:01Z"},
+    {"layer": "intake-orientation", "question": "Q3", "answer": "A3", "timestamp": "2026-06-16T10:00:02Z"},
+    {"layer": "intake-orientation", "question": "Q4", "answer": "A4", "timestamp": "2026-06-16T10:00:03Z"},
+)
+
+
 def _seed_session(
     tmp_path: Path,
     *,
@@ -27,6 +35,7 @@ def _seed_session(
         description="Test",
         routing_path=RoutingPath.GOVERNED_PATH,
         current_layer=current_layer,
+        layer_qa=_MOCK_INTAKE_QA,
     )
     create_session(tmp_path, state)
     return session_id
@@ -92,6 +101,7 @@ class TestLayerAdvance:
                 "--project-root", str(tmp_path),
                 "layer", "advance", "contract",
                 "--boundary-touch",
+                "--skip-gate", "--confirmed",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -252,3 +262,174 @@ class TestLayerAdvanceConfirmed:
 
         state = load_session(tmp_path, sid)
         assert "author_confirmed" not in state.transitions[-1].context_flags
+
+
+# ---------------------------------------------------------------------------
+# Gate enforcement (v0.7.0)
+# ---------------------------------------------------------------------------
+
+
+class TestLayerAdvanceGateEnforcement:
+    """``layer advance`` must pass the current layer's gate before advancing."""
+
+    def test_advance_blocked_by_gate_when_qa_insufficient(self, tmp_path: Path) -> None:
+        """Without enough Q&A, the gate fails and advance is blocked."""
+        # Create session with NO layer_qa — gate should fail.
+        state = SessionState(
+            session_id="gate-block-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Gate block test",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="strict",
+            # No layer_qa — gate requires 4 questions for STRICT intake.
+        )
+        create_session(tmp_path, state)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        assert result.exit_code != 0, f"Gate should have blocked advance, got: {result.output}"
+
+    def test_advance_passes_gate_with_sufficient_qa(self, tmp_path: Path) -> None:
+        """With enough Q&A, the gate passes and writes a lock file."""
+        _seed_session(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        assert result.exit_code == 0, result.output
+        # Verify lock file was written for the passed layer.
+        lock = tmp_path / ".harness" / "gates" / "01-intake-orientation.lock"
+        assert lock.is_file(), f"Expected lock file at {lock}"
+        data = json.loads(lock.read_text(encoding="utf-8"))
+        assert data["passed"] is True
+        assert data["layer"] == "intake-orientation"
+
+    def test_skip_gate_without_confirmed_raises(self, tmp_path: Path) -> None:
+        """--skip-gate requires --confirmed (safety interlock)."""
+        _seed_session(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--skip-gate"],
+        )
+        assert result.exit_code != 0, "Should require --confirmed with --skip-gate"
+
+    def test_skip_gate_with_confirmed_bypasses_gate(self, tmp_path: Path) -> None:
+        """--skip-gate --confirmed allows advance even with insufficient QA."""
+        state = SessionState(
+            session_id="skip-gate-confirmed-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Skip gate test",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="strict",
+            # No layer_qa — would fail gate, but --skip-gate --confirmed bypasses it.
+        )
+        create_session(tmp_path, state)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--skip-gate", "--confirmed"],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_gate_failure_json_output(self, tmp_path: Path) -> None:
+        """When gate fails, JSON output includes failure details."""
+        state = SessionState(
+            session_id="gate-json-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Gate JSON test",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="strict",
+        )
+        create_session(tmp_path, state)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "--json", "layer", "advance", "idea"],
+        )
+        assert result.exit_code != 0
+        data = json.loads(result.output)
+        assert data["allowed"] is False
+        assert data["reason"] == "gate_failed"
+        assert data["questions_answered"] == 0
+        assert data["questions_required"] == 4
+
+    def test_light_tier_requires_fewer_questions(self, tmp_path: Path) -> None:
+        """LIGHT tier only requires 1 question for intake."""
+        state = SessionState(
+            session_id="light-gate-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Light tier gate",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="light",
+            layer_qa=(
+                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+            ),
+        )
+        create_session(tmp_path, state)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_rigor_override_flag(self, tmp_path: Path) -> None:
+        """--rigor override changes the tier used for gate check."""
+        state = SessionState(
+            session_id="rigor-override-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Rigor override",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="strict",
+            layer_qa=(
+                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+            ),
+        )
+        create_session(tmp_path, state)
+        # Override to light — 1 Q&A is enough.
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--rigor", "light"],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_gate_skipped_for_non_required_layer(self, tmp_path: Path) -> None:
+        """LIGHT tier: IDEA is not a required layer, gate is skipped when advancing FROM idea."""
+        # First advance from intake to idea (with --skip-gate, since intake has no QA)
+        state = SessionState(
+            session_id="light-skip-test",
+            created_at="2026-06-16T10:00:00+00:00",
+            description="Light skip",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier="light",
+            layer_qa=(
+                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+            ),
+        )
+        create_session(tmp_path, state)
+        runner = CliRunner()
+        # Advance intake→idea: intake's gate passes (1 QA in LIGHT mode).
+        r = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        assert r.exit_code == 0, f"intake→idea should pass: {r.output}"
+
+        # Now advance idea→brief: idea is NOT in LIGHT required layers,
+        # so gate is skipped even with no QA for the idea layer.
+        r2 = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "brief"],
+        )
+        assert r2.exit_code == 0, f"idea→brief should pass (idea gate skipped): {r2.output}"

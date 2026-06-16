@@ -5,7 +5,9 @@ from __future__ import annotations
 from harness_governance.state_machine.classification import (
     RoutingPath,
     classify,
+    RoutingDecision,
 )
+from harness_governance.state_machine.rigor import RigorTier
 
 
 def test_pure_question_is_fast_path() -> None:
@@ -181,3 +183,89 @@ def test_chinese_readonly_query_still_fast_path() -> None:
         is_unclear_or_high_risk=False,
     )
     assert decision.path is RoutingPath.FAST_PATH
+
+
+# ---------------------------------------------------------------------------
+# Rigor tier integration (v0.7.0)
+# ---------------------------------------------------------------------------
+
+
+class TestRigorTierIntegration:
+    """Rigor tier is computed during classification and attached to the decision."""
+
+    def test_default_rigor_is_strict(self) -> None:
+        decision = classify(
+            "add a new feature to the application",
+            has_file_changes=True,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.rigor_tier is RigorTier.STRICT
+
+    def test_rigor_override_via_kwarg(self) -> None:
+        decision = classify(
+            "build a saas platform from scratch",
+            has_file_changes=True,
+            is_public_contract=True,
+            has_external_side_effect=True,
+            is_unclear_or_high_risk=False,
+            rigor="light",
+        )
+        # User override wins over keyword detection.
+        assert decision.rigor_tier is RigorTier.LIGHT
+
+    def test_auto_detect_strict_from_keywords(self) -> None:
+        decision = classify(
+            "从零构建一个微服务架构的平台",
+            has_file_changes=True,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.rigor_tier is RigorTier.STRICT
+
+    def test_auto_detect_light_from_keywords(self) -> None:
+        decision = classify(
+            "fix a minor typo in the readme",
+            has_file_changes=True,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.rigor_tier is RigorTier.LIGHT
+
+    def test_fast_path_also_gets_rigor_tier(self) -> None:
+        """Even fast-path decisions carry a rigor tier."""
+        decision = classify(
+            "What does the harness-engineering skill do?",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.FAST_PATH
+        assert isinstance(decision.rigor_tier, RigorTier)
+
+    def test_trivial_path_also_gets_rigor_tier(self) -> None:
+        decision = classify(
+            "Rename local variable foo to bar in src/foo.py",
+            has_file_changes=True,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+        assert isinstance(decision.rigor_tier, RigorTier)
+
+    def test_routing_decision_repr_includes_rigor(self) -> None:
+        decision = classify(
+            "Build a new microservice",
+            has_file_changes=True,
+            is_public_contract=True,
+            has_external_side_effect=True,
+            is_unclear_or_high_risk=False,
+        )
+        r = repr(decision)
+        assert "rigor" in r
+        assert "strict" in r

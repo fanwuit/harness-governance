@@ -112,6 +112,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Primary skill: {skill}",
         "zh-CN": "主 skill: {skill}",
     },
+    "governed_start.rigor_tier": {
+        "en": "Rigor tier: {tier}",
+        "zh-CN": "严格程度: {tier}",
+    },
     "governed_start.disclosure": {
         "en": "Disclosure:",
         "zh-CN": "披露:",
@@ -148,6 +152,27 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
             "先加载 `skill-use-transparency` 和 `harness-engineering`；"
             "当工作跨越多层时再 `harness packet init <change-id>`。"
         ),
+    },
+    # rigor detection -----------------------------------------------------
+    "rigor.auto_detected": {
+        "en": "Rigor tier auto-detected: {tier} (keyword: {keyword})",
+        "zh-CN": "自动检测严格程度: {tier}（关键词: {keyword}）",
+    },
+    "rigor.resolved": {
+        "en": "Rigor tier resolved: {tier}",
+        "zh-CN": "严格程度已确定: {tier}",
+    },
+    "rigor.default_strict": {
+        "en": "Defaulting to STRICT tier (safe default).",
+        "zh-CN": "默认使用 STRICT 严格级别（安全默认值）。",
+    },
+    "rigor.override_applied": {
+        "en": "Rigor tier overridden: {tier} (user override)",
+        "zh-CN": "严格程度已覆盖: {tier}（用户指定）",
+    },
+    "rigor.invalid": {
+        "en": "Invalid rigor tier: {value!r}. Valid: {valid}",
+        "zh-CN": "无效的严格程度: {value!r}。可用: {valid}",
     },
     # packet ---------------------------------------------------------------
     "packet.initialized": {
@@ -626,6 +651,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Session created: {session_id}",
         "zh-CN": "已创建会话: {session_id}",
     },
+    "session.created_with_rigor": {
+        "en": "Session created: {session_id} (rigor: {rigor})",
+        "zh-CN": "已创建会话: {session_id}（严格程度: {rigor}）",
+    },
     "session.not_found": {
         "en": "Session not found: {session_id}",
         "zh-CN": "未找到会话: {session_id}",
@@ -706,6 +735,51 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "layer.confirmed_recorded": {
         "en": "Author confirmation recorded in audit trail.",
         "zh-CN": "作者确认已记录到审计日志。",
+    },
+    "layer.skip_gate_requires_confirmed": {
+        "en": "--skip-gate requires --confirmed (safety interlock).",
+        "zh-CN": "--skip-gate 必须配合 --confirmed 使用（安全联动）。",
+    },
+    "layer.gate_blocked": {
+        "en": "Advance blocked: complete the current layer's gate requirements first, or use --skip-gate --confirmed to override.",
+        "zh-CN": "推进被阻止: 请先完成当前层的门控要求，或使用 --skip-gate --confirmed 强制跳过。",
+    },
+    # gate ---------------------------------------------------------------
+    "gate.no_session": {
+        "en": "No active governance session found. Run `harness governed-start` first.",
+        "zh-CN": "未找到活跃的治理会话。请先运行 `harness governed-start`。",
+    },
+    "gate.check.passed": {
+        "en": "Gate {layer}: PASSED ({questions}/{required} questions answered)",
+        "zh-CN": "门控 {layer}: 通过 ({questions}/{required} 问题已答)",
+    },
+    "gate.check.failed": {
+        "en": "Gate {layer}: FAILED ({questions}/{required} questions answered; artifacts missing: {missing})",
+        "zh-CN": "门控 {layer}: 失败 ({questions}/{required} 问题已答; 缺失工件: {missing})",
+    },
+    "gate.status.locked": {
+        "en": "[LOCKED]  {layer} — session: {session}, at: {passed_at}",
+        "zh-CN": "[已锁定] {layer} — 会话: {session}, 时间: {passed_at}",
+    },
+    "gate.status.unlocked": {
+        "en": "[  OPEN]  {layer}",
+        "zh-CN": "[ 开放] {layer}",
+    },
+    "gate.reset.requires_confirmed": {
+        "en": "Must pass --confirmed to reset a gate lock.",
+        "zh-CN": "必须传入 --confirmed 才能重置门锁。",
+    },
+    "gate.reset.removed": {
+        "en": "Lock removed: {layer}",
+        "zh-CN": "已移除锁: {layer}",
+    },
+    "gate.reset.not_found": {
+        "en": "No lock found for: {layer}",
+        "zh-CN": "未找到锁: {layer}",
+    },
+    "gate.reset.all_removed": {
+        "en": "Removed {count} lock file(s).",
+        "zh-CN": "已移除 {count} 个锁文件。",
     },
 }
 

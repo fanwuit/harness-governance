@@ -7,9 +7,7 @@ as :class:`TransitionRecord` entries so the full governance trajectory
 is auditable.
 """
 
-from __future__ import annotations
-
-from typing import Literal
+from typing import Any, Dict, Literal, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
@@ -25,9 +23,9 @@ class TransitionRecord(BaseModel):
     from_layer: HarnessLayer
     to_layer: HarnessLayer
     timestamp: str  # ISO 8601 UTC
-    context_flags: dict[str, bool] = {}
+    context_flags: Dict[str, bool] = {}
     engine_verdict: bool
-    violations: tuple[str, ...] = ()
+    violations: Tuple[str, ...] = ()
 
 
 class SessionState(BaseModel):
@@ -41,10 +39,13 @@ class SessionState(BaseModel):
     routing_path: RoutingPath
     current_layer: HarnessLayer | None = None
     change_id: str | None = None
-    companion_skills: tuple[str, ...] = ()
+    companion_skills: Tuple[str, ...] = ()
     status: Literal["active", "closed"] = "active"
     closed_at: str | None = None
-    transitions: tuple[TransitionRecord, ...] = ()
+    transitions: Tuple[TransitionRecord, ...] = ()
+    # v0.7.0: governance depth controls
+    rigor_tier: str = "strict"  # RigorTier value, defaults to STRICT
+    layer_qa: Tuple[Dict[str, Any], ...] = ()  # Q&A log: {"layer","question","answer","timestamp"}
 
 
 __all__ = [

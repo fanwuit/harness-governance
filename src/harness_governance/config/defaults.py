@@ -42,15 +42,63 @@ REQUIRED_PACKET_FILES: tuple[str, ...] = (
 # Skill path templates per platform. ``harness init`` uses these to
 # figure out where to write the per-platform SKILL.md adapter.
 PLATFORM_SKILL_PATHS: dict[str, Path] = {
-    "claude-code": Path(".claude/skills/harness-governance/SKILL.md"),
-    "codex": Path(".agents/skills/harness-governance/SKILL.md"),
-    "cline": Path(".clinerules/harness-governance.md"),
-    "cursor": Path(".cursor/rules/harness-governance.mdc"),
-    "opencode": Path(".opencode/agents/harness-governance.md"),
-    "windsurf": Path(".windsurf/skills/harness-governance/SKILL.md"),
+    "claude-code": Path(".claude/skills/harness-governance-standard/SKILL.md"),
+    "codex": Path(".agents/skills/harness-governance-standard/SKILL.md"),
+    "cline": Path(".clinerules/harness-governance-standard.md"),
+    "cursor": Path(".cursor/rules/harness-governance-standard.mdc"),
+    "opencode": Path(".opencode/agents/harness-governance-standard.md"),
+    "windsurf": Path(".windsurf/skills/harness-governance-standard/SKILL.md"),
     "qoderwork": Path("AGENTS.md"),
     "generic": Path("AGENTS.md"),
 }
+
+# Per-tier skill paths (strict / standard / light).
+# ``harness init`` writes three skill files per platform using these paths.
+PLATFORM_SKILL_PATHS_BY_TIER: dict[str, dict[str, Path]] = {
+    "claude-code": {
+        "strict": Path(".claude/skills/harness-governance-strict/SKILL.md"),
+        "standard": Path(".claude/skills/harness-governance-standard/SKILL.md"),
+        "light": Path(".claude/skills/harness-governance-light/SKILL.md"),
+    },
+    "codex": {
+        "strict": Path(".agents/skills/harness-governance-strict/SKILL.md"),
+        "standard": Path(".agents/skills/harness-governance-standard/SKILL.md"),
+        "light": Path(".agents/skills/harness-governance-light/SKILL.md"),
+    },
+    "cline": {
+        "strict": Path(".clinerules/harness-governance-strict.md"),
+        "standard": Path(".clinerules/harness-governance-standard.md"),
+        "light": Path(".clinerules/harness-governance-light.md"),
+    },
+    "cursor": {
+        "strict": Path(".cursor/rules/harness-governance-strict.mdc"),
+        "standard": Path(".cursor/rules/harness-governance-standard.mdc"),
+        "light": Path(".cursor/rules/harness-governance-light.mdc"),
+    },
+    "opencode": {
+        "strict": Path(".opencode/agents/harness-governance-strict.md"),
+        "standard": Path(".opencode/agents/harness-governance-standard.md"),
+        "light": Path(".opencode/agents/harness-governance-light.md"),
+    },
+    "windsurf": {
+        "strict": Path(".windsurf/skills/harness-governance-strict/SKILL.md"),
+        "standard": Path(".windsurf/skills/harness-governance-standard/SKILL.md"),
+        "light": Path(".windsurf/skills/harness-governance-light/SKILL.md"),
+    },
+    "qoderwork": {
+        "strict": Path("AGENTS.md"),
+        "standard": Path("AGENTS.md"),
+        "light": Path("AGENTS.md"),
+    },
+    "generic": {
+        "strict": Path("AGENTS.md"),
+        "standard": Path("AGENTS.md"),
+        "light": Path("AGENTS.md"),
+    },
+}
+
+# Backward-compatible tier list for iteration.
+GOVERNANCE_TIERS: tuple[str, ...] = ("strict", "standard", "light")
 
 # Detection priority: first match wins.
 PLATFORM_HINTS: tuple[tuple[str, str], ...] = (

@@ -15,6 +15,7 @@ from ..models.schemas import RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import classify, RoutingPath
 from ..state_machine.layers import HarnessLayer
+from ..state_machine.rigor import resolve_rigor
 from ..config.defaults import PLATFORM_SKILL_PATHS
 
 
@@ -81,6 +82,7 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
         is_public_contract=input_model.is_public_contract,
         has_external_side_effect=input_model.has_external_side_effect,
         is_unclear_or_high_risk=input_model.is_unclear_or_high_risk,
+        rigor=input_model.rigor_tier,
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
     rec_key = _build_recommendation(decision.path)
@@ -93,6 +95,7 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
         disclosure=disclosure,
         recommended_next_command=bilingual(rec_key),
         skill_version_warning=skill_warning,
+        rigor_tier=decision.rigor_tier.value,
     )
 
 
@@ -120,6 +123,13 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
     help="Whether scope, risk, or requirements are unclear.",
 )
 @click.option(
+    "--rigor",
+    "rigor_override",
+    type=click.Choice(["light", "standard", "strict"]),
+    default=None,
+    help="Governance rigor tier (auto-detected from description when omitted).",
+)
+@click.option(
     "--companion",
     "companions",
     multiple=True,
@@ -133,6 +143,7 @@ def governed_start_cmd(
     contracts: bool,
     external: bool,
     unclear: bool,
+    rigor_override: str | None,
     companions: tuple[str, ...],
 ) -> None:
     """Classify an incoming task and produce the canonical disclosure."""
@@ -144,9 +155,13 @@ def governed_start_cmd(
         has_external_side_effect=external,
         is_unclear_or_high_risk=unclear,
         companion_skills=tuple(companions),
+        rigor_tier=rigor_override,
     )
     project_root: Path = ctx.obj["project_root"]
     result = _evaluate(payload, project_root)
+
+    # Resolve rigor tier for session storage.
+    resolved_rigor = resolve_rigor(rigor_override, description)
 
     # Create a governance session for governed-path tasks.
     session_id: str | None = None
@@ -161,6 +176,7 @@ def governed_start_cmd(
             routing_path=result.path,
             current_layer=result.current_layer,
             companion_skills=payload.companion_skills,
+            rigor_tier=resolved_rigor.value,
         )
         session_path = create_session(project_root, session)
         import logging
@@ -197,6 +213,7 @@ def governed_start_cmd(
                     "recommended_next_command": result.recommended_next_command,
                     "session_id": session_id,
                     "skill_version_warning": result.skill_version_warning,
+                    "rigor_tier": result.rigor_tier,
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -232,6 +249,8 @@ def governed_start_cmd(
         click.echo(bilingual("governed_start.current_layer", layer=result.current_layer.value))
     if result.primary_skill:
         click.echo(bilingual("governed_start.primary_skill", skill=result.primary_skill))
+    if result.rigor_tier:
+        click.echo(bilingual("governed_start.rigor_tier", tier=result.rigor_tier))
     click.echo("")
     click.echo(bilingual("governed_start.disclosure"))
     click.echo(result.disclosure)

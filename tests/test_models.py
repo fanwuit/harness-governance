@@ -9,10 +9,16 @@ from pydantic import ValidationError
 
 from harness_governance.models.schemas import (
     ChangePacketInitResult,
+    CheckFinding,
     CheckResult,
     EntryRecord,
+    GateCheckInput,
+    GateResult,
+    GateStatus,
     HarnessConfig,
+    QAPair,
     QueueItem,
+    RigorProfile,
     RoutingInput,
     RoutingResult,
     StatusPayload,
@@ -114,3 +120,155 @@ def test_status_payload_serializes_with_queue_items() -> None:
     data = payload.model_dump(by_alias=True)
     assert data["queueSummary"]["total"] == 1
     assert data["generatedAt"] == "2026-06-13T00:00:00Z"
+
+
+# ---------------------------------------------------------------------------
+# v0.7.0 rigor tier and gate models
+# ---------------------------------------------------------------------------
+
+
+class TestQAPair:
+    def test_minimal_qa_pair(self) -> None:
+        qa = QAPair(
+            layer="intake-orientation",
+            question="What is the current task?",
+            answer="Build a SaaS platform",
+            timestamp="2026-06-16T10:00:00Z",
+        )
+        assert qa.layer == "intake-orientation"
+        assert qa.question == "What is the current task?"
+        assert qa.answer == "Build a SaaS platform"
+
+    def test_qa_pair_forbids_extra(self) -> None:
+        with pytest.raises(ValidationError):
+            QAPair.model_validate({
+                "layer": "idea",
+                "question": "Q",
+                "answer": "A",
+                "timestamp": "2026-06-16T10:00:00Z",
+                "extra": "nope",
+            })
+
+
+class TestGateStatus:
+    def test_minimal(self) -> None:
+        gs = GateStatus(layer="intake-orientation", passed=True)
+        assert gs.passed is True
+        assert gs.questions_answered == 0
+        assert gs.questions_required == 0
+
+    def test_with_counts(self) -> None:
+        gs = GateStatus(
+            layer="intake-orientation",
+            passed=True,
+            questions_answered=4,
+            questions_required=4,
+            artifacts_found=(".harness/sessions/test.json",),
+            artifacts_missing=(),
+            confirmation_items_met=("Routing decision acknowledged",),
+        )
+        data = gs.model_dump()
+        assert data["questions_answered"] == 4
+        assert data["questions_required"] == 4
+        assert len(data["artifacts_found"]) == 1
+
+    def test_failed_gate(self) -> None:
+        gs = GateStatus(
+            layer="implementation",
+            passed=False,
+            questions_answered=0,
+            questions_required=3,
+            artifacts_missing=(".harness/gates/10-implementation.lock",),
+        )
+        assert gs.passed is False
+        assert len(gs.artifacts_missing) == 1
+
+
+class TestGateResult:
+    def test_passed_result(self) -> None:
+        gr = GateResult(
+            layer="intake-orientation",
+            passed=True,
+        )
+        data = gr.model_dump()
+        assert data["check"] == "layer-gate"
+        assert data["passed"] is True
+
+    def test_failed_with_findings(self) -> None:
+        finding = CheckFinding(
+            check="layer-gate",
+            target="intake-orientation",
+            level="error",
+            message="Questions: 0/4",
+        )
+        gr = GateResult(
+            layer="intake-orientation",
+            passed=False,
+            findings=(finding,),
+        )
+        assert len(gr.findings) == 1
+        assert gr.findings[0].level == "error"
+
+
+class TestRigorProfile:
+    def test_minimal(self) -> None:
+        rp = RigorProfile(tier="strict")
+        assert rp.tier == "strict"
+        assert rp.required_layers == ()
+
+    def test_full_profile(self) -> None:
+        rp = RigorProfile(
+            tier="light",
+            required_layers=("intake-orientation", "brief", "readiness", "implementation", "verification", "review-next"),
+            min_questions_per_layer={"intake-orientation": 1},
+            auto_interrupt_on_unknowns=False,
+        )
+        data = rp.model_dump()
+        assert len(data["required_layers"]) == 6
+        assert data["auto_interrupt_on_unknowns"] is False
+
+
+class TestGateCheckInput:
+    def test_minimal(self) -> None:
+        gci = GateCheckInput(layer="implementation")
+        assert gci.layer == "implementation"
+        assert gci.session_id is None
+
+    def test_with_session(self) -> None:
+        gci = GateCheckInput(layer="idea", session_id="20260616-test")
+        assert gci.session_id == "20260616-test"
+
+
+class TestRoutingInputRigor:
+    def test_routing_input_accepts_rigor(self) -> None:
+        ri = RoutingInput(
+            description="Build a platform",
+            has_file_changes=True,
+            rigor_tier="strict",
+        )
+        assert ri.rigor_tier == "strict"
+
+    def test_routing_input_rigor_defaults_none(self) -> None:
+        ri = RoutingInput(description="test")
+        assert ri.rigor_tier is None
+
+
+class TestRoutingResultRigor:
+    def test_routing_result_includes_rigor(self) -> None:
+        rr = RoutingResult(
+            path=RoutingPath.GOVERNED_PATH,
+            rationale="test",
+            disclosure="test",
+            recommended_next_command="test",
+            rigor_tier="strict",
+        )
+        assert rr.rigor_tier == "strict"
+
+    def test_routing_result_rigor_nullable(self) -> None:
+        rr = RoutingResult(
+            path=RoutingPath.FAST_PATH,
+            rationale="fast",
+            disclosure="test",
+            recommended_next_command="test",
+        )
+        assert rr.rigor_tier is None

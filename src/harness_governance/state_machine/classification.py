@@ -12,6 +12,7 @@ from enum import Enum
 from typing import Iterable
 
 from .layers import HarnessLayer
+from .rigor import RigorTier, resolve_rigor
 
 logger = logging.getLogger("harness.classification")
 
@@ -83,9 +84,14 @@ WORK_ACTION_KEYWORDS: tuple[str, ...] = (
 
 
 class RoutingDecision:
-    """Result of classifying an incoming request."""
+    """Result of classifying an incoming request.
 
-    __slots__ = ("path", "rationale", "current_layer", "primary_skill")
+    Includes the resolved :class:`~.rigor.RigorTier` so downstream
+    components (session creation, gate engine) know the governance
+    depth without re-detecting.
+    """
+
+    __slots__ = ("path", "rationale", "current_layer", "primary_skill", "rigor_tier")
 
     def __init__(
         self,
@@ -93,17 +99,20 @@ class RoutingDecision:
         rationale: str,
         current_layer: HarnessLayer | None = None,
         primary_skill: str | None = None,
+        rigor_tier: RigorTier = RigorTier.STRICT,
     ) -> None:
         self.path = path
         self.rationale = rationale
         self.current_layer = current_layer
         self.primary_skill = primary_skill
+        self.rigor_tier = rigor_tier
 
     def __repr__(self) -> str:
         return (
             f"RoutingDecision(path={self.path.value!r}, "
             f"layer={self.current_layer.value if self.current_layer else None!r}, "
-            f"primary_skill={self.primary_skill!r})"
+            f"primary_skill={self.primary_skill!r}, "
+            f"rigor={self.rigor_tier.value!r})"
         )
 
     def to_disclosure(self, companion_skills: Iterable[str] = ()) -> str:
@@ -136,6 +145,7 @@ def classify(
     is_public_contract: bool,
     has_external_side_effect: bool,
     is_unclear_or_high_risk: bool,
+    rigor: str | None = None,
 ) -> RoutingDecision:
     """Classify a request into Fast/Trivial/Governed.
 
@@ -154,6 +164,9 @@ def classify(
         effects (network calls, deployments, billing, etc.).
     is_unclear_or_high_risk:
         Whether scope, risk, or requirements are unclear.
+    rigor:
+        Optional explicit rigor tier override. When None (default),
+        auto-detected from *description* keywords.
 
     Rules
     -----
@@ -163,6 +176,7 @@ def classify(
       contract impact, clear verification.
     * Governed path: everything else.
     """
+    resolved_rigor = resolve_rigor(rigor, description)
     description_lc = description.lower()
 
     mentions_work = _mentions_work_action_keyword(description_lc)
@@ -180,6 +194,7 @@ def classify(
                     "No file changes, no public contract impact, no external "
                     "side effects, and risk is bounded; treat as fast path."
                 ),
+                rigor_tier=resolved_rigor,
             )
 
     if (
@@ -198,6 +213,7 @@ def classify(
                 "no public contract, schema, dependency, security, "
                 "persistence, network, deployment, or build impact."
             ),
+            rigor_tier=resolved_rigor,
         )
 
     logger.info("classified as governed-path")
@@ -218,6 +234,7 @@ def classify(
         ),
         current_layer=HarnessLayer.INTAKE_ORIENTATION,
         primary_skill="harness-engineering",
+        rigor_tier=resolved_rigor,
     )
 
 

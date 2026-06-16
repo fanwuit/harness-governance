@@ -27,7 +27,13 @@ from ..session import (
     save_session,
 )
 from ..state_machine.engine import StateMachineEngine, TransitionContext
+from ..state_machine.gates import (
+    LayerGateEngine,
+    LockFileManager,
+    is_layer_required,
+)
 from ..state_machine.layers import HarnessLayer, LAYER_MAP
+from ..state_machine.rigor import RigorTier
 
 _GUIDE_PACKAGE = "harness_governance.data.references"
 _GUIDE_FILE = "layer-author-guide.md"
@@ -54,6 +60,20 @@ def layer_group() -> None:
 @click.option("--work-paused", is_flag=True, default=False, help="Work is finishing or pausing.")
 @click.option("--contract-stalling", is_flag=True, default=False, help="Contract work repeating without progress.")
 @click.option("--confirmed", is_flag=True, default=False, help="Author has explicitly confirmed readiness to advance (recorded in audit trail).")
+@click.option(
+    "--skip-gate",
+    "skip_gate",
+    is_flag=True,
+    default=False,
+    help="Skip the gate check for the current layer (requires --confirmed).",
+)
+@click.option(
+    "--rigor",
+    "rigor_override",
+    type=click.Choice(["light", "standard", "strict"]),
+    default=None,
+    help="Override the session's rigor tier for this advance.",
+)
 @click.pass_context
 def layer_advance_cmd(
     ctx: click.Context,
@@ -69,16 +89,27 @@ def layer_advance_cmd(
     work_paused: bool,
     contract_stalling: bool,
     confirmed: bool,
+    skip_gate: bool,
+    rigor_override: str | None,
 ) -> None:
     """Advance the session to TARGET_LAYER (validated by the state machine engine).
 
-    Pass --confirmed to record that the author explicitly approved this
-    transition.  The flag is optional — when omitted the advance still
-    proceeds if the engine allows it, but the audit trail does not carry
-    an author-confirmation marker.
+    Before advancing, the current layer's gate is checked.  The gate
+    verifies that required questions have been answered and artifacts
+    exist.  If the gate fails, the advance is blocked unless
+    ``--skip-gate --confirmed`` is passed.
+
+    Pass ``--confirmed`` to record that the author explicitly approved
+    this transition.
     """
     project_root: "Path" = ctx.obj["project_root"]
     to_layer = HarnessLayer(target_layer.lower().replace(" ", "-"))
+
+    # --skip-gate requires --confirmed (safety interlock).
+    if skip_gate and not confirmed:
+        raise click.UsageError(
+            bilingual("layer.skip_gate_requires_confirmed")
+        )
 
     # Resolve session.
     if session_id:
@@ -95,10 +126,65 @@ def layer_advance_cmd(
         # Should not happen for governed sessions, but guard anyway.
         raise click.ClickException(bilingual("layer.no_session"))
 
+    # Apply rigor override if provided.
+    if rigor_override:
+        state = state.model_copy(update={"rigor_tier": rigor_override})
+
     from_layer = state.current_layer
     if from_layer == to_layer:
         click.echo(bilingual("layer.same_layer", layer=from_layer.value))
         return
+
+    # ------------------------------------------------------------------
+    # Gate enforcement (Phase 5): check the *current* layer's gate before
+    # allowing the advance to proceed.
+    # ------------------------------------------------------------------
+    tier = RigorTier(state.rigor_tier)
+    if is_layer_required(from_layer, tier) and not skip_gate:
+        gate_engine = LayerGateEngine()
+        status = gate_engine.check(state, project_root, from_layer)
+
+        if not status.passed:
+            # Gate failed — block advance unless author explicitly skips.
+            if ctx.obj.get("json_output"):
+                click.echo(json.dumps({
+                    "allowed": False,
+                    "reason": "gate_failed",
+                    "layer": from_layer.value,
+                    "questions_answered": status.questions_answered,
+                    "questions_required": status.questions_required,
+                    "artifacts_missing": list(status.artifacts_missing),
+                }, indent=2, ensure_ascii=False))
+            else:
+                click.echo(
+                    bilingual(
+                        "gate.check.failed",
+                        layer=from_layer.value,
+                        questions=status.questions_answered,
+                        required=status.questions_required,
+                        missing=", ".join(status.artifacts_missing) if status.artifacts_missing else "none",
+                    ),
+                    err=True,
+                )
+                click.echo(
+                    bilingual("layer.gate_blocked"),
+                    err=True,
+                )
+            raise SystemExit(1)
+
+        # Gate passed — write lock for the current layer.
+        locks = LockFileManager(project_root)
+        locks.write_lock(from_layer, status, state)
+        if ctx.obj.get("verbose", False):
+            click.echo(
+                bilingual(
+                    "gate.check.passed",
+                    layer=from_layer.value,
+                    questions=status.questions_answered,
+                    required=status.questions_required,
+                ),
+                err=True,
+            )
 
     # Build transition context and evaluate.
     engine = StateMachineEngine()

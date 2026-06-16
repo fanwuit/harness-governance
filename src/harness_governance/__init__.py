@@ -17,4 +17,4 @@ The package is organized into the following submodules:
 * :mod:`harness_governance.data` — packaged templates, references, fixtures.
 """
 
-__version__ = "0.6.2"
+__version__ = "0.7.0"

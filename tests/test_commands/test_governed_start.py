@@ -196,3 +196,121 @@ def test_trivial_compact_output(tmp_repo: Path) -> None:
     assert "Disclosure" not in result.output
     # Recommendation should mention direct action without requiring queue
     assert "directly" in result.output.lower() or "直接" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Rigor tier (v0.7.0)
+# ---------------------------------------------------------------------------
+
+
+class TestGovernedStartRigor:
+    """``governed-start --rigor`` controls governance depth."""
+
+    def test_default_rigor_is_strict_in_json(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "add a new feature to user module",
+                "--files", "src/user.py",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["rigor_tier"] == "strict"
+
+    def test_explicit_rigor_light(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "fix a typo in README",
+                "--files", "README.md",
+                "--rigor", "light",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["rigor_tier"] == "light"
+
+    def test_explicit_rigor_standard(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "add avatar field to user table",
+                "--files", "src/models.py",
+                "--rigor", "standard",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["rigor_tier"] == "standard"
+
+    def test_rigor_tier_in_text_output(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--verbose",
+                "governed-start",
+                "build a new SaaS platform",
+                "--files", "src/",
+                "--contracts",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert "strict" in result.output.lower()
+
+    def test_governed_path_creates_session_with_rigor(self, tmp_repo: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "implement payment billing system",
+                "--files", "src/billing.py",
+                "--external",
+                "--rigor", "strict",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+        sid = payload["session_id"]
+        assert sid is not None
+
+        # Verify the session file has rigor_tier.
+        session_path = tmp_repo / ".harness" / "sessions" / f"{sid}.json"
+        assert session_path.is_file()
+        session_data = json.loads(session_path.read_text(encoding="utf-8"))
+        assert session_data["rigor_tier"] == "strict"
+
+    def test_auto_detect_strict_from_description(self, tmp_repo: Path) -> None:
+        """Description with '平台' keyword auto-detects STRICT."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "从零构建一个SaaS平台",
+                "--files", "src/",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["rigor_tier"] == "strict"
