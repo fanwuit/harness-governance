@@ -1,9 +1,9 @@
 """Tests for skill file version sentinels and required content across all 24 files.
 
 Phase 6 hardening check: every skill file (8 platforms × 3 tiers) must contain:
-1. ``<!-- harness-skill-version: 0.7.0 -->``
+1. ``<!-- harness-skill-version: 0.7.1 -->``
 2. ``harness gate check implementation`` (hard gate instruction)
-3. YAML frontmatter with ``name`` and ``description``
+4. ``## Subagent Dispatch`` section (v0.7.1)
 """
 
 from __future__ import annotations
@@ -72,8 +72,8 @@ class TestSkillVersionSentinels:
     def test_has_version_sentinel(self, tier: str, platform: str, content: str) -> None:
         ver = extract_skill_version(content)
         assert ver is not None, f"{tier}/{platform} missing version sentinel"
-        assert ver == "0.7.0", (
-            f"{tier}/{platform} version is {ver!r}, expected '0.7.0'"
+        assert ver == "0.7.1", (
+            f"{tier}/{platform} version is {ver!r}, expected '0.7.1'"
         )
 
 
@@ -147,6 +147,29 @@ class TestTierSpecificContent:
         assert content is not None, f"standard/{platform} not found"
         assert ("standard" in content.lower() or "标准" in content), (
             f"standard/{platform} should mention standard governance"
+        )
+
+
+class TestSubagentDispatch:
+    """Every skill file must contain the Subagent Dispatch section (v0.7.1)."""
+
+    @pytest.mark.parametrize("tier,platform,content", _ALL_SKILLS)
+    def test_has_subagent_dispatch_section(
+        self, tier: str, platform: str, content: str
+    ) -> None:
+        assert "## Subagent Dispatch" in content, (
+            f"{tier}/{platform} missing '## Subagent Dispatch' section"
+        )
+
+    @pytest.mark.parametrize("tier,platform,content", _ALL_SKILLS)
+    def test_has_context_isolation_rules(
+        self, tier: str, platform: str, content: str
+    ) -> None:
+        assert "harness runner render" in content, (
+            f"{tier}/{platform} missing pre-render guidance"
+        )
+        assert "上下文污染" in content or "context pollution" in content.lower(), (
+            f"{tier}/{platform} should mention context pollution risk"
         )
 
 

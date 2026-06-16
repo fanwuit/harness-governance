@@ -15,11 +15,14 @@ def test_help_lists_all_subcommands() -> None:
         assert sub in result.output
 
 
+from harness_governance import __version__ as _expected_version
+
+
 def test_version_is_reported() -> None:
     runner = CliRunner()
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert "0.6.2" in result.output
+    assert _expected_version in result.output
 
 
 def test_packet_help_lists_subcommands() -> None:

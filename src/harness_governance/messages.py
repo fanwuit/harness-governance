@@ -144,13 +144,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     },
     "governed_start.recommendation.governed": {
         "en": (
-            "Load `skill-use-transparency` and `harness-engineering`, then "
-            "`harness packet init <change-id>` when the work spans more than "
-            "one layer."
+            "Run `harness governed-start '<task>'` to classify; "
+            "use `harness layer advance <layer> --confirmed` to progress "
+            "through layers with gate enforcement."
         ),
         "zh-CN": (
-            "先加载 `skill-use-transparency` 和 `harness-engineering`；"
-            "当工作跨越多层时再 `harness packet init <change-id>`。"
+            "运行 `harness governed-start '<任务>'` 进行分类；"
+            "使用 `harness layer advance <层> --confirmed` 在有门控保护下"
+            "逐层推进。"
         ),
     },
     # rigor detection -----------------------------------------------------
@@ -403,6 +404,22 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "check.frequency_note": {
         "en": "Check frequency: {frequency}",
         "zh-CN": "检查频率: {frequency}",
+    },
+    "check.docs_stale_adr": {
+        "en": "ADR {path} references missing file: {ref}",
+        "zh-CN": "ADR {path} 引用了不存在的文件: {ref}",
+    },
+    "check.docs_broken_link": {
+        "en": "{source} links to non-existent file: {target}",
+        "zh-CN": "{source} 链接到不存在的文件: {target}",
+    },
+    "check.docs_version_mismatch": {
+        "en": "{path} references harness v{old_version}; current is v{current_version}",
+        "zh-CN": "{path} 引用了 harness v{old_version}；当前版本为 v{current_version}",
+    },
+    "check.docs_empty_section": {
+        "en": "{path}: section \"{section}\" is empty or missing",
+        "zh-CN": "{path}: \"{section}\" 段落为空或缺失",
     },
     # priority --------------------------------------------------------------
     "priority.no_competing": {
@@ -780,6 +797,23 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "gate.reset.all_removed": {
         "en": "Removed {count} lock file(s).",
         "zh-CN": "已移除 {count} 个锁文件。",
+    },
+    # v0.7.1 gate timing ------------------------------------------------
+    "gate.timing.header": {
+        "en": "Timing for session: {session}",
+        "zh-CN": "会话 {session} 的耗时统计",
+    },
+    "gate.timing.no_transitions": {
+        "en": "No transitions recorded.",
+        "zh-CN": "未记录任何层转换。",
+    },
+    "gate.timing.transition_row": {
+        "en": "  {from_layer} -> {to_layer}  [{verdict}]  {duration}s",
+        "zh-CN": "  {from_layer} -> {to_layer}  [{verdict}]  {duration}s",
+    },
+    "gate.timing.summary": {
+        "en": "Total: {total}s across {count} transitions (avg: {avg}s)",
+        "zh-CN": "总计: {total}s，共 {count} 次转换（平均: {avg}s）",
     },
 }
 

@@ -3,7 +3,7 @@ name: harness-governance-strict
 description: 严格治理模式 — 大型平台、系统重构、从零构建。全部 12 层强制执行。 / Strict governance for large platforms, system rewrites, build-from-scratch. All 12 layers enforced.
 ---
 
-<!-- harness-skill-version: 0.7.0 -->
+<!-- harness-skill-version: 0.7.1 -->
 
 
 ## ⛔ STRICT MODE — 全 12 层强制执行 / All 12 Layers Enforced
@@ -149,3 +149,19 @@ harness config init
 ```bash
 harness runner start
 ```
+
+## Subagent Dispatch
+
+When dispatching subagents for governed work, follow these rules:
+
+1. **Pre-render, don't compose**: Use `harness runner render --role <role>` to generate subagent prompts. Do NOT hand-compose subagent instructions from conversation history.
+2. **Forbidden inputs**: Do NOT pass to subagents — conversation history, Q&A from other layers, personal commentary or opinions. Only pass structured, role-specific data.
+3. **Why**: Context pollution degrades subagent reasoning accuracy. Long chat histories cause hallucinations, missed constraints, and rule violations.
+4. **The subagent is a "clean worker"**: Each subagent starts fresh with only the structured inputs for its role. It is NOT a "conversation continuer" and must not inherit prior context.
+
+子代理分派指南 / Subagent Dispatch Guide:
+
+1. **预渲染，不要拼凑**：使用 `harness runner render --role <role>` 生成子代理提示。不要从对话历史中手工拼凑子代理指令。
+2. **禁止传入**：对话历史、其他层的问答、个人评论或意见。只传入结构化的、角色特定的数据。
+3. **原因**：上下文污染会降低子代理的推理准确性。过长的聊天历史会导致幻觉、遗漏约束和违反规则。
+4. **子代理是"干净的工作者"**：每个子代理以结构化的角色输入为起点。它不是"对话延续者"，不得继承先前的上下文。

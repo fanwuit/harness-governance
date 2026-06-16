@@ -1,5 +1,11 @@
 # Harness Layer Progression
 
+> **Note (v0.7.1):** The "skill" names in this document (e.g. `harness-engineering`,
+> `brainstorm-to-brief`) are **internal role labels** used by the state machine
+> (`layers.py` `LAYER_MAP`) for template rendering and orchestrator dispatch.
+> They are NOT loadable SKILL.md files. End users interact via CLI commands:
+> `harness governed-start`, `harness layer advance`, `harness gate check`.
+
 ## Rule
 
 Use this file as the source of truth for ordering local harness governance skills.
@@ -55,10 +61,14 @@ Fact Discovery is conditional and can interrupt any layer when an unknown would 
 
 ## Cross-Cutting Skills
 
+> These are internal role labels for the state machine and orchestrator.
+> At runtime, classification is handled by `harness governed-start`,
+> not by loading a separate skill file.
+
 | Skill | Layer relationship |
 |---|---|
 | `skill-use-transparency` | Meta-rule before any skill selection; not a harness layer. |
-| `harness-engineering` | Router and layer selector; use before choosing a layer or interpreting continue/what next. |
+| `harness-engineering` | Router and layer selector; now implemented as `harness governed-start` CLI command. |
 | `planning-with-files` | Persistence fallback when no project queue, NEXT.md, checkpoint, or repo planning system exists. |
 | `autonomous-ready-loop` | Execution mode for ready queues; it selects work but must still respect the layer map. |
 | `execution-prompt-authoring` | Prompt-pack authoring and audit for approved plans, gate lists, change packets, role-isolated workflows, fresh workers, subagent audits, and integrator handoffs; it is not a harness layer and does not approve scope. |

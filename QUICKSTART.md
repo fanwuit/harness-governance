@@ -1,10 +1,10 @@
-# Quickstart — 5 minutes to governed development
+# Quickstart — 5 minutes to governed development / 五分钟治理开发
 
-This guide walks you from a clean directory to a fully working
-harness-governance project in five focused steps. For full command
-reference see [`README.md`](./README.md).
+This guide walks you from a clean directory to a fully working harness-governance project. For full command reference see [`README.md`](./README.md).
 
-## 1. Install and initialize (30 s)
+本指南带你从空目录走到完整可用的治理项目。完整命令参考见 README.md。
+
+## 1. Install and initialize / 安装初始化 (30 s)
 
 ```bash
 pip install harness-governance
@@ -12,45 +12,87 @@ mkdir my-project && cd my-project
 harness init
 ```
 
-Output:
+Output / 输出：
 
 ```
-Detected: claude-code
+Detected: Claude Code
 Created: .harness/config.toml
-Created: .claude/skills/harness-governance/SKILL.md
+Created: .claude/skills/harness-governance-strict/SKILL.md
+Created: .claude/skills/harness-governance-standard/SKILL.md
+Created: .claude/skills/harness-governance-light/SKILL.md
+Note: AGENTS.md triggers: AGENTS.md
 Done. Your agent will now use harness governance for engineering work.
 ```
 
-If you use a different agent platform:
+Each platform gets 3 skill tiers (strict/standard/light) / 每个平台 3 个 tier:
 
 ```bash
-harness init --platform codex      # writes .codex/skills/...
+harness init --platform codex      # writes .agents/skills/
 harness init --platform cline      # writes .clinerules/
 harness init --platform cursor     # writes .cursor/rules/
 harness init --platform opencode   # writes .opencode/agents/
+harness init --platform windsurf   # writes .windsurf/skills/
 harness init --platform qoderwork  # writes AGENTS.md
 harness init --platform generic    # writes AGENTS.md
+harness init --all-platforms       # all 8 platforms
 ```
 
-## 2. Classify your first task (30 s)
+## 2. Classify your first task / 分类任务 (30 s)
+
+```bash
+# Large task — auto-detected STRICT (12 layers) / 大型任务自动 STRICT
+harness governed-start "Build a SaaS platform from scratch"
+
+# Medium task with explicit tier / 中型任务显式指定
+harness governed-start "Add avatar field to user table" --rigor standard
+
+# Small fix auto-detected LIGHT (6 layers) / 小修自动 LIGHT
+harness governed-start "fix a typo in README"
+
+# Pure Q&A — fast path / 纯问答 fast path
+harness governed-start "What does layer 7 mean?"
+```
+
+With context flags / 带上下文标记:
 
 ```bash
 harness governed-start "Add /v2/widgets endpoint" \
     --files src/api.py --contracts --external
 ```
 
-You'll get a routing decision plus the canonical disclosure block. For
-pure questions, drop the flags:
+## 3. Walk through layers with gates / 走层 + 门控
 
 ```bash
-harness governed-start "What does layer 7 mean?"
-# → fast-path: just answer the question
+# Read the author interaction guide for current layer / 查看当前层的交互指南
+harness layer guide
+
+# Answer questions, then check the gate / 回答问题后检查门控
+harness gate check intake-orientation
+# → PASSED → lock file written / 锁文件写入
+# or / 或
+# → FAILED → complete remaining Q&A / 完成剩余问答
+
+# Advance to next layer (gate-enforced since v0.7.0) / 推进到下一层
+harness layer advance idea --confirmed
+
+# Check timing — which layers took longest? / 耗时分析
+harness gate timing
 ```
 
-## 3. Start a change packet (1 min)
+## 4. Run document gardener check / 文档园丁检查 (v0.7.1)
 
-Change packets are the durable carrier for anything that touches more
-than one harness layer.
+```bash
+harness check docs
+# Scans for / 扫描:
+#   - Stale ADRs referencing deleted files / 过期 ADR 引用不存在的文件
+#   - Broken cross-references in docs/ / docs/ 中的断链
+#   - Version mismatches in documents / 文档版本号过时
+#   - Empty sections in gate-required artifacts / 必需段落的缺失
+
+harness check all   # includes docs check / 包含文档检查
+```
+
+## 5. Start a change packet / 创建变更包 (1 min)
 
 ```bash
 harness packet init add-v2-widgets
@@ -58,25 +100,7 @@ ls docs/changes/add-v2-widgets
 # contracts.md  design.md  proposal.md  tasks.md  verification.md
 ```
 
-The packet starts in `draft` status. Edit the five files in place:
-
-```bash
-$EDITOR docs/changes/add-v2-widgets/contracts.md     # add artifact + path
-$EDITOR docs/changes/add-v2-widgets/verification.md  # add commands + results
-```
-
-When the packet is structurally complete:
-
-```bash
-harness packet check
-# Change packet check passed: 1 packet(s).
-```
-
-## 4. Use the queue (NEXT.md)
-
-`harness init` creates a `NEXT.md` file in your project root. This is
-the task queue that `harness status` and the autonomous runner read
-from. Each item starts with a status label and optional metadata:
+## 6. Use the queue (NEXT.md) / 使用队列
 
 ```markdown
 [ready] Add /v2/widgets endpoint
@@ -85,93 +109,42 @@ from. Each item starts with a status label and optional metadata:
 Role: Implementer
 Verification command: npm test
 Done when: endpoint returns 200 with valid JSON
-Forbidden shortcut: no mock data in production
 ```
 
-Status labels: `[ready]` (can start now), `[active]` (in progress),
-`[blocked]` (waiting on dependency), `[done]` (completed),
-`[not-now]` (parked). The runner picks the first `[ready]` or
-`[active]` item.
-
 ```bash
-harness status              # see queue + packets + checkpoint
-harness status --json       # machine-readable
+harness status              # dashboard / 仪表盘
+harness status --json       # machine-readable / 机器可读
 ```
 
-## 5. Plan, attest, and check the harness (2 min)
+## Optional: bilingual output / 双语输出
 
 ```bash
-harness plan init add-v2-widgets    # creates .planning/2026-06-13-add-v2-widgets/
-harness plan attest                 # SHA-256 lock
-harness plan show                   # print the stored hash
-harness check --all                 # routing + packets + entry + inventory
-harness status --refresh            # write .harness/status.{md,json}
+# Windows
+set HARNESS_LANG=zh-CN
+harness packet check
+
+# Unix
+export HARNESS_LANG=zh-CN
+harness packet check
+# → 变更包检查通过: 共 1 项。 / Change packet check passed: 1 item(s).
 ```
 
-## 6. Hand off to the autonomous runner (1 min)
-
-The runner has three executors. **Orchestrator** is the most universal —
-it generates a complete prompt document that any agent can load:
+## Optional: autonomous runner / 自主循环
 
 ```bash
-# generate an orchestrator prompt (platform-aware from .harness/config.toml)
 harness runner start --executor orchestrator --dry-run
-
-# write the prompt to a file for your agent to load
 harness runner start --executor orchestrator --output prompt.md
 ```
 
-**Subprocess** wraps any external command. The command receives the
-prompt via `{prompt}` substitution or as a CLI argument:
+## What's next / 下一步
+
+- `harness gate timing` — per-layer performance / 层耗时分析
+- `harness check docs` — document quality scan / 文档质量检查
+- `harness review close <id>` — close out completed work / 关闭完成的任务
+- [`CHANGELOG.md`](./CHANGELOG.md) — version history / 版本历史
+
+To tear down / 清理:
 
 ```bash
-# dry-run prints the prompt that would be sent
-harness runner start \
-    --executor subprocess \
-    --command 'echo "{prompt}"' \
-    --dry-run
-
-# Codex
-harness runner start \
-    --executor subprocess \
-    --command 'codex exec' \
-    --max-rounds 5
-
-# Claude Code
-harness runner start \
-    --executor subprocess \
-    --command 'claude --print' \
-    --max-rounds 5
-
-# any other agent with a CLI
-harness runner start \
-    --executor subprocess \
-    --command 'your-agent-cli --prompt' \
-    --prompt-as-arg \
-    --max-rounds 3
-```
-
-All modes support `--verification routing-guardrails` to run a
-sanity check after each round.
-
-## Optional: bilingual output
-
-```bash
-HARNESS_LANG=zh-CN harness packet check
-# 变更包检查未通过: / Change packet check failed:
-# - docs/changes/add-v2-widgets/verification.md 必须记录验证命令、结果或 unable-to-verify 原因。
-# / docs/changes/add-v2-widgets/verification.md must record verification commands, results, or an unable-to-verify reason.
-```
-
-## What's next
-
-* `harness status` — full Markdown / JSON dashboard.
-* `harness review close <task-id> --evidence "..."` — record
-  review/next state when finishing work.
-* [`plan.md`](./plan.md) — full design and Phase A → B → C roadmap.
-
-To tear down the example:
-
-```bash
-rm -rf .harness .claude/skills/harness-governance docs/ .planning/ NEXT.md AGENTS.md
+rm -rf .harness .claude .agents .clinerules .cursor .opencode .windsurf docs/ .planning/ NEXT.md AGENTS.md
 ```

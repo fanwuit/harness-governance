@@ -13,6 +13,7 @@ how to present options, and what to confirm before advancing.
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
@@ -135,6 +136,9 @@ def layer_advance_cmd(
         click.echo(bilingual("layer.same_layer", layer=from_layer.value))
         return
 
+    # v0.7.1: time the full advance (gate check + engine evaluate).
+    _advance_start = time.perf_counter()
+
     # ------------------------------------------------------------------
     # Gate enforcement (Phase 5): check the *current* layer's gate before
     # allowing the advance to proceed.
@@ -228,6 +232,7 @@ def layer_advance_cmd(
         context_flags=active_flags,
         engine_verdict=verdict.allowed,
         violations=tuple(v.format() for v in verdict.violations),
+        duration_seconds=round(time.perf_counter() - _advance_start, 3),
     )
 
     if not verdict.allowed:

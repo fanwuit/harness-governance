@@ -495,6 +495,7 @@ class LockFileManager:
             "rigor_tier": session.rigor_tier,
             "questions_answered": status.questions_answered,
             "questions_required": status.questions_required,
+            "check_duration_ms": getattr(status, "check_duration_ms", 0.0),
         }
         path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
         return path

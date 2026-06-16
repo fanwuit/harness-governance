@@ -8,6 +8,7 @@ run ``harness gate check <layer>`` before any ``Write`` / ``Edit``.
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -75,9 +76,12 @@ def gate_check(ctx: click.Context, layer: str, session_id: str | None) -> None:
         click.echo(bilingual("gate.no_session"), err=True)
         ctx.exit(1)
 
-    # Run the gate check.
+    # Run the gate check (v0.7.1: timed).
     engine = LayerGateEngine()
+    _check_start = time.perf_counter()
     status = engine.check(session, project_root, hlayer)
+    _elapsed_ms = (time.perf_counter() - _check_start) * 1000.0
+    status = status.model_copy(update={"check_duration_ms": round(_elapsed_ms, 2)})
 
     # Write lock file if passed.
     is_json = ctx.obj.get("json_output", False)
@@ -248,3 +252,107 @@ def gate_reset(
         click.echo(bilingual("gate.reset.removed", layer=layer))
     else:
         click.echo(bilingual("gate.reset.not_found", layer=layer))
+
+
+# ---------------------------------------------------------------------------
+# gate timing
+# ---------------------------------------------------------------------------
+
+
+@gate_group.command("timing")
+@click.option(
+    "--session", "session_id", default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.option(
+    "--all", "all_sessions", is_flag=True, default=False,
+    help="Show timing for all sessions.",
+)
+@click.pass_context
+def gate_timing(
+    ctx: click.Context,
+    session_id: str | None,
+    all_sessions: bool,
+) -> None:
+    """Show per-layer timing from session transitions and gate lock files."""
+    project_root: Path = ctx.obj["project_root"]
+
+    if all_sessions:
+        from ..session import list_sessions
+        sessions = list_sessions(project_root)
+    elif session_id:
+        try:
+            sessions = [load_session(project_root, session_id)]
+        except FileNotFoundError:
+            raise click.ClickException(
+                bilingual("session.not_found", session_id=session_id)
+            )
+    else:
+        session = find_active_session(project_root)
+        if session is None:
+            raise click.ClickException(bilingual("gate.no_session"))
+        sessions = [session]
+
+    if ctx.obj.get("json_output"):
+        output = []
+        for s in sessions:
+            transitions = []
+            for t in s.transitions:
+                transitions.append({
+                    "from": t.from_layer.value,
+                    "to": t.to_layer.value,
+                    "timestamp": t.timestamp,
+                    "duration_s": round(t.duration_seconds, 3),
+                    "verdict": t.engine_verdict,
+                })
+            locks_mgr = LockFileManager(project_root)
+            gate_timings: dict[str, float] = {}
+            for t in s.transitions:
+                lock_data = locks_mgr.read_lock(t.from_layer)
+                if lock_data:
+                    gate_timings[t.from_layer.value] = lock_data.get(
+                        "check_duration_ms", 0.0
+                    )
+            output.append({
+                "session_id": s.session_id,
+                "rigor_tier": s.rigor_tier,
+                "transitions": transitions,
+                "gate_check_timings_ms": gate_timings,
+            })
+        click.echo(json.dumps(output, indent=2, ensure_ascii=False))
+        return
+
+    for s in sessions:
+        click.echo(
+            bilingual("gate.timing.header", session=s.session_id)
+        )
+        transitions = s.transitions
+        if not transitions:
+            click.echo(bilingual("gate.timing.no_transitions"))
+            continue
+
+        total = 0.0
+        for t in transitions:
+            dur = t.duration_seconds
+            total += dur
+            verdict = "OK" if t.engine_verdict else "BLOCKED"
+            click.echo(
+                bilingual(
+                    "gate.timing.transition_row",
+                    from_layer=t.from_layer.value,
+                    to_layer=t.to_layer.value,
+                    duration=round(dur, 3),
+                    verdict=verdict,
+                )
+            )
+
+        avg = total / len(transitions) if transitions else 0.0
+        click.echo(
+            bilingual(
+                "gate.timing.summary",
+                total=round(total, 3),
+                count=len(transitions),
+                avg=round(avg, 3),
+            )
+        )
+        click.echo("")

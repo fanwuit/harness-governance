@@ -118,20 +118,18 @@ class RoutingDecision:
     def to_disclosure(self, companion_skills: Iterable[str] = ()) -> str:
         """Format the canonical governed-path disclosure block.
 
-        The wording matches ``harness-engineering/SKILL.md`` § Required
-        disclosure for governed path.
+        The disclosure identifies the governance routing decision and any
+        companion workflow skills that run alongside harness governance.
         """
         companions = ", ".join(companion_skills) if companion_skills else "none"
-        base_local = ["skill-use-transparency", "harness-engineering"]
-        # Avoid duplicating ``harness-engineering`` when it is also the
-        # primary skill (the canonical entry router is always listed).
-        if self.primary_skill and self.primary_skill not in base_local:
-            base_local.append(self.primary_skill)
-        local_line = "Local governance skills: " + ", ".join(base_local)
+        local_line = (
+            "Local governance: harness governed-start → layer advance → "
+            "gate check (enforced pipeline)"
+        )
         return (
             f"{local_line}\n"
             f"Companion workflow skills: {companions}\n"
-            "Routing decision: harness-engineering owns governed entry routing; "
+            "Routing decision: harness-governance owns entry routing; "
             "fast path and trivial safe change remain local lightweight paths, "
             "and companion workflows run only after harness selects the current "
             "layer."

@@ -77,7 +77,7 @@ def test_description_with_public_contract_keyword_is_governed() -> None:
     assert decision.path is RoutingPath.GOVERNED_PATH
 
 
-def test_disclosure_block_mentions_harness_engineering() -> None:
+def test_disclosure_block_mentions_cli_commands() -> None:
     decision = classify(
         "Build a new microservice",
         has_file_changes=True,
@@ -86,13 +86,14 @@ def test_disclosure_block_mentions_harness_engineering() -> None:
         is_unclear_or_high_risk=False,
     )
     text = decision.to_disclosure(("superpowers:subagent-driven-development",))
-    assert "skill-use-transparency" in text
-    assert "harness-engineering" in text
+    assert "harness governed-start" in text
+    assert "layer advance" in text
+    assert "gate check" in text
     assert "superpowers:subagent-driven-development" in text
 
 
-def test_disclosure_does_not_duplicate_primary_skill() -> None:
-    """When the primary skill is the router itself, do not list it twice in the local skills line."""
+def test_disclosure_mentions_harness_governance() -> None:
+    """The disclosure should reference harness-governance as the entry router."""
     decision = classify(
         "Refactor the API boundary",
         has_file_changes=True,
@@ -100,11 +101,9 @@ def test_disclosure_does_not_duplicate_primary_skill() -> None:
         has_external_side_effect=False,
         is_unclear_or_high_risk=False,
     )
-    # primary_skill for a governed path is always ``harness-engineering``.
-    assert decision.primary_skill == "harness-engineering"
+    assert decision.primary_skill == "harness-engineering"  # internal label unchanged
     text = decision.to_disclosure()
-    local_line = next(line for line in text.splitlines() if line.startswith("Local governance skills:"))
-    assert local_line.count("harness-engineering") == 1
+    assert "harness-governance owns entry routing" in text
 
 
 # ---------------------------------------------------------------------------

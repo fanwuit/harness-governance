@@ -294,6 +294,8 @@ class GateStatus(BaseModel):
     confirmation_items_met: tuple[str, ...] = ()
     confirmation_items_unmet: tuple[str, ...] = ()
     checked_at: str = ""
+    # v0.7.1: wall-clock duration of the gate check in milliseconds
+    check_duration_ms: float = 0.0
 
 
 class GateResult(BaseModel):

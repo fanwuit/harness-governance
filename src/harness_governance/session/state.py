@@ -26,6 +26,8 @@ class TransitionRecord(BaseModel):
     context_flags: Dict[str, bool] = {}
     engine_verdict: bool
     violations: Tuple[str, ...] = ()
+    # v0.7.1: wall-clock seconds spent in from_layer before this transition
+    duration_seconds: float = 0.0
 
 
 class SessionState(BaseModel):

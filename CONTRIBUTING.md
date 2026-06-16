@@ -6,12 +6,12 @@ Thank you for your interest in contributing! This document covers setup, develop
 
 ```bash
 # Clone and install in editable mode with dev dependencies
-git clone https://github.com/fanwuit/my-agent-first-skills.git
-cd my-agent-first-skills
+git clone https://github.com/fanwuit/harness-governance.git
+cd harness-governance
 pip install -e ".[dev]"
 ```
 
-The `[dev]` extra includes pytest, pytest-cov, ruff, mypy, and pre-commit.
+The `[dev]` extra includes pytest, pytest-cov, ruff, and mypy.
 
 ## Running Tests
 
