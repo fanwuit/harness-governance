@@ -57,6 +57,7 @@ class LayerEntry:
     primary_skill: str
     supporting_skills: tuple[str, ...]
     required_output: str
+    author_guide: str = ""
 
 
 # Authoritative layer map. Order matters: ``LAYER_MAP`` is iterated to
@@ -71,12 +72,14 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "Current repo/task context, existing queue or planning source, "
             "and known constraints."
         ),
+        author_guide="intake-orientation",
     ),
     LayerEntry(
         layer=HarnessLayer.IDEA,
         primary_skill="harness-engineering",
         supporting_skills=("observable-fact-discovery",),
         required_output="A stable statement of the user intent or problem.",
+        author_guide="idea",
     ),
     LayerEntry(
         layer=HarnessLayer.FACT_DISCOVERY,
@@ -86,12 +89,14 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "Reviewable facts, samples, probes, logs, fixtures, docs "
             "citations, or explicit unknowns."
         ),
+        author_guide="fact-discovery",
     ),
     LayerEntry(
         layer=HarnessLayer.BRAINSTORMING,
         primary_skill="brainstorm-to-brief",
         supporting_skills=("observable-fact-discovery",),
         required_output="Options, tradeoffs, risks, assumptions, and non-goals.",
+        author_guide="brainstorming",
     ),
     LayerEntry(
         layer=HarnessLayer.BRIEF,
@@ -100,6 +105,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
         required_output=(
             "Goal, context, non-goals, success criteria, risks, and next layer."
         ),
+        author_guide="brief",
     ),
     LayerEntry(
         layer=HarnessLayer.ARCHITECTURE,
@@ -108,6 +114,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
         required_output=(
             "Boundaries, responsibilities, ownership, data flow, and ADR candidates."
         ),
+        author_guide="architecture",
     ),
     LayerEntry(
         layer=HarnessLayer.ADR,
@@ -116,6 +123,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
         required_output=(
             "Decision, rationale, alternatives, consequences, and validation approach."
         ),
+        author_guide="adr",
     ),
     LayerEntry(
         layer=HarnessLayer.CONTRACT,
@@ -129,6 +137,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "Executable or reviewable contracts: schema, fixture, example, "
             "probe, API shape, check, or acceptance test."
         ),
+        author_guide="contract",
     ),
     LayerEntry(
         layer=HarnessLayer.READINESS,
@@ -143,6 +152,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "AGENTS.md rules, baseline checks, and the Implementation "
             "Entry Record are known."
         ),
+        author_guide="readiness",
     ),
     LayerEntry(
         layer=HarnessLayer.IMPLEMENTATION,
@@ -157,6 +167,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "credential for code/config changes that stay inside "
             "approved boundaries and satisfy existing contracts."
         ),
+        author_guide="implementation",
     ),
     LayerEntry(
         layer=HarnessLayer.VERIFICATION,
@@ -166,6 +177,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "Fresh evidence from tests, checks, probes, screenshots, "
             "traces, or explicit failure records."
         ),
+        author_guide="verification",
     ),
     LayerEntry(
         layer=HarnessLayer.REVIEW_NEXT,
@@ -179,6 +191,7 @@ LAYER_MAP: tuple[LayerEntry, ...] = (
             "Done archive, scheduler ready queue, blocked items, not-now "
             "items, risks, and evidence are written to stable state."
         ),
+        author_guide="review-next",
     ),
 )
 

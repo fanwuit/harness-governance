@@ -66,9 +66,13 @@ def runner_group() -> None:
     "--executor",
     "executor",
     type=click.Choice(["codex", "subprocess", "orchestrator"]),
-    default="subprocess",
+    default="orchestrator",
     show_default=True,
-    help="Which AgentExecutor to use. 'orchestrator' generates a Subagent prompt instead of running an external process.",
+    help=(
+        "AgentExecutor to use. 'orchestrator' generates a prompt for native "
+        "subagent dispatch (recommended). 'codex' and 'subprocess' are "
+        "DEPRECATED — they spawn external CLI processes, not subagents."
+    ),
 )
 @click.option(
     "--command",
@@ -185,9 +189,18 @@ def runner_start_cmd(
             )
         return
 
+    if executor in ("codex", "subprocess") and not ctx.obj.get("json_output", False):
+        name = "codex exec" if executor == "codex" else "subprocess"
+        import logging
+        logging.getLogger("harness.runner").warning(
+            "DEPRECATED: --executor %s spawns an external CLI process, "
+            "not a native subagent. Use --executor orchestrator instead.",
+            name,
+        )
+
     if executor == "codex":
         agent = CodexCliExecutor(model=model, workdir=project_root)
-    else:
+    else:  # subprocess
         if not command:
             raise click.ClickException(bilingual("runner.command_required"))
         agent = SubprocessAgentExecutor(

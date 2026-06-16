@@ -1,15 +1,21 @@
-"""``harness layer`` commands — advance and inspect governance session layers.
+"""``harness layer`` commands — advance, guide, and inspect governance session layers.
 
 The ``layer advance`` subcommand is the primary mechanism for *real state
 advancement*: it loads the active session, evaluates the proposed
 transition through :class:`~harness_governance.state_machine.engine.StateMachineEngine`,
 and persists the result back to the session file.
+
+The ``layer guide`` subcommand prints the author interaction guide for a
+layer — a structured script telling the agent what to ask the human author,
+how to present options, and what to confirm before advancing.
 """
 
 from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from importlib import resources
+from pathlib import Path
 
 import click
 
@@ -21,7 +27,10 @@ from ..session import (
     save_session,
 )
 from ..state_machine.engine import StateMachineEngine, TransitionContext
-from ..state_machine.layers import HarnessLayer
+from ..state_machine.layers import HarnessLayer, LAYER_MAP
+
+_GUIDE_PACKAGE = "harness_governance.data.references"
+_GUIDE_FILE = "layer-author-guide.md"
 
 
 @click.group("layer")
@@ -44,6 +53,7 @@ def layer_group() -> None:
 @click.option("--verification-failed", is_flag=True, default=False, help="Verification step failed.")
 @click.option("--work-paused", is_flag=True, default=False, help="Work is finishing or pausing.")
 @click.option("--contract-stalling", is_flag=True, default=False, help="Contract work repeating without progress.")
+@click.option("--confirmed", is_flag=True, default=False, help="Author has explicitly confirmed readiness to advance (recorded in audit trail).")
 @click.pass_context
 def layer_advance_cmd(
     ctx: click.Context,
@@ -58,8 +68,15 @@ def layer_advance_cmd(
     verification_failed: bool,
     work_paused: bool,
     contract_stalling: bool,
+    confirmed: bool,
 ) -> None:
-    """Advance the session to TARGET_LAYER (validated by the state machine engine)."""
+    """Advance the session to TARGET_LAYER (validated by the state machine engine).
+
+    Pass --confirmed to record that the author explicitly approved this
+    transition.  The flag is optional — when omitted the advance still
+    proceeds if the engine allows it, but the audit trail does not carry
+    an author-confirmation marker.
+    """
     project_root: "Path" = ctx.obj["project_root"]
     to_layer = HarnessLayer(target_layer.lower().replace(" ", "-"))
 
@@ -114,6 +131,9 @@ def layer_advance_cmd(
     }
     # Strip False values for cleaner records.
     active_flags = {k: v for k, v in context_flags.items() if v}
+
+    if confirmed:
+        active_flags["author_confirmed"] = True
 
     record = TransitionRecord(
         from_layer=from_layer,
@@ -218,4 +238,117 @@ def layer_show_cmd(ctx: click.Context, session_id: str | None) -> None:
         click.echo(line)
 
 
-__all__ = ["layer_group", "layer_advance_cmd", "layer_show_cmd"]
+@layer_group.command("guide")
+@click.argument("layer_name", required=False)
+@click.option("--session", "session_id", default=None, help="Session ID (defaults to active session).")
+@click.pass_context
+def layer_guide_cmd(
+    ctx: click.Context,
+    layer_name: str | None,
+    session_id: str | None,
+) -> None:
+    """Print the author interaction guide for a layer.
+
+    Without arguments, prints the guide for the active session's current
+    layer.  With a layer name, prints that layer's guide.
+    """
+    project_root: Path = ctx.obj["project_root"]
+
+    # Resolve target layer.
+    if layer_name:
+        from ..state_machine.layers import resolve_layer
+        try:
+            target = resolve_layer(layer_name)
+        except ValueError as exc:
+            raise click.ClickException(str(exc))
+    else:
+        if session_id:
+            try:
+                state = load_session(project_root, session_id)
+            except FileNotFoundError:
+                raise click.ClickException(bilingual("session.not_found", session_id=session_id))
+        else:
+            state = find_active_session(project_root)
+            if state is None:
+                raise click.ClickException(bilingual("session.no_active"))
+        target = state.current_layer
+        if target is None:
+            raise click.ClickException(bilingual("layer.no_session"))
+
+    # Look up guide key from LAYER_MAP.
+    guide_key = ""
+    for entry in LAYER_MAP:
+        if entry.layer is target:
+            guide_key = entry.author_guide
+            break
+
+    # Load and extract the guide section.
+    guide_text = _load_guide_file()
+    section = _extract_guide_section(guide_text, guide_key) if guide_text else None
+
+    if ctx.obj.get("json_output"):
+        click.echo(json.dumps({
+            "layer": target.value,
+            "guide_key": guide_key,
+            "guide": section or "",
+            "found": section is not None,
+        }, indent=2, ensure_ascii=False))
+        return
+
+    if section:
+        click.echo(bilingual("layer.guide_header", layer=target.value))
+        click.echo("")
+        click.echo(section)
+    else:
+        click.echo(bilingual(
+            "layer.guide_not_found",
+            layer=target.value,
+            output=_guide_fallback(target),
+        ))
+
+
+def _load_guide_file() -> str | None:
+    """Read the bundled layer-author-guide.md; return None on failure."""
+    try:
+        resource = resources.files(_GUIDE_PACKAGE).joinpath(_GUIDE_FILE)
+        if not resource.is_file():
+            return None
+        return resource.read_text(encoding="utf-8")
+    except Exception:
+        return None
+
+
+def _extract_guide_section(guide_text: str, section_key: str) -> str | None:
+    """Extract the section between ``## <section_key>`` and the next ``## `` heading."""
+    target_heading = f"## {section_key}"
+    lines = guide_text.splitlines()
+    in_section = False
+    result: list[str] = []
+    for line in lines:
+        if line.startswith("## ") and line.strip() == target_heading:
+            in_section = True
+            continue
+        if in_section:
+            if line.startswith("## "):
+                break
+            result.append(line)
+    if not result:
+        return None
+    return "\n".join(result).strip()
+
+
+def _guide_fallback(layer: HarnessLayer) -> str:
+    """Return the required_output string when no guide section exists."""
+    for entry in LAYER_MAP:
+        if entry.layer is layer:
+            return entry.required_output
+    return ""
+
+
+__all__ = [
+    "layer_group",
+    "layer_advance_cmd",
+    "layer_show_cmd",
+    "layer_guide_cmd",
+    "_extract_guide_section",
+]

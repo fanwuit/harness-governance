@@ -26,60 +26,74 @@ from .variables import RoleVariables, VariableExtractor
 # Platform-specific dispatch instructions for the orchestrator template.
 _PLATFORM_DISPATCH: dict[str, str] = {
     "claude-code": (
-        "Use the Agent tool:\n"
-        "   - `agent_type: general-purpose`"
+        "Use the Agent tool to spawn a subagent:\n"
+        "   - `agent_type: general-purpose`\n"
+        "   - Pass the pre-rendered role prompt as the subagent's task"
     ),
     "codex": (
-        "Spawn a fresh `codex exec` process:\n"
-        "   - `command: codex exec --model <model>`"
+        "Use Codex's built-in task/agent delegation (NOT an external process):\n"
+        "   - Dispatch a subagent within the current session\n"
+        "   - Pass the pre-rendered role prompt as the subagent's instructions\n"
+        "   - Do NOT use `codex exec` — that spawns a fresh CLI process, not a subagent"
     ),
     "cline": (
-        "Delegate to the Cline sub-task runner:\n"
-        "   - Use Cline's task delegation mechanism"
+        "Use Cline's native task delegation:\n"
+        "   - Dispatch a sub-task within the current Cline session\n"
+        "   - Pass the pre-rendered role prompt as the sub-task's instructions"
     ),
     "cursor": (
-        "Use Cursor's Agent mode sub-task:\n"
-        "   - Dispatch via Cursor's built-in agent delegation"
+        "Use Cursor's native Agent mode sub-task:\n"
+        "   - Dispatch via Cursor's built-in agent delegation within the session\n"
+        "   - Pass the pre-rendered role prompt as the sub-task's instructions"
     ),
     "opencode": (
-        "Use OpenCode's subagent delegation:\n"
-        "   - Dispatch via OpenCode's built-in agent spawning"
+        "Use OpenCode's native subagent spawning:\n"
+        "   - Dispatch a subagent within the current OpenCode session\n"
+        "   - Pass the pre-rendered role prompt as the subagent's instructions"
+    ),
+    "windsurf": (
+        "Use Windsurf Cascade's native delegation:\n"
+        "   - Dispatch a sub-task within the current Windsurf session\n"
+        "   - Pass the pre-rendered role prompt as the sub-task's instructions"
     ),
     "qoderwork": (
         "Use the Task tool to spawn a subagent:\n"
-        "   - `subagent_type: general-purpose`"
+        "   - `subagent_type: general-purpose`\n"
+        "   - Pass the pre-rendered role prompt as the subagent's task"
     ),
     "generic": (
-        "Dispatch a subagent using your platform's preferred mechanism:\n"
-        "   - Pass the pre-rendered prompt text as-is"
+        "Dispatch a subagent using your platform's native subagent mechanism:\n"
+        "   - Do NOT spawn an external CLI process\n"
+        "   - Pass the pre-rendered role prompt text as-is"
     ),
 }
 
 # Platform-specific hard-gate fallback instructions.
 _PLATFORM_HARD_GATE: dict[str, str] = {
     "claude-code": (
-        "Use a fresh main-window conversation (not a subagent) when:\n"
+        "Run in the main conversation (not a subagent) when:\n"
         "- The user explicitly asks for it\n"
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Subagent findings conflict with main-window evidence"
     ),
     "codex": (
-        "Use fresh `codex exec` (external process) instead of subagent when:\n"
+        "Run in the main Codex session (not a subagent) when:\n"
         "- The user explicitly asks for it\n"
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
-        "- Subagent findings conflict with main-window evidence"
+        "- Subagent findings conflict with main-window evidence\n"
+        "- Do NOT fall back to `codex exec` for this — stay in the current session"
     ),
     "cline": (
-        "Escalate to the main Cline conversation (not a sub-task) when:\n"
+        "Run in the main Cline conversation (not a sub-task) when:\n"
         "- The user explicitly asks for it\n"
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Sub-task findings conflict with main-window evidence"
     ),
     "cursor": (
-        "Escalate to the main Cursor Agent conversation (not a sub-task) when:\n"
+        "Run in the main Cursor Agent conversation (not a sub-task) when:\n"
         "- The user explicitly asks for it\n"
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
@@ -91,6 +105,13 @@ _PLATFORM_HARD_GATE: dict[str, str] = {
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Subagent findings conflict with main-window evidence"
+    ),
+    "windsurf": (
+        "Run directly in the main Windsurf Cascade session (not a sub-task) when:\n"
+        "- The user explicitly asks for it\n"
+        "- Release or phase closeout is involved\n"
+        "- Security, persistence, deployment, or cross-repository behavior changes\n"
+        "- Sub-task findings conflict with main-window evidence"
     ),
     "qoderwork": (
         "Run directly in the main session (not a subagent) when:\n"

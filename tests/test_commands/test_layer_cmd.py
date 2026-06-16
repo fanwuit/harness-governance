@@ -1,13 +1,15 @@
-"""Tests for ``harness layer advance`` and ``harness layer show``."""
+"""Tests for ``harness layer advance``, ``harness layer show``, and ``harness layer guide``."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from harness_governance.commands.layer import _extract_guide_section
 from harness_governance.session import SessionState, create_session
 from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
@@ -136,3 +138,117 @@ class TestLayerShow:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["current_layer"] == "intake-orientation"
+
+
+class TestLayerGuide:
+    def test_guide_for_active_session_layer(self, tmp_path: Path) -> None:
+        _seed_session(tmp_path, current_layer=HarnessLayer.ARCHITECTURE)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "guide"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "architecture" in result.output.lower()
+        assert "boundar" in result.output.lower()  # boundaries
+
+    def test_guide_for_specific_layer(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "guide", "adr"],
+        )
+        assert result.exit_code == 0, result.output
+        assert "adr" in result.output.lower()
+        assert "decision" in result.output.lower()
+
+    def test_guide_no_session_no_arg(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "guide"],
+        )
+        assert result.exit_code != 0
+
+    def test_guide_json_output(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "--json", "layer", "guide", "idea"],
+        )
+        assert result.exit_code == 0, result.output
+        data = json.loads(result.output)
+        assert data["layer"] == "idea"
+        assert data["found"] is True
+        assert "intent" in data["guide"].lower()
+
+    def test_guide_invalid_layer(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "guide", "not-a-real-layer"],
+        )
+        assert result.exit_code != 0
+
+    def test_guide_all_twelve_layers_have_sections(self) -> None:
+        """Every layer's author_guide key should resolve to a section in the guide file."""
+        from harness_governance.commands.layer import _load_guide_file
+        from harness_governance.state_machine.layers import LAYER_MAP
+
+        guide_text = _load_guide_file()
+        assert guide_text is not None, "layer-author-guide.md not found in package data"
+
+        for entry in LAYER_MAP:
+            section = _extract_guide_section(guide_text, entry.author_guide)
+            assert section is not None, (
+                f"No guide section found for layer {entry.layer.value!r} "
+                f"(key: {entry.author_guide!r})"
+            )
+            assert len(section) > 50, (
+                f"Guide section for {entry.layer.value!r} is too short"
+            )
+
+
+class TestLayerAdvanceConfirmed:
+    def test_advance_with_confirmed_flag(self, tmp_path: Path) -> None:
+        _seed_session(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_advance_without_confirmed_still_works(self, tmp_path: Path) -> None:
+        """--confirmed is optional — advance still succeeds without it."""
+        _seed_session(tmp_path)
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        assert result.exit_code == 0, result.output
+
+    def test_confirmed_recorded_in_transition(self, tmp_path: Path) -> None:
+        sid = _seed_session(tmp_path)
+        runner = CliRunner()
+        runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+        )
+        from harness_governance.session import load_session
+
+        state = load_session(tmp_path, sid)
+        assert state.transitions[-1].context_flags.get("author_confirmed") is True
+
+    def test_unconfirmed_not_in_flags(self, tmp_path: Path) -> None:
+        sid = _seed_session(tmp_path)
+        runner = CliRunner()
+        runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+        )
+        from harness_governance.session import load_session
+
+        state = load_session(tmp_path, sid)
+        assert "author_confirmed" not in state.transitions[-1].context_flags

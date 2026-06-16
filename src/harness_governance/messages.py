@@ -683,6 +683,18 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Already at layer: {layer}",
         "zh-CN": "已在当前层: {layer}",
     },
+    "layer.guide_header": {
+        "en": "Author Interaction Guide: {layer}",
+        "zh-CN": "作者交互指南: {layer}",
+    },
+    "layer.guide_not_found": {
+        "en": "No guide defined for layer: {layer}. Required output: {output}",
+        "zh-CN": "层 {layer} 暂无交互指南。要求产出: {output}",
+    },
+    "layer.confirmed_recorded": {
+        "en": "Author confirmation recorded in audit trail.",
+        "zh-CN": "作者确认已记录到审计日志。",
+    },
 }
 
 

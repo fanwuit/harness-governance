@@ -39,7 +39,7 @@ from .entry import (
 )
 from .governed_start import governed_start_cmd
 from .init import InitResult, detect_platform, init_cmd, write_skill_file
-from .layer import layer_advance_cmd, layer_group, layer_show_cmd
+from .layer import layer_advance_cmd, layer_group, layer_guide_cmd, layer_show_cmd
 from .packet import packet_check_cmd, packet_group, packet_init_cmd
 from .plan import (
     plan_attest_cmd,
@@ -102,6 +102,7 @@ __all__ = [
     "runner_parse_result_cmd",
     "layer_group",
     "layer_advance_cmd",
+    "layer_guide_cmd",
     "layer_show_cmd",
     "session_group",
     "session_show_cmd",

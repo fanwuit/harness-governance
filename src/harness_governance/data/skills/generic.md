@@ -1,4 +1,4 @@
----
+﻿---
 name: harness-governance
 description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
 ---
@@ -59,4 +59,15 @@ harness review close <task-id> --evidence "..." --risks "..."
 - Always enter `review-next` when work finishes or pauses.
 - Promote important conclusions to durable artifacts (ADR, schema, fixture, queue); chat-only conclusions are not durable state.
 
-Run `harness --help` for the full command tree.
+
+
+## Layer Interaction
+
+Before advancing layers, review the author interaction script:
+
+```bash
+harness layer guide          # guide for current layer
+harness layer guide <layer>  # guide for specific layer
+```
+
+Confirm with the author before running `harness layer advance`.

@@ -74,3 +74,11 @@ def test_layer_entries_have_primary_skill() -> None:
 def test_layer_index() -> None:
     assert layer_index(HarnessLayer.INTAKE_ORIENTATION) == 0
     assert layer_index(HarnessLayer.REVIEW_NEXT) == 11
+
+
+def test_layer_entries_have_author_guide() -> None:
+    """Every LayerEntry must have a non-empty author_guide key."""
+    for entry in LAYER_MAP:
+        assert entry.author_guide, (
+            f"Layer {entry.layer.value} is missing author_guide"
+        )

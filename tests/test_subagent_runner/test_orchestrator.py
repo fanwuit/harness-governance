@@ -233,7 +233,7 @@ class TestOrchestratorPlatformDispatch:
     def test_default_is_generic(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(project_root=project)
-        assert "platform's preferred mechanism" in prompt.text
+        assert "native subagent mechanism" in prompt.text
         assert "main session" in prompt.text
 
     def test_claude_code_dispatch(self, project: Path) -> None:
@@ -245,7 +245,7 @@ class TestOrchestratorPlatformDispatch:
     def test_codex_dispatch(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(project_root=project, platform="codex")
-        assert "codex exec" in prompt.text
+        assert "NOT an external process" in prompt.text
 
     def test_cursor_dispatch(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
@@ -278,9 +278,9 @@ class TestOrchestratorPlatformDispatch:
     def test_unknown_platform_falls_back_to_generic(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(project_root=project, platform="nonexistent-agent")
-        assert "platform's preferred mechanism" in prompt.text
+        assert "native subagent mechanism" in prompt.text
 
     def test_none_platform_uses_generic(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(project_root=project, platform=None)
-        assert "platform's preferred mechanism" in prompt.text
+        assert "native subagent mechanism" in prompt.text
