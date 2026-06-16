@@ -331,29 +331,35 @@ reviewable. Must cover both expected and failure behaviour.
 
 ### 目的 / Purpose
 验证所有实施前置条件已满足：边界、契约、验证命令、AGENTS.md 规则、基线检查、
-Implementation Entry Record。
-Verify all implementation prerequisites are met.
+Implementation Entry Record、**基于契约的单元测试**。
+Verify all implementation prerequisites are met, including contract-based tests.
 
 ### 作者问题 / Author Questions
 1. 你是否认为所有实施前提条件都已满足？ / Are all prerequisites met?
 2. 这是丢弃式原型，还是会产生持久化/真实产物？ / Throwaway prototype or real artifacts?
 3. 对实施环境或工具有任何顾虑吗？ / Concerns about implementation environment or tooling?
 
-### 交互模式 / Interaction Pattern
-呈现准备就绪清单，每个门控项标注 pass/fail/not-applicable。
-使用 Implementation Entry Record 格式。请作者逐一检查。
-Present a readiness checklist with pass/fail/not-applicable for each gate item.
-Use the Implementation Entry Record format.
+### 测试准备 / Test Preparation
+**在 gate check 之前**: 基于 contract 层产出的契约文档，将每一条行为规范翻译为可执行的
+单元测试。测试文件必须存在于 `tests/` 目录下。If the gate check fails because
+`tests/**/*.py` is missing, write tests FROM the contract before asking
+for author confirmation.
+
+Protocol / 步骤:
+1. 读取 `docs/contracts/*.md`，提取所有 Behaviour / Failure Cases / Scope 条款
+2. 为每条 Behaviour 写至少一个正向测试，每条 Failure Case 写至少一个异常路径测试
+3. 将测试写入 `tests/`，确保 `pytest` 或不带参数直接可运行
 
 ### 产出物 / Artifact
-Implementation Entry Record。必须包含全部 9 个字段，明确 readiness pass/fail。
-Implementation Entry Record with all 9 fields and explicit readiness pass/fail.
+- `tests/**/*.py` — 基于契约的可执行单元测试 / Contract-based executable tests
+- Implementation Entry Record。必须包含全部 9 个字段，明确 readiness pass/fail。
 
 ### 确认门控 / Confirmation Gate
 - [ ] 准备就绪结果（pass/fail）已明确说明 / Readiness gate result explicitly stated
 - [ ] 所有契约证据已引用 / All contract evidence cited
 - [ ] 验证命令已定义 / Verification commands defined
 - [ ] 停止条件已定义 / Stop conditions defined
+- [ ] 单元测试已基于契约编写并通过 / Unit tests prepared from contract and passing
 - [ ] 如果是原型：作者已明确限定为丢弃式，且确认无持久化数据/外部副作用/公共合约/生产行为（T1/T2）
 - [ ] 作者已明确授权进入实施 / Author explicitly authorises implementation
 
@@ -363,6 +369,7 @@ Implementation Entry Record with all 9 fields and explicit readiness pass/fail.
 - 禁止在存在持久化数据或外部效应时将"快速推进"当作原型例外（T2 规则） / Do NOT treat
   "move fast" as prototype exception (T2)
 - 禁止跳过 Implementation Entry Record / Do NOT skip the Implementation Entry Record
+- 禁止在测试缺失或未通过时进入实施 / Do NOT enter implementation without passing tests
 
 ---
 

@@ -221,12 +221,16 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Any concerns about the implementation environment or tooling? / 对实施环境或工具有任何顾虑吗？",
         ),
         min_questions_answered=_q(3),
-        required_artifacts=(".harness/sessions/*.json",),
+        required_artifacts=(
+            ".harness/sessions/*.json",
+            "tests/**/*.py",
+        ),
         confirmation_items=(
             "Readiness gate result (pass/fail) explicitly stated",
             "All contract evidence cited",
             "Verification commands defined",
             "Stop conditions defined",
+            "Unit tests prepared from contract and passing",
             "If prototype: explicitly scoped as throwaway (T1/T2)",
             "Author explicitly authorises implementation",
         ),
