@@ -170,8 +170,12 @@ def detect_platform(
 
 
 def load_skill_template(platform: str) -> str:
-    """Load the bundled skill adapter template for ``platform``."""
-    resource = resources.files(_SKILLS_PACKAGE).joinpath(f"{platform}.md")
+    """Load the bundled skill adapter template for ``platform``.
+
+    Most platforms use ``.md``; Cursor uses ``.mdc``.
+    """
+    ext = ".mdc" if platform == "cursor" else ".md"
+    resource = resources.files(_SKILLS_PACKAGE).joinpath(f"{platform}{ext}")
     if not resource.is_file():
         # Fall back to the generic adapter.
         resource = resources.files(_SKILLS_PACKAGE).joinpath("generic.md")
@@ -200,6 +204,7 @@ _PLATFORM_DISPLAY_NAMES: dict[str, str] = {
     "cline": "Cline",
     "cursor": "Cursor",
     "opencode": "OpenCode",
+    "windsurf": "Windsurf",
     "qoderwork": "QoderWork",
     "generic": "Generic (any agent)",
 }

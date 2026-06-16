@@ -44,7 +44,7 @@ def test_init_detects_claude_code(tmp_repo: Path) -> None:
 
 
 def test_init_detects_codex(tmp_repo: Path) -> None:
-    (tmp_repo / ".codex").mkdir()
+    (tmp_repo / ".agents").mkdir()
     assert detect_platform(tmp_repo) == "codex"
 
 
@@ -111,7 +111,7 @@ def test_init_no_detect_with_platform(tmp_repo: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert (tmp_repo / ".codex" / "skills" / "harness-governance" / "SKILL.md").is_file()
+    assert (tmp_repo / ".agents" / "skills" / "harness-governance" / "SKILL.md").is_file()
 
 
 def test_init_json_output(tmp_repo: Path) -> None:
@@ -171,7 +171,7 @@ def test_init_cursor_config_valid(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
     )
     assert result.exit_code == 0, result.output
-    assert (tmp_repo / ".cursor" / "rules" / "harness-governance.md").is_file()
+    assert (tmp_repo / ".cursor" / "rules" / "harness-governance.mdc").is_file()
 
     # Config must be parseable — this was the bug: cursor was not in Literal
     from harness_governance.config.settings import load_config
@@ -186,7 +186,7 @@ def test_init_cursor_skill_has_cursor_content(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
     )
     assert result.exit_code == 0, result.output
-    skill = tmp_repo / ".cursor" / "rules" / "harness-governance.md"
+    skill = tmp_repo / ".cursor" / "rules" / "harness-governance.mdc"
     content = skill.read_text(encoding="utf-8")
     assert "Cursor" in content
     assert "harness" in content
@@ -307,7 +307,7 @@ def test_init_minimal_with_platform(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert (tmp_repo / ".harness" / "config.toml").is_file()
-    assert not (tmp_repo / ".cursor" / "rules" / "harness-governance.md").exists()
+    assert not (tmp_repo / ".cursor" / "rules" / "harness-governance.mdc").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -408,7 +408,7 @@ def test_init_all_platforms_json_output(tmp_repo: Path) -> None:
     data = json.loads(result.output)
     assert data["detected_platform"] == "multi"
     assert "skill_paths" in data
-    # 7 platforms but generic and qoderwork share AGENTS.md → 6 unique paths
+    # 8 platforms but generic and qoderwork share AGENTS.md → 7 unique paths
     unique_paths = set(str(p) for p in data["skill_paths"])
     assert len(unique_paths) == len(set(PLATFORM_SKILL_PATHS.values()))
 
@@ -459,7 +459,7 @@ def test_init_codex_creates_agents_md_triggers(tmp_repo: Path) -> None:
     assert "governed-start" in content
     # Should reference the codex skill file (normalize path separators)
     content_normalized = content.replace("\\", "/")
-    assert ".codex/skills/harness-governance/SKILL.md" in content_normalized
+    assert ".agents/skills/harness-governance/SKILL.md" in content_normalized
 
 
 def test_init_agents_md_appends_to_existing(tmp_repo: Path) -> None:
@@ -554,3 +554,104 @@ def test_init_generic_agents_md_has_triggers(tmp_repo: Path) -> None:
     assert "governed-start" in content
     # Trigger block (no external ref since AGENTS.md is the skill file)
     assert "harness-governance: triggers" in content
+
+
+# ---------------------------------------------------------------------------
+# Windsurf platform
+# ---------------------------------------------------------------------------
+
+
+def test_init_detects_windsurf(tmp_repo: Path) -> None:
+    (tmp_repo / ".windsurf").mkdir()
+    assert detect_platform(tmp_repo) == "windsurf"
+
+
+def test_init_windsurf_writes_skill(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "windsurf"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / ".windsurf" / "skills" / "harness-governance" / "SKILL.md"
+    assert skill.is_file()
+    content = skill.read_text(encoding="utf-8")
+    assert "Windsurf" in content
+    assert "harness" in content
+
+
+def test_init_windsurf_config_valid(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "windsurf"],
+    )
+    assert result.exit_code == 0, result.output
+    from harness_governance.config.settings import load_config
+    config = load_config(tmp_repo)
+    assert config.agent_platform == "windsurf"
+
+
+# ---------------------------------------------------------------------------
+# Skill template frontmatter (Agent Skills standard)
+# ---------------------------------------------------------------------------
+
+
+def test_init_cursor_skill_has_mdc_frontmatter(tmp_repo: Path) -> None:
+    """Cursor skill file must have .mdc extension and YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / ".cursor" / "rules" / "harness-governance.mdc"
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "alwaysApply: true" in content
+    assert "description:" in content
+
+
+def test_init_claude_code_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """Claude Code skill must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "claude-code"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
+
+
+def test_init_codex_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """Codex skill must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "codex"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["codex"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content
+
+
+def test_init_windsurf_skill_has_frontmatter(tmp_repo: Path) -> None:
+    """Windsurf skill must have Agent Skills standard YAML frontmatter."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "windsurf"],
+    )
+    assert result.exit_code == 0, result.output
+    skill = tmp_repo / PLATFORM_SKILL_PATHS["windsurf"]
+    content = skill.read_text(encoding="utf-8")
+    assert content.startswith("---")
+    assert "name: harness-governance" in content
+    assert "description:" in content

@@ -1,6 +1,11 @@
-# Harness Governance (Cursor)
+---
+name: harness-governance
+description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
+---
 
-Use `harness` CLI commands to govern engineering work in this project. Cursor's Agent mode and background agents should invoke these commands instead of editing governance files directly.
+# Harness Governance (Windsurf)
+
+Use `harness` CLI commands to govern engineering work in this project. Invoke these commands via the terminal instead of editing governance files directly.
 
 ## Entry
 

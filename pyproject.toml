@@ -52,7 +52,7 @@ harness = "harness_governance.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"harness_governance.data" = ["templates/**/*.md", "references/*.md", "fixtures/**/*", "skills/*.md", "role-prompts/*.md"]
+"harness_governance.data" = ["templates/**/*.md", "references/*.md", "fixtures/**/*", "skills/*.md", "skills/*.mdc", "role-prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

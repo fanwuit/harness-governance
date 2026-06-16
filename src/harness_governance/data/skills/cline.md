@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*"
+---
+
 # Harness Governance (Cline)
 
 Use `harness` CLI commands instead of in-line editing when the user asks for engineering work in this project.

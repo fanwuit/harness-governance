@@ -43,10 +43,11 @@ REQUIRED_PACKET_FILES: tuple[str, ...] = (
 # figure out where to write the per-platform SKILL.md adapter.
 PLATFORM_SKILL_PATHS: dict[str, Path] = {
     "claude-code": Path(".claude/skills/harness-governance/SKILL.md"),
-    "codex": Path(".codex/skills/harness-governance/SKILL.md"),
+    "codex": Path(".agents/skills/harness-governance/SKILL.md"),
     "cline": Path(".clinerules/harness-governance.md"),
-    "cursor": Path(".cursor/rules/harness-governance.md"),
+    "cursor": Path(".cursor/rules/harness-governance.mdc"),
     "opencode": Path(".opencode/agents/harness-governance.md"),
+    "windsurf": Path(".windsurf/skills/harness-governance/SKILL.md"),
     "qoderwork": Path("AGENTS.md"),
     "generic": Path("AGENTS.md"),
 }
@@ -54,11 +55,12 @@ PLATFORM_SKILL_PATHS: dict[str, Path] = {
 # Detection priority: first match wins.
 PLATFORM_HINTS: tuple[tuple[str, str], ...] = (
     (".claude", "claude-code"),
-    (".codex", "codex"),
+    (".agents", "codex"),
     (".clinerules", "cline"),
     (".cursor", "cursor"),
     (".qoderwork", "qoderwork"),
     (".opencode", "opencode"),
+    (".windsurf", "windsurf"),
 )
 
 # Env vars that hint at a specific platform regardless of repo dotfiles.
@@ -69,4 +71,5 @@ ENV_HINTS: tuple[tuple[str, str], ...] = (
     ("CURSOR_TRACE_ID", "cursor"),
     ("QODERWORK_SESSION", "qoderwork"),
     ("OPENCODE_SESSION", "opencode"),
+    ("WINDSURF_SESSION", "windsurf"),
 )

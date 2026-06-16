@@ -1,3 +1,8 @@
+---
+name: harness-governance
+description: 12-layer governance state machine CLI for engineering work. Use when the user asks for implementation, debugging, refactoring, or any file modification.
+---
+
 # Harness Governance (Claude Code)
 
 Use the `harness` CLI for all engineering work in this project. It encodes the local 12-layer governance state machine.
