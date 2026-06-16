@@ -160,6 +160,7 @@ def write_default_config(
         'planning_root = ".planning"\n'
         'harness_dir = ".harness"\n'
         'check_frequency = "targeted"\n'
+        'require_session = true\n'
     )
     config_path.write_text(body, encoding="utf-8")
     return config_path

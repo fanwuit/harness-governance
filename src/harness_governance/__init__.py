@@ -13,6 +13,7 @@ The package is organized into the following submodules:
   default-path constants.
 * :mod:`harness_governance.file_ops` — Markdown file read/write helpers.
 * :mod:`harness_governance.runner` — autonomous runner (added in Phase B).
+* :mod:`harness_governance.session` — governance session state and storage.
 * :mod:`harness_governance.data` — packaged templates, references, fixtures.
 """
 

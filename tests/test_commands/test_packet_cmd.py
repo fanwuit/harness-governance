@@ -9,6 +9,7 @@ import json
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from tests.conftest import seed_session
 
 
 def _fill_valid_packet(packet_dir: Path) -> None:
@@ -24,6 +25,7 @@ def _fill_valid_packet(packet_dir: Path) -> None:
 
 
 def test_packet_init_creates_files(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -56,6 +58,7 @@ def test_packet_check_rejects_fresh_packet(tmp_repo: Path) -> None:
 
     This matches the legacy ``change-packet.test.mjs`` behavior.
     """
+    seed_session(tmp_repo)
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "draft"])
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "check"])
@@ -64,6 +67,7 @@ def test_packet_check_rejects_fresh_packet(tmp_repo: Path) -> None:
 
 
 def test_packet_check_passes_when_filled(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "ok"])
     _fill_valid_packet(tmp_repo / "docs" / "changes" / "ok")
@@ -72,6 +76,7 @@ def test_packet_check_passes_when_filled(tmp_repo: Path) -> None:
 
 
 def test_packet_check_fails_invalid(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "broken"])
     (tmp_repo / "docs" / "changes" / "broken" / "tasks.md").write_text(
@@ -83,6 +88,7 @@ def test_packet_check_fails_invalid(tmp_repo: Path) -> None:
 
 
 def test_packet_check_json(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "ok2"])
     _fill_valid_packet(tmp_repo / "docs" / "changes" / "ok2")
@@ -110,6 +116,7 @@ def test_packet_check_handles_no_packets(tmp_repo: Path) -> None:
 
 
 def test_packet_init_json(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     result = runner.invoke(
         cli,

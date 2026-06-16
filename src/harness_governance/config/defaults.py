@@ -22,6 +22,7 @@ DEFAULT_CHECKPOINT_FILE = DEFAULT_HARNESS_DIR / "run-checkpoint.md"
 DEFAULT_STATUS_FILE = DEFAULT_HARNESS_DIR / "status.md"
 DEFAULT_STATUS_JSON = DEFAULT_HARNESS_DIR / "status.json"
 DEFAULT_INVOCATIONS_LOG = DEFAULT_HARNESS_DIR / "invocations.ndjson"
+DEFAULT_SESSIONS_DIR = DEFAULT_HARNESS_DIR / "sessions"
 
 # Status values used by change packets. ``check-change-packet.mjs``
 # rejects anything outside this set.

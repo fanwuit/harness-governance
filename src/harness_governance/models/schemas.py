@@ -35,6 +35,7 @@ class HarnessConfig(BaseModel):
     entry_block_marker: str = "Implementation Entry Record"
     blocked_statuses: tuple[str, ...] = ("blocked", "archived")
     check_frequency: Literal["targeted", "phase-closeout", "always"] = "targeted"
+    require_session: bool = True
 
     @field_validator("project_root")
     @classmethod
@@ -248,6 +249,18 @@ class StatusVerification(BaseModel):
     source: str = "missing"
 
 
+class StatusSessionItem(BaseModel):
+    """Governance session as rendered in the status payload."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str
+    status: str = "active"
+    current_layer: str | None = None
+    description: str = ""
+    change_id: str | None = None
+
+
 class StatusPayload(BaseModel):
     """Aggregate dashboard emitted by ``harness status``.
 
@@ -277,3 +290,4 @@ class StatusPayload(BaseModel):
     runner: StatusRunner = Field(default_factory=StatusRunner)
     verification: StatusVerification = Field(default_factory=StatusVerification)
     warnings: tuple[str, ...] = ()
+    sessions: tuple[StatusSessionItem, ...] = ()

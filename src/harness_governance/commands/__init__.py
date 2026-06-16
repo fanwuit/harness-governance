@@ -6,10 +6,12 @@ from . import (
     entry,
     governed_start,
     init,
+    layer,
     packet,
     plan,
     review,
     runner,
+    session_cmd,
     status,
     verify,
 )
@@ -35,6 +37,7 @@ from .entry import (
 )
 from .governed_start import governed_start_cmd
 from .init import InitResult, detect_platform, init_cmd, write_skill_file
+from .layer import layer_advance_cmd, layer_group, layer_show_cmd
 from .packet import packet_check_cmd, packet_group, packet_init_cmd
 from .plan import (
     plan_attest_cmd,
@@ -46,6 +49,7 @@ from .plan import (
 )
 from .review import review_close_cmd, review_group
 from .runner import runner_group, runner_start_cmd, runner_render_cmd, runner_parse_result_cmd
+from .session_cmd import session_close_cmd, session_group, session_list_cmd, session_show_cmd
 from .status import build_status, format_markdown, format_text, status_cmd
 from .verify import verify_cmd
 
@@ -92,15 +96,24 @@ __all__ = [
     "runner_start_cmd",
     "runner_render_cmd",
     "runner_parse_result_cmd",
+    "layer_group",
+    "layer_advance_cmd",
+    "layer_show_cmd",
+    "session_group",
+    "session_show_cmd",
+    "session_list_cmd",
+    "session_close_cmd",
     "check",
     "config_cmd",
     "entry",
     "governed_start",
     "init",
+    "layer",
     "packet",
     "plan",
     "review",
     "runner",
+    "session_cmd",
     "status",
     "verify",
 ]

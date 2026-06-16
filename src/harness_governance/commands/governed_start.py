@@ -12,6 +12,7 @@ import click
 
 from ..messages import bilingual
 from ..models.schemas import RoutingInput, RoutingResult
+from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import classify, RoutingPath
 from ..state_machine.layers import HarnessLayer
 
@@ -95,6 +96,26 @@ def governed_start_cmd(
     )
     result = _evaluate(payload)
 
+    # Create a governance session for governed-path tasks.
+    session_id: str | None = None
+    if result.path is RoutingPath.GOVERNED_PATH:
+        project_root: Path = ctx.obj["project_root"]
+        from datetime import datetime, timezone
+
+        session_id = generate_session_id(description)
+        session = SessionState(
+            session_id=session_id,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            description=description,
+            routing_path=result.path,
+            current_layer=result.current_layer,
+            companion_skills=payload.companion_skills,
+        )
+        session_path = create_session(project_root, session)
+        import logging
+
+        logging.getLogger("harness").info("session created: %s", session_path)
+
     if ctx.obj.get("json_output"):
         import json
 
@@ -107,6 +128,7 @@ def governed_start_cmd(
                     "primary_skill": result.primary_skill,
                     "disclosure": result.disclosure,
                     "recommended_next_command": result.recommended_next_command,
+                    "session_id": session_id,
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -143,6 +165,8 @@ def governed_start_cmd(
     click.echo(result.disclosure)
     click.echo("")
     click.echo(bilingual("governed_start.next", cmd=result.recommended_next_command))
+    if session_id:
+        click.echo(bilingual("session.created", session_id=session_id))
 
 
 __all__ = ["governed_start_cmd", "_evaluate"]

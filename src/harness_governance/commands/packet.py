@@ -9,6 +9,7 @@ import click
 from ..file_ops import packet as packet_ops
 from ..messages import bilingual
 from ..models.schemas import ChangePacketInitResult, CheckResult
+from ..session import find_active_session, save_session
 
 
 @click.group("packet")
@@ -35,6 +36,23 @@ def packet_init_cmd(
 ) -> None:
     """Create a new change packet directory."""
     root = repo_root or ctx.obj.get("project_root", Path.cwd())
+
+    # Session gate: when require_session is enabled, reject if no active session.
+    from ..config import load_config
+
+    try:
+        cfg = load_config(root)
+    except Exception:
+        cfg = None
+    if cfg and cfg.require_session:
+        active = find_active_session(root)
+        if active is None:
+            raise click.ClickException(bilingual("session.require_session"))
+        # Link the change_id to the session.
+        if active.change_id != change_id:
+            active = active.model_copy(update={"change_id": change_id})
+            save_session(root, active)
+
     try:
         result = packet_ops.init_packet(root, change_id, force=force)
     except FileExistsError as exc:

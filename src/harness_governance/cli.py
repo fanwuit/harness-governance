@@ -28,10 +28,12 @@ from .commands.config_cmd import config_group
 from .commands.entry import entry_group
 from .commands.governed_start import governed_start_cmd
 from .commands.init import init_cmd
+from .commands.layer import layer_group
 from .commands.packet import packet_group
 from .commands.plan import plan_group
 from .commands.review import review_group
 from .commands.runner import runner_group
+from .commands.session_cmd import session_group
 from .commands.status import status_cmd
 from .commands.verify import verify_cmd
 from .logging_setup import setup_logging
@@ -73,6 +75,8 @@ cli.add_command(verify_cmd)
 cli.add_command(review_group)
 cli.add_command(config_group)
 cli.add_command(runner_group)
+cli.add_command(layer_group)
+cli.add_command(session_group)
 
 
 def main(argv: list[str] | None = None) -> int:

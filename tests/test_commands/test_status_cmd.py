@@ -9,6 +9,7 @@ from click.testing import CliRunner
 
 from harness_governance.cli import cli
 from harness_governance.commands.status import build_status, format_markdown
+from tests.conftest import seed_session
 
 
 def test_status_empty_repo(tmp_repo: Path) -> None:
@@ -20,6 +21,7 @@ def test_status_empty_repo(tmp_repo: Path) -> None:
 
 
 def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     (tmp_repo / "NEXT.md").write_text(
         "[active] Implement scaffold\n- Layer: implementation\n- Change: scaffold-cli\n",
         encoding="utf-8",

@@ -18,6 +18,7 @@ from .schemas import (
     StatusQueueItem,
     StatusQueueSummary,
     StatusRunner,
+    StatusSessionItem,
     StatusVerification,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "StatusQueueItem",
     "StatusQueueSummary",
     "StatusRunner",
+    "StatusSessionItem",
     "StatusVerification",
 ]

@@ -33,7 +33,9 @@ def test_packet_help_lists_subcommands() -> None:
 def test_main_propagates_failure_exit_code(tmp_repo) -> None:
     """``main()`` must return non-zero when a subcommand exits non-zero."""
     from harness_governance.cli import main as cli_main
+    from tests.conftest import seed_session
 
+    seed_session(tmp_repo)
     rc = cli_main(["--project-root", str(tmp_repo), "packet", "init", "demo"])
     assert rc == 0
     rc = cli_main(["--project-root", str(tmp_repo), "packet", "check"])

@@ -51,6 +51,9 @@ def test_check_routing_cli(tmp_repo: Path) -> None:
 
 
 def test_check_packets_cli(tmp_repo: Path) -> None:
+    from tests.conftest import seed_session
+
+    seed_session(tmp_repo)
     runner = CliRunner()
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "x"])
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "check", "packets"])

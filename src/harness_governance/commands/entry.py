@@ -15,6 +15,7 @@ import click
 from ..file_ops import entry as entry_ops
 from ..messages import bilingual
 from ..models.schemas import CheckResult, EntryRecord
+from ..session import find_active_session
 from ..state_machine.layers import HarnessLayer
 
 _PLACEHOLDER = re.compile(r"^(?:\s*|tbd|todo|missing|n/a|\?)$", re.IGNORECASE)
@@ -262,7 +263,9 @@ def entry_check_cmd(
     default=None,
     help="Write the rendered block here (defaults to stdout).",
 )
+@click.pass_context
 def entry_record_cmd(
+    ctx: click.Context,
     target: str,
     scope: str,
     layer: str,
@@ -279,6 +282,19 @@ def entry_record_cmd(
     By default prints to stdout. With ``--output`` writes to the given file.
     The block can then be pasted into chat, a status file, or a review doc.
     """
+    # Session gate: when require_session is enabled, reject if no active session.
+    root = ctx.obj.get("project_root", Path.cwd())
+    from ..config import load_config
+
+    try:
+        cfg = load_config(root)
+    except Exception:
+        cfg = None
+    if cfg and cfg.require_session:
+        active = find_active_session(root)
+        if active is None:
+            raise click.ClickException(bilingual("session.require_session"))
+
     record = EntryRecord(
         current_layer=HarnessLayer(layer),
         target=target,

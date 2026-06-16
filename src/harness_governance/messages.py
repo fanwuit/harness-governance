@@ -552,6 +552,80 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "[harness runner] timed out after {seconds}s",
         "zh-CN": "[harness runner] 超时，已运行 {seconds}s",
     },
+    # session --------------------------------------------------------------
+    "session.created": {
+        "en": "Session created: {session_id}",
+        "zh-CN": "已创建会话: {session_id}",
+    },
+    "session.not_found": {
+        "en": "Session not found: {session_id}",
+        "zh-CN": "未找到会话: {session_id}",
+    },
+    "session.no_active": {
+        "en": "No active session. Run `harness governed-start` first.",
+        "zh-CN": "没有活跃会话。请先运行 `harness governed-start`。",
+    },
+    "session.closed": {
+        "en": "Session closed: {session_id}",
+        "zh-CN": "已关闭会话: {session_id}",
+    },
+    "session.already_closed": {
+        "en": "Session already closed: {session_id}",
+        "zh-CN": "会话已关闭: {session_id}",
+    },
+    "session.require_session": {
+        "en": "require_session is enabled but no active session found. Run `harness governed-start` first.",
+        "zh-CN": "require_session 已启用但未找到活跃会话。请先运行 `harness governed-start`。",
+    },
+    "session.header": {
+        "en": "Session: {session_id}",
+        "zh-CN": "会话: {session_id}",
+    },
+    "session.description": {
+        "en": "Description: {text}",
+        "zh-CN": "描述: {text}",
+    },
+    "session.routing_path": {
+        "en": "Routing path: {path}",
+        "zh-CN": "路由路径: {path}",
+    },
+    "session.current_layer": {
+        "en": "Current layer: {layer}",
+        "zh-CN": "当前层: {layer}",
+    },
+    "session.status_line": {
+        "en": "Status: {status}",
+        "zh-CN": "状态: {status}",
+    },
+    "session.change_id": {
+        "en": "Change ID: {change_id}",
+        "zh-CN": "变更 ID: {change_id}",
+    },
+    "session.transitions_header": {
+        "en": "Transitions ({count}):",
+        "zh-CN": "层转换记录 ({count}):",
+    },
+    "session.no_sessions": {
+        "en": "No sessions found.",
+        "zh-CN": "未找到任何会话。",
+    },
+    # layer ----------------------------------------------------------------
+    "layer.advanced": {
+        "en": "Layer advanced: {from_layer} -> {to_layer}",
+        "zh-CN": "层推进: {from_layer} -> {to_layer}",
+    },
+    "layer.transition_blocked": {
+        "en": "Layer transition blocked: {from_layer} -> {to_layer}",
+        "zh-CN": "层转换被阻止: {from_layer} -> {to_layer}",
+    },
+    "layer.no_session": {
+        "en": "No active session to advance. Run `harness governed-start` first.",
+        "zh-CN": "没有可推进的活跃会话。请先运行 `harness governed-start`。",
+    },
+    "layer.same_layer": {
+        "en": "Already at layer: {layer}",
+        "zh-CN": "已在当前层: {layer}",
+    },
 }
 
 

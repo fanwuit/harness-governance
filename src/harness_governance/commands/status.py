@@ -32,8 +32,10 @@ from ..models.schemas import (
     StatusQueueItem,
     StatusQueueSummary,
     StatusRunner,
+    StatusSessionItem,
     StatusVerification,
 )
+from ..session import list_sessions
 from ..state_machine.layers import canonical_progression
 
 logger = get_logger("status")
@@ -221,6 +223,19 @@ def build_status(
 
     current_layer = _infer_current_layer(items) or "unknown"
 
+    # --- Sessions ---
+    all_sessions = list_sessions(repo_root)
+    session_items = tuple(
+        StatusSessionItem(
+            session_id=s.session_id,
+            status=s.status,
+            current_layer=s.current_layer.value if s.current_layer else None,
+            description=s.description,
+            change_id=s.change_id,
+        )
+        for s in all_sessions
+    )
+
     return StatusPayload(
         repo=str(repo_root),
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -275,6 +290,7 @@ def build_status(
         ),
         verification=verification,
         warnings=tuple(warnings),
+        sessions=session_items,
     )
 
 
@@ -335,6 +351,14 @@ def format_text(status: StatusPayload) -> str:
             summary=status.verification.summary or "missing",
         )
     )
+
+    if status.sessions:
+        lines.append("")
+        lines.append("Sessions:")
+        for s in status.sessions:
+            marker = "*" if s.status == "active" else " "
+            layer = s.current_layer or "-"
+            lines.append(f"- {marker} {s.session_id}  [{s.status}]  layer={layer}")
 
     if status.warnings:
         lines.append("")
@@ -407,6 +431,15 @@ def format_markdown(status: StatusPayload) -> str:
     lines.append(f"- Stale: {'yes' if status.verification.stale else 'no'}")
     lines.append(f"- Summary: {status.verification.summary or 'missing'}")
     lines.append("")
+    if status.sessions:
+        lines.append("## Sessions")
+        lines.append("")
+        for s in status.sessions:
+            marker = "*" if s.status == "active" else " "
+            layer = s.current_layer or "-"
+            lines.append(f"- {marker} `{s.session_id}` [{s.status}] layer={layer} — {s.description[:60]}")
+        lines.append("")
+
     lines.append("## Warnings")
     lines.append("")
     if not status.warnings:

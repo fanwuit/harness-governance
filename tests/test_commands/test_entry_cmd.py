@@ -10,6 +10,7 @@ from click.testing import CliRunner
 
 from harness_governance.cli import cli
 from harness_governance.commands.entry import check_file
+from tests.conftest import seed_session
 
 
 def _write_record(path: Path, body: str) -> None:
@@ -103,6 +104,7 @@ def test_entry_check_cli_fails(tmp_repo: Path) -> None:
 
 
 def test_entry_record_renders_block(tmp_repo: Path) -> None:
+    seed_session(tmp_repo)
     runner = CliRunner()
     output_path = tmp_repo / "out.md"
     result = runner.invoke(
