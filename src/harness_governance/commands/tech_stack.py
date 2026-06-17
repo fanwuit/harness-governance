@@ -15,6 +15,7 @@ from ..models.schemas import (
     DocStyleGap,
     LintGap,
     TechStackCheckResult,
+    ToolIntroduction,
 )
 from ..state_machine.tech_stack import (
     DOC_STYLE_CATALOG,
@@ -46,11 +47,19 @@ def tech_stack_capture(ctx: click.Context) -> None:
     mgr = TechStackManager(root)
     manifest = mgr.capture()
 
-    click.echo(bilingual("tech_stack.captured", languages=", ".join(manifest.languages)))
+    click.echo(
+        bilingual("tech_stack.captured", languages=", ".join(manifest.languages))
+    )
     if manifest.lint_tools:
-        click.echo(bilingual("tech_stack.lint_tools_found", count=len(manifest.lint_tools)))
+        click.echo(
+            bilingual("tech_stack.lint_tools_found", count=len(manifest.lint_tools))
+        )
     if manifest.package_managers:
-        click.echo(bilingual("tech_stack.pkg_managers", pkgs=", ".join(manifest.package_managers)))
+        click.echo(
+            bilingual(
+                "tech_stack.pkg_managers", pkgs=", ".join(manifest.package_managers)
+            )
+        )
     click.echo(bilingual("tech_stack.saved", path=str(mgr.MANIFEST_PATH)))
 
 
@@ -81,25 +90,31 @@ def tech_stack_check(ctx: click.Context) -> None:
     if result.lint_gaps:
         click.echo(bilingual("tech_stack.lint_gaps_header"), err=True)
         for gap in result.lint_gaps:
+            gap_lint: LintGap = gap
             click.echo(
-                f"    {gap.language}: {', '.join(gap.suggested_tools)}"
-                f"{' (detected: ' + gap.detected_config + ')' if gap.detected_config else ''}",
+                f"    {gap_lint.language}: {', '.join(gap_lint.suggested_tools)}"
+                f"{' (detected: ' + gap_lint.detected_config + ')' if gap_lint.detected_config else ''}",
                 err=True,
             )
 
     if result.doc_style_gaps:
         click.echo(bilingual("tech_stack.doc_gaps_header"), err=True)
-        for gap in result.doc_style_gaps:
+        for gap in result.doc_style_gaps:  # type: ignore[assignment]
+            gap_doc: DocStyleGap = gap  # type: ignore[assignment]
             click.echo(
-                f"    {gap.language}: {', '.join(gap.suggested_styles)}"
-                f"{' (detected: ' + gap.detected_style + ')' if gap.detected_style else ''}",
+                f"    {gap_doc.language}: {', '.join(gap_doc.suggested_styles)}"
+                f"{' (detected: ' + gap_doc.detected_style + ')' if gap_doc.detected_style else ''}",
                 err=True,
             )
 
     if result.new_tools_pending_confirmation:
         click.echo(bilingual("tech_stack.pending_tools_header"), err=True)
-        for t in result.new_tools_pending_confirmation:
-            click.echo(f"    {t.tool_name}@{t.version} (introduced by {t.introduced_by})", err=True)
+        for t in result.new_tools_pending_confirmation:  # type: ignore[assignment]
+            t_tool: ToolIntroduction = t  # type: ignore[assignment]
+            click.echo(
+                f"    {t_tool.tool_name}@{t_tool.version} (introduced by {t_tool.introduced_by})",
+                err=True,
+            )
 
     raise SystemExit(1)
 
@@ -115,10 +130,18 @@ def tech_stack_check(ctx: click.Context) -> None:
 @click.option(
     "--category",
     default="dev_tool",
-    type=click.Choice([
-        "language", "package_manager", "framework", "dev_tool",
-        "lint", "formatter", "doc", "security",
-    ]),
+    type=click.Choice(
+        [
+            "language",
+            "package_manager",
+            "framework",
+            "dev_tool",
+            "lint",
+            "formatter",
+            "doc",
+            "security",
+        ]
+    ),
     help="Tool category.",
 )
 @click.option("--reason", default="", help="Why this tool is needed.")
@@ -139,7 +162,7 @@ def tech_stack_add(
     """
     root = resolve_root(ctx)
     mgr = TechStackManager(root)
-    intro = mgr.introduce_tool(
+    _intro = mgr.introduce_tool(
         tool_name=tool,
         version=version,
         rationale=reason,
@@ -180,7 +203,11 @@ def tech_stack_show(ctx: click.Context, as_json: bool) -> None:
 
     click.echo(bilingual("tech_stack.languages", langs=", ".join(manifest.languages)))
     if manifest.package_managers:
-        click.echo(bilingual("tech_stack.pkg_managers", pkgs=", ".join(manifest.package_managers)))
+        click.echo(
+            bilingual(
+                "tech_stack.pkg_managers", pkgs=", ".join(manifest.package_managers)
+            )
+        )
     if manifest.lint_tools:
         click.echo(bilingual("tech_stack.lint_header"))
         for t in manifest.lint_tools:
@@ -197,9 +224,10 @@ def tech_stack_show(ctx: click.Context, as_json: bool) -> None:
             click.echo(f"  {lang}: {style}")
     if manifest.introduced_tools:
         click.echo(bilingual("tech_stack.introduced_header"))
-        for t in manifest.introduced_tools:
-            status = "✓" if t.confirmed else "⚠"
-            click.echo(f"  {status} {t.tool_name} @ {t.version} [{t.tool_category}]")
+        for t in manifest.introduced_tools:  # type: ignore[assignment]
+            t_tool: ToolIntroduction = t  # type: ignore[assignment]
+            status = "✓" if t_tool.confirmed else "⚠"
+            click.echo(f"  {status} {t_tool.tool_name} @ {t_tool.version} [{t_tool.tool_category}]")
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +256,7 @@ def tech_stack_lint(
     """
     root = resolve_root(ctx)
     mgr = TechStackManager(root)
-    manifest = mgr.load()
+    _manifest = mgr.load()
 
     languages = mgr.detect_project_languages()
 
@@ -274,7 +302,7 @@ def tech_stack_lint(
         return
 
     # --tool specified: confirm lint tool for this language.
-    intro = mgr.introduce_tool(
+    _intro = mgr.introduce_tool(
         tool_name=tool,
         version=version,
         rationale=f"Lint tool for {language}",
@@ -331,7 +359,11 @@ def tech_stack_docstyle(
             else:
                 suggestions = mgr.suggest_doc_styles(lang)
                 detected = mgr.detect_existing_doc_style(lang)
-                detected_str = f" [{bilingual('tech_stack.detected')}: {detected}]" if detected else ""
+                detected_str = (
+                    f" [{bilingual('tech_stack.detected')}: {detected}]"
+                    if detected
+                    else ""
+                )
                 click.echo(
                     f"  {lang}: {bilingual('tech_stack.not_configured')}"
                     f"{detected_str} — "
@@ -359,7 +391,9 @@ def tech_stack_docstyle(
         else:
             suggestions = mgr.suggest_doc_styles(language)
             detected = mgr.detect_existing_doc_style(language)
-            detected_str = f" [{bilingual('tech_stack.detected')}: {detected}]" if detected else ""
+            detected_str = (
+                f" [{bilingual('tech_stack.detected')}: {detected}]" if detected else ""
+            )
             click.echo(
                 f"{language}: {bilingual('tech_stack.not_configured')}"
                 f"{detected_str} — "
@@ -382,4 +416,3 @@ def tech_stack_docstyle(
             style=style,
         ),
     )
-

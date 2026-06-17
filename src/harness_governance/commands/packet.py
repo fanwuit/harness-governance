@@ -26,7 +26,11 @@ def packet_group() -> None:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     help="Project root (defaults to current directory).",
 )
-@click.option("--force/--no-force", default=False, help="Fill missing files without overwriting existing ones.")
+@click.option(
+    "--force/--no-force",
+    default=False,
+    help="Fill missing files without overwriting existing ones.",
+)
 @click.pass_context
 def packet_init_cmd(
     ctx: click.Context,
@@ -79,7 +83,9 @@ def packet_init_cmd(
     rel = result.packet_dir.resolve().relative_to(root.resolve())
     click.echo(bilingual("packet.initialized", path=str(rel)))
     if result.created_files:
-        click.echo(bilingual("packet.created_files", files=", ".join(result.created_files)))
+        click.echo(
+            bilingual("packet.created_files", files=", ".join(result.created_files))
+        )
     else:
         click.echo(bilingual("packet.no_new_files"))
 

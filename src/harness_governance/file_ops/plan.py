@@ -22,7 +22,9 @@ _TEMPLATES_PACKAGE = "harness_governance.data.templates.planning"
 # A phase line in task_plan.md is "## Phase N. Title" or "### Phase N. Title".
 _PHASE_RE = re.compile(r"^#{2,4}\s*Phase\s+\d+\b", re.IGNORECASE | re.MULTILINE)
 # "Status: complete" inside a phase block counts as done.
-_PHASE_STATUS_RE = re.compile(r"^Status\s*:\s*(complete|done)\b", re.IGNORECASE | re.MULTILINE)
+_PHASE_STATUS_RE = re.compile(
+    r"^Status\s*:\s*(complete|done)\b", re.IGNORECASE | re.MULTILINE
+)
 
 # plan_id is "<YYYY-MM-DD>-<slug>". The slug must be filesystem-safe: no
 # path separators, no dots that could escape via "..", no NUL/control chars.
@@ -171,7 +173,7 @@ def is_plan_complete(project_root: Path, plan_id: str | None = None) -> bool:
 
 def _split_into_phase_blocks(text: str, matches: Iterable[re.Match[str]]) -> list[str]:
     positions = [m.start() for m in matches] + [len(text)]
-    return [text[positions[i]:positions[i + 1]] for i in range(len(positions) - 1)]
+    return [text[positions[i] : positions[i + 1]] for i in range(len(positions) - 1)]
 
 
 def _load_template(template: str, name: str) -> str:
@@ -204,7 +206,9 @@ def _resolve_session(project_root: Path, plan_id: str | None) -> PlanningSession
     if plan_id is None:
         session = resolve_active_plan(project_root)
         if session is None:
-            raise FileNotFoundError("No active planning session. Run `harness plan init` first.")
+            raise FileNotFoundError(
+                "No active planning session. Run `harness plan init` first."
+            )
         return session
     return _session_from_id(project_root, plan_id)
 

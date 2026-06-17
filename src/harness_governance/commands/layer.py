@@ -22,6 +22,7 @@ import click
 
 from ..messages import bilingual
 from ..session import (
+    SessionState,
     TransitionRecord,
     find_active_session,
     load_session,
@@ -50,17 +51,66 @@ def layer_group() -> None:
     "target_layer",
     type=click.Choice([layer.value for layer in HarnessLayer], case_sensitive=False),
 )
-@click.option("--session", "session_id", default=None, help="Session ID (defaults to active session).")
-@click.option("--prototype", is_flag=True, default=False, help="Explicitly scoped as throwaway prototype.")
-@click.option("--side-effects", is_flag=True, default=False, help="Work has persistence or external side effects.")
-@click.option("--chat-only", is_flag=True, default=False, help="Decision captured only in chat.")
-@click.option("--boundary-touch", is_flag=True, default=False, help="Work touches long-lived boundaries or public contracts.")
-@click.option("--material-unknown", is_flag=True, default=False, help="A material unknown was discovered.")
-@click.option("--uncontracted", is_flag=True, default=False, help="Implementation revealed uncontracted behavior.")
-@click.option("--verification-failed", is_flag=True, default=False, help="Verification step failed.")
-@click.option("--work-paused", is_flag=True, default=False, help="Work is finishing or pausing.")
-@click.option("--contract-stalling", is_flag=True, default=False, help="Contract work repeating without progress.")
-@click.option("--confirmed", is_flag=True, default=False, help="Author has explicitly confirmed readiness to advance (recorded in audit trail).")
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.option(
+    "--prototype",
+    is_flag=True,
+    default=False,
+    help="Explicitly scoped as throwaway prototype.",
+)
+@click.option(
+    "--side-effects",
+    is_flag=True,
+    default=False,
+    help="Work has persistence or external side effects.",
+)
+@click.option(
+    "--chat-only", is_flag=True, default=False, help="Decision captured only in chat."
+)
+@click.option(
+    "--boundary-touch",
+    is_flag=True,
+    default=False,
+    help="Work touches long-lived boundaries or public contracts.",
+)
+@click.option(
+    "--material-unknown",
+    is_flag=True,
+    default=False,
+    help="A material unknown was discovered.",
+)
+@click.option(
+    "--uncontracted",
+    is_flag=True,
+    default=False,
+    help="Implementation revealed uncontracted behavior.",
+)
+@click.option(
+    "--verification-failed",
+    is_flag=True,
+    default=False,
+    help="Verification step failed.",
+)
+@click.option(
+    "--work-paused", is_flag=True, default=False, help="Work is finishing or pausing."
+)
+@click.option(
+    "--contract-stalling",
+    is_flag=True,
+    default=False,
+    help="Contract work repeating without progress.",
+)
+@click.option(
+    "--confirmed",
+    is_flag=True,
+    default=False,
+    help="Author has explicitly confirmed readiness to advance (recorded in audit trail).",
+)
 @click.option(
     "--skip-gate",
     "skip_gate",
@@ -108,20 +158,22 @@ def layer_advance_cmd(
 
     # --skip-gate requires --confirmed (safety interlock).
     if skip_gate and not confirmed:
-        raise click.UsageError(
-            bilingual("layer.skip_gate_requires_confirmed")
-        )
+        raise click.UsageError(bilingual("layer.skip_gate_requires_confirmed"))
 
     # Resolve session.
+    state: SessionState
     if session_id:
         try:
             state = load_session(project_root, session_id)
         except FileNotFoundError:
-            raise click.ClickException(bilingual("session.not_found", session_id=session_id))
+            raise click.ClickException(
+                bilingual("session.not_found", session_id=session_id)
+            )
     else:
-        state = find_active_session(project_root)
-        if state is None:
+        _state = find_active_session(project_root)
+        if _state is None:
             raise click.ClickException(bilingual("layer.no_session"))
+        state = _state
 
     if state.current_layer is None:
         # Should not happen for governed sessions, but guard anyway.
@@ -132,6 +184,7 @@ def layer_advance_cmd(
         state = state.model_copy(update={"rigor_tier": rigor_override})
 
     from_layer = state.current_layer
+    assert from_layer is not None  # guaranteed by the check above
     if from_layer == to_layer:
         click.echo(bilingual("layer.same_layer", layer=from_layer.value))
         return
@@ -151,14 +204,20 @@ def layer_advance_cmd(
         if not status.passed:
             # Gate failed — block advance unless author explicitly skips.
             if ctx.obj.get("json_output"):
-                click.echo(json.dumps({
-                    "allowed": False,
-                    "reason": "gate_failed",
-                    "layer": from_layer.value,
-                    "questions_answered": status.questions_answered,
-                    "questions_required": status.questions_required,
-                    "artifacts_missing": list(status.artifacts_missing),
-                }, indent=2, ensure_ascii=False))
+                click.echo(
+                    json.dumps(
+                        {
+                            "allowed": False,
+                            "reason": "gate_failed",
+                            "layer": from_layer.value,
+                            "questions_answered": status.questions_answered,
+                            "questions_required": status.questions_required,
+                            "artifacts_missing": list(status.artifacts_missing),
+                        },
+                        indent=2,
+                        ensure_ascii=False,
+                    )
+                )
             else:
                 click.echo(
                     bilingual(
@@ -166,7 +225,9 @@ def layer_advance_cmd(
                         layer=from_layer.value,
                         questions=status.questions_answered,
                         required=status.questions_required,
-                        missing=", ".join(status.artifacts_missing) if status.artifacts_missing else "none",
+                        missing=", ".join(status.artifacts_missing)
+                        if status.artifacts_missing
+                        else "none",
                     ),
                     err=True,
                 )
@@ -235,7 +296,7 @@ def layer_advance_cmd(
         "contract_work_repeating": contract_stalling,
     }
     # Strip False values for cleaner records.
-    active_flags = {k: v for k, v in context_flags.items() if v}
+    active_flags: dict[str, bool] = {k: bool(v) for k, v in context_flags.items() if v}
 
     if confirmed:
         active_flags["author_confirmed"] = True
@@ -258,18 +319,26 @@ def layer_advance_cmd(
         save_session(project_root, state)
 
         if ctx.obj.get("json_output"):
-            click.echo(json.dumps({
-                "allowed": False,
-                "from_layer": from_layer.value,
-                "to_layer": to_layer.value,
-                "violations": list(record.violations),
-            }, indent=2, ensure_ascii=False))
+            click.echo(
+                json.dumps(
+                    {
+                        "allowed": False,
+                        "from_layer": from_layer.value,
+                        "to_layer": to_layer.value,
+                        "violations": list(record.violations),
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+            )
         else:
-            click.echo(bilingual(
-                "layer.transition_blocked",
-                from_layer=from_layer.value,
-                to_layer=to_layer.value,
-            ))
+            click.echo(
+                bilingual(
+                    "layer.transition_blocked",
+                    from_layer=from_layer.value,
+                    to_layer=to_layer.value,
+                )
+            )
             for v in record.violations:
                 click.echo(f"  {v}")
         raise SystemExit(1)
@@ -284,52 +353,77 @@ def layer_advance_cmd(
     save_session(project_root, state)
 
     if ctx.obj.get("json_output"):
-        click.echo(json.dumps({
-            "allowed": True,
-            "from_layer": from_layer.value,
-            "to_layer": to_layer.value,
-            "session_id": state.session_id,
-        }, indent=2, ensure_ascii=False))
+        click.echo(
+            json.dumps(
+                {
+                    "allowed": True,
+                    "from_layer": from_layer.value,
+                    "to_layer": to_layer.value,
+                    "session_id": state.session_id,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
     else:
-        click.echo(bilingual(
-            "layer.advanced",
-            from_layer=from_layer.value,
-            to_layer=to_layer.value,
-        ))
+        click.echo(
+            bilingual(
+                "layer.advanced",
+                from_layer=from_layer.value,
+                to_layer=to_layer.value,
+            )
+        )
 
 
 @layer_group.command("show")
-@click.option("--session", "session_id", default=None, help="Session ID (defaults to active session).")
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
 @click.pass_context
 def layer_show_cmd(ctx: click.Context, session_id: str | None) -> None:
     """Show the current layer and transition history of a session."""
     project_root: "Path" = ctx.obj["project_root"]
 
+    state: SessionState
     if session_id:
         try:
             state = load_session(project_root, session_id)
         except FileNotFoundError:
-            raise click.ClickException(bilingual("session.not_found", session_id=session_id))
+            raise click.ClickException(
+                bilingual("session.not_found", session_id=session_id)
+            )
     else:
-        state = find_active_session(project_root)
-        if state is None:
+        _state = find_active_session(project_root)
+        if _state is None:
             raise click.ClickException(bilingual("session.no_active"))
+        state = _state
 
     if ctx.obj.get("json_output"):
-        click.echo(json.dumps({
-            "session_id": state.session_id,
-            "current_layer": state.current_layer.value if state.current_layer else None,
-            "transitions": [
+        click.echo(
+            json.dumps(
                 {
-                    "from": t.from_layer.value,
-                    "to": t.to_layer.value,
-                    "timestamp": t.timestamp,
-                    "allowed": t.engine_verdict,
-                    "violations": list(t.violations),
-                }
-                for t in state.transitions
-            ],
-        }, indent=2, ensure_ascii=False))
+                    "session_id": state.session_id,
+                    "current_layer": state.current_layer.value
+                    if state.current_layer
+                    else None,
+                    "transitions": [
+                        {
+                            "from": t.from_layer.value,
+                            "to": t.to_layer.value,
+                            "timestamp": t.timestamp,
+                            "allowed": t.engine_verdict,
+                            "violations": list(t.violations),
+                        }
+                        for t in state.transitions
+                    ],
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
         return
 
     click.echo(bilingual("session.header", session_id=state.session_id))
@@ -338,7 +432,9 @@ def layer_show_cmd(ctx: click.Context, session_id: str | None) -> None:
     click.echo(bilingual("session.transitions_header", count=len(state.transitions)))
     for t in state.transitions:
         status = "OK" if t.engine_verdict else "BLOCKED"
-        line = f"  {t.from_layer.value} -> {t.to_layer.value}  [{status}]  {t.timestamp}"
+        line = (
+            f"  {t.from_layer.value} -> {t.to_layer.value}  [{status}]  {t.timestamp}"
+        )
         if t.violations:
             line += f"  ({'; '.join(t.violations)})"
         click.echo(line)
@@ -346,7 +442,12 @@ def layer_show_cmd(ctx: click.Context, session_id: str | None) -> None:
 
 @layer_group.command("guide")
 @click.argument("layer_name", required=False)
-@click.option("--session", "session_id", default=None, help="Session ID (defaults to active session).")
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
 @click.pass_context
 def layer_guide_cmd(
     ctx: click.Context,
@@ -361,23 +462,29 @@ def layer_guide_cmd(
     project_root: Path = ctx.obj["project_root"]
 
     # Resolve target layer.
+    target: HarnessLayer | None
     if layer_name:
         from ..state_machine.layers import resolve_layer
+
         try:
             target = resolve_layer(layer_name)
         except ValueError as exc:
             raise click.ClickException(str(exc))
     else:
+        _state2: SessionState
         if session_id:
             try:
-                state = load_session(project_root, session_id)
+                _state2 = load_session(project_root, session_id)
             except FileNotFoundError:
-                raise click.ClickException(bilingual("session.not_found", session_id=session_id))
+                raise click.ClickException(
+                    bilingual("session.not_found", session_id=session_id)
+                )
         else:
-            state = find_active_session(project_root)
-            if state is None:
+            _found = find_active_session(project_root)
+            if _found is None:
                 raise click.ClickException(bilingual("session.no_active"))
-        target = state.current_layer
+            _state2 = _found
+        target = _state2.current_layer
         if target is None:
             raise click.ClickException(bilingual("layer.no_session"))
 
@@ -393,12 +500,18 @@ def layer_guide_cmd(
     section = _extract_guide_section(guide_text, guide_key) if guide_text else None
 
     if ctx.obj.get("json_output"):
-        click.echo(json.dumps({
-            "layer": target.value,
-            "guide_key": guide_key,
-            "guide": section or "",
-            "found": section is not None,
-        }, indent=2, ensure_ascii=False))
+        click.echo(
+            json.dumps(
+                {
+                    "layer": target.value,
+                    "guide_key": guide_key,
+                    "guide": section or "",
+                    "found": section is not None,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
         return
 
     if section:
@@ -406,11 +519,13 @@ def layer_guide_cmd(
         click.echo("")
         click.echo(section)
     else:
-        click.echo(bilingual(
-            "layer.guide_not_found",
-            layer=target.value,
-            output=_guide_fallback(target),
-        ))
+        click.echo(
+            bilingual(
+                "layer.guide_not_found",
+                layer=target.value,
+                output=_guide_fallback(target),
+            )
+        )
 
 
 def _load_guide_file() -> str | None:

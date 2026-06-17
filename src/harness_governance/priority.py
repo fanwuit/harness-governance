@@ -26,7 +26,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import messages
-from .config.defaults import PLATFORM_SKILL_PATHS
 from .models.schemas import CheckFinding, CheckResult
 
 # ---------------------------------------------------------------------------
@@ -69,10 +68,26 @@ HARNESS_SKILL_FILE_BASES: frozenset[str] = frozenset(
 
 _HIJACK_PATTERNS: tuple[tuple[str, re.Pattern, str], ...] = (
     # Frontmatter patterns
-    ("alwaysApply", re.compile(r"^\s*true\s*$", re.IGNORECASE), "priority.reason.always_apply"),
-    ("description", re.compile(r"before any response", re.IGNORECASE), "priority.reason.before_any_response"),
-    ("description", re.compile(r"session.start", re.IGNORECASE), "priority.reason.session_start"),
-    ("description", re.compile(r"starting any conversation", re.IGNORECASE), "priority.reason.starting_any_conversation"),
+    (
+        "alwaysApply",
+        re.compile(r"^\s*true\s*$", re.IGNORECASE),
+        "priority.reason.always_apply",
+    ),
+    (
+        "description",
+        re.compile(r"before any response", re.IGNORECASE),
+        "priority.reason.before_any_response",
+    ),
+    (
+        "description",
+        re.compile(r"session.start", re.IGNORECASE),
+        "priority.reason.session_start",
+    ),
+    (
+        "description",
+        re.compile(r"starting any conversation", re.IGNORECASE),
+        "priority.reason.starting_any_conversation",
+    ),
 )
 
 # Phrases we also search for in the Markdown body (after the frontmatter).
@@ -156,7 +171,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
         return {}, stripped[body_start:]
 
     frontmatter_block = stripped[4:end_idx]  # skip past opening "---\n"
-    body = stripped[end_idx + len("---\n"):] if end_idx + 4 < len(stripped) else ""
+    body = stripped[end_idx + len("---\n") :] if end_idx + 4 < len(stripped) else ""
 
     fields: dict[str, str] = {}
     for line in frontmatter_block.splitlines():
@@ -168,7 +183,7 @@ def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
         if colon_idx <= 0:
             continue
         key = line[:colon_idx].strip()
-        value = line[colon_idx + 1:].strip()
+        value = line[colon_idx + 1 :].strip()
         # Strip surrounding quotes.
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
             value = value[1:-1]
@@ -280,9 +295,7 @@ def _detect_reasons(info: SkillInfo) -> list[str]:
     body_lower = info.body_preview.lower()
     for phrase in _BODY_TRIGGER_PHRASES:
         if phrase in body_lower:
-            reasons.append(
-                messages.t("priority.reason.body_trigger", phrase=phrase)
-            )
+            reasons.append(messages.t("priority.reason.body_trigger", phrase=phrase))
             break  # one body match is enough
 
     return reasons
@@ -300,7 +313,7 @@ def check_priority(project_root: Path) -> CheckResult:
     :func:`check_packets`, etc.
     """
     competing = detect_competing_skills(project_root)
-    platforms_affected: set[str] = {c.platform for c in competing}
+    _platforms_affected: set[str] = {c.platform for c in competing}
 
     if not competing:
         return CheckResult(
@@ -348,7 +361,7 @@ def apply_fix(
     AGENTS.md platforms: strengthen the priority override text (handled by
     ``apply_all_fixes`` via the init module's marker mechanism).
     """
-    root = project_root.resolve()
+    _root = project_root.resolve()
     entry = PLATFORM_SCAN_DIRS.get(competing.platform)
     if entry is None:
         return FixResult(
@@ -384,16 +397,12 @@ def apply_fix(
         parent = target.parent
         new_name = f"_{parent.name}"
         new_parent = parent.with_name(new_name)
-        return _do_rename(
-            competing.platform, parent, new_parent, "rename_dir"
-        )
+        return _do_rename(competing.platform, parent, new_parent, "rename_dir")
     else:
         # Rename the file: .clinerules/custom.md -> _custom.md
         new_name = f"_{target.name}"
         new_path = target.with_name(new_name)
-        return _do_rename(
-            competing.platform, target, new_path, "rename_file"
-        )
+        return _do_rename(competing.platform, target, new_path, "rename_file")
 
 
 def _do_rename(
@@ -405,17 +414,23 @@ def _do_rename(
     """Attempt a rename; return a FixResult regardless of outcome."""
     if not source.exists():
         return FixResult(
-            platform=platform, path=source,
-            success=False, detail="Source no longer exists.",
+            platform=platform,
+            path=source,
+            success=False,
+            detail="Source no longer exists.",
         )
 
     if dest.exists():
         return FixResult(
-            platform=platform, path=source, new_path=dest,
-            action=action, success=False,
+            platform=platform,
+            path=source,
+            new_path=dest,
+            action=action,
+            success=False,
             detail=messages.t(
                 "priority.fix_skipped_exists",
-                path=_short_path(source), new_path=_short_path(dest),
+                path=_short_path(source),
+                new_path=_short_path(dest),
             ),
         )
 
@@ -423,16 +438,24 @@ def _do_rename(
         source.rename(dest)
     except OSError as exc:
         return FixResult(
-            platform=platform, path=source,
-            action=action, success=False, detail=str(exc),
+            platform=platform,
+            path=source,
+            action=action,
+            success=False,
+            detail=str(exc),
         )
 
     return FixResult(
-        platform=platform, path=source, new_path=dest,
-        action=action, success=True,
+        platform=platform,
+        path=source,
+        new_path=dest,
+        action=action,
+        success=True,
         detail=messages.t(
             "priority.fix_applied",
-            action=action, path=_short_path(source), new_path=_short_path(dest),
+            action=action,
+            path=_short_path(source),
+            new_path=_short_path(dest),
         ),
     )
 
@@ -466,12 +489,13 @@ def _strengthen_agents_md(project_root: Path) -> FixResult:
     ``_ensure_agents_md_triggers`` so there is exactly one author for the
     block text.
     """
-    from .commands.init import _build_agents_triggers_block
     from .commands.init import _ensure_agents_md_triggers
 
     try:
         path = _ensure_agents_md_triggers(
-            project_root, skill_ref="", force=True,
+            project_root,
+            skill_ref="",
+            force=True,
         )
         return FixResult(
             platform="generic/qoderwork",

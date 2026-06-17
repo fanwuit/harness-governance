@@ -22,7 +22,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Literal
 
 from ..logging_setup import get_logger
 from ..file_ops.checkpoint import Checkpoint
@@ -90,7 +90,15 @@ class LoopResult:
     """Final result of :meth:`AutonomousReadyLoop.run`."""
 
     rounds: int
-    stopped_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error", "scope_exceeded"]
+    stopped_for: Literal[
+        "max_rounds",
+        "boundary",
+        "blocked",
+        "failed",
+        "no_ready",
+        "error",
+        "scope_exceeded",
+    ]
     invocations: list[RoundSummary] = field(default_factory=list)
 
 
@@ -132,10 +140,20 @@ class AutonomousReadyLoop:
                 except (AttributeError, TypeError):
                     pass  # frozen dataclass or read-only — skip
 
-    def run(self, *, mode: Literal["bounded", "boundary"], max_rounds: int) -> LoopResult:
+    def run(
+        self, *, mode: Literal["bounded", "boundary"], max_rounds: int
+    ) -> LoopResult:
         max_rounds = self._resolve_max_rounds(mode, max_rounds)
         invocations: list[RoundSummary] = []
-        stop_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error", "scope_exceeded"] = "max_rounds"
+        stop_for: Literal[
+            "max_rounds",
+            "boundary",
+            "blocked",
+            "failed",
+            "no_ready",
+            "error",
+            "scope_exceeded",
+        ] = "max_rounds"
         run_started = time.monotonic()
 
         for round_index in range(1, max_rounds + 1):
@@ -144,8 +162,11 @@ class AutonomousReadyLoop:
                 elapsed = time.monotonic() - run_started
                 remaining = self.total_timeout_seconds - elapsed
                 if remaining <= 0:
-                    logger.warning("total timeout reached after %.1fs (%d round(s))",
-                                   elapsed, round_index - 1)
+                    logger.warning(
+                        "total timeout reached after %.1fs (%d round(s))",
+                        elapsed,
+                        round_index - 1,
+                    )
                     stop_for = "error"
                     break
 
@@ -165,14 +186,20 @@ class AutonomousReadyLoop:
             started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
             started = time.monotonic()
             result: ExecutionResult | None = None
-            retry_error: Exception | None = None
+            _retry_error: Exception | None = None
 
-            for attempt in range(1, self.max_retries + 2):  # +2 because attempt 1 = first try
+            for attempt in range(
+                1, self.max_retries + 2
+            ):  # +2 because attempt 1 = first try
                 # Per-attempt timeout: respect total budget.
                 effective_timeout = self.timeout_seconds
                 if self.total_timeout_seconds is not None:
-                    remaining = self.total_timeout_seconds - (time.monotonic() - run_started)
-                    effective_timeout = max(1, min(int(remaining), self.timeout_seconds))
+                    remaining = self.total_timeout_seconds - (
+                        time.monotonic() - run_started
+                    )
+                    effective_timeout = max(
+                        1, min(int(remaining), self.timeout_seconds)
+                    )
 
                 # Write a "running" checkpoint so observers can see the
                 # loop is alive even before the round finishes.
@@ -185,11 +212,17 @@ class AutonomousReadyLoop:
                         round_label=f"{round_index}.a{attempt}",
                     )
                 except Exception as exc:
-                    logger.warning("round %d attempt %d raised %s", round_index, attempt, exc)
-                    retry_error = exc
+                    logger.warning(
+                        "round %d attempt %d raised %s", round_index, attempt, exc
+                    )
+                    _retry_error = exc
                     if attempt <= self.max_retries:
-                        logger.info("retrying round %d (attempt %d/%d)",
-                                    round_index, attempt + 1, self.max_retries + 1)
+                        logger.info(
+                            "retrying round %d (attempt %d/%d)",
+                            round_index,
+                            attempt + 1,
+                            self.max_retries + 1,
+                        )
                         continue
                     # All retries exhausted — record as error.
                     stop_for = "error"
@@ -207,11 +240,18 @@ class AutonomousReadyLoop:
                     )
                     invocations.append(summary)
                     self._append_invocation(summary, inv_path)
-                    self._write_checkpoint(target, result=None, round_index=round_index,
-                                           stop_reason=f"error: {exc}",
-                                           checkpoint_path=cp_path)
-                    return LoopResult(rounds=len(invocations), stopped_for=stop_for,
-                                      invocations=invocations)
+                    self._write_checkpoint(
+                        target,
+                        result=None,
+                        round_index=round_index,
+                        stop_reason=f"error: {exc}",
+                        checkpoint_path=cp_path,
+                    )
+                    return LoopResult(
+                        rounds=len(invocations),
+                        stopped_for=stop_for,
+                        invocations=invocations,
+                    )
 
                 # Success or marker-based stop: no retry needed.
                 if result.succeeded or result.marker in _RUN_STOP_MARKERS:
@@ -219,14 +259,23 @@ class AutonomousReadyLoop:
 
                 # Failed — retry if budget remains.
                 if attempt <= self.max_retries:
-                    logger.warning("round %d attempt %d failed (exit=%d), retrying (%d/%d)",
-                                   round_index, attempt, result.exit_code,
-                                   attempt + 1, self.max_retries + 1)
+                    logger.warning(
+                        "round %d attempt %d failed (exit=%d), retrying (%d/%d)",
+                        round_index,
+                        attempt,
+                        result.exit_code,
+                        attempt + 1,
+                        self.max_retries + 1,
+                    )
                     continue
 
                 # All retries exhausted.
-                logger.warning("round %d failed after %d attempt(s) (exit=%d)",
-                               round_index, self.max_retries + 1, result.exit_code)
+                logger.warning(
+                    "round %d failed after %d attempt(s) (exit=%d)",
+                    round_index,
+                    self.max_retries + 1,
+                    result.exit_code,
+                )
 
             # At this point, result is either a successful ExecutionResult,
             # a failed one (all retries exhausted), or a stop-marker result.
@@ -247,21 +296,25 @@ class AutonomousReadyLoop:
                 marker=result.marker,
                 command=result.metadata.get("command", ""),
                 verification_summary=result.verification_summary,
-                duration_seconds=result.duration_seconds or (time.monotonic() - started),
+                duration_seconds=result.duration_seconds
+                or (time.monotonic() - started),
                 stdout_path=str(stdout_path) if stdout_path else None,
                 stderr_path=str(stderr_path) if stderr_path else None,
             )
             invocations.append(summary)
             self._append_invocation(summary, inv_path)
-            self._write_checkpoint(target, result, round_index, stop_reason=None,
-                                   checkpoint_path=cp_path)
+            self._write_checkpoint(
+                target, result, round_index, stop_reason=None, checkpoint_path=cp_path
+            )
 
             # --- Scope budget check (Layer 2: execution-time guard) ---
             budget = getattr(target, "scope_budget", None) or self.default_scope_budget
             if budget is not None and result.succeeded:
                 base_ref = resolve_round_base_ref(self.project_root)
                 scope_result = check_scope_budget(
-                    self.project_root, budget, base_ref,
+                    self.project_root,
+                    budget,
+                    base_ref,
                 )
                 if scope_result.exceeded:
                     violation_details = "; ".join(
@@ -269,17 +322,22 @@ class AutonomousReadyLoop:
                     )
                     logger.warning(
                         "round %d scope budget exceeded: %s",
-                        round_index, violation_details,
+                        round_index,
+                        violation_details,
                     )
                     # Write decomposition suggestion into NEXT.md.
                     self._write_decomposition_hints(
-                        target, scope_result, round_index,
+                        target,
+                        scope_result,
+                        round_index,
                     )
                     # Force stop — the task must be decomposed before
                     # continuing.  The checkpoint already captures the
                     # partial progress.
                     self._write_checkpoint(
-                        target, result, round_index,
+                        target,
+                        result,
+                        round_index,
                         stop_reason=f"scope_budget_exceeded: {violation_details}",
                         checkpoint_path=cp_path,
                     )
@@ -294,7 +352,7 @@ class AutonomousReadyLoop:
                     AUTONOMOUS_BOUNDARY_REACHED: "boundary",
                     AUTONOMOUS_BLOCKED: "blocked",
                     AUTONOMOUS_FAILED: "failed",
-                }[result.marker]
+                }[result.marker]  # type: ignore[assignment]
                 break
             if result.marker == AUTONOMOUS_READY_DONE:
                 # Worker is done with this ready item; loop again.
@@ -306,14 +364,21 @@ class AutonomousReadyLoop:
             continue
 
         total_elapsed = time.monotonic() - run_started
-        logger.info("loop finished: %d round(s) in %.1fs, stopped_for=%s",
-                     len(invocations), total_elapsed, stop_for)
-        return LoopResult(rounds=len(invocations), stopped_for=stop_for, invocations=invocations)
+        logger.info(
+            "loop finished: %d round(s) in %.1fs, stopped_for=%s",
+            len(invocations),
+            total_elapsed,
+            stop_for,
+        )
+        return LoopResult(
+            rounds=len(invocations), stopped_for=stop_for, invocations=invocations
+        )
 
     # Internal helpers ----------------------------------------------------
 
     def _resolve_change_paths(
-        self, change_id: str | None,
+        self,
+        change_id: str | None,
     ) -> tuple[Path, Path]:
         """Return ``(checkpoint_file, invocation_log)`` for this round.
 
@@ -334,7 +399,11 @@ class AutonomousReadyLoop:
     @staticmethod
     def _resolve_max_rounds(mode: str, requested: int) -> int:
         if mode == "boundary":
-            return max(requested, DEFAULT_MAX_ROUNDS_BOUNDARY) if requested <= 1 else requested
+            return (
+                max(requested, DEFAULT_MAX_ROUNDS_BOUNDARY)
+                if requested <= 1
+                else requested
+            )
         return max(1, requested)
 
     def _append_invocation(self, summary: RoundSummary, log_path: Path) -> None:
@@ -398,7 +467,9 @@ class AutonomousReadyLoop:
                 f"- summary: {result.verification_summary or 'n/a'}"
             )
             cp.stop_reason = stop_reason or (
-                f"marker={result.marker}" if result.marker and result.marker in _RUN_STOP_MARKERS else ""
+                f"marker={result.marker}"
+                if result.marker and result.marker in _RUN_STOP_MARKERS
+                else ""
             )
         else:
             cp.verification = "- runner terminated by error"
@@ -429,12 +500,15 @@ class AutonomousReadyLoop:
         first_line = queue_item.raw.splitlines()[0] if queue_item.raw else ""
         # Strip the original tag to get the description.
         import re
-        desc = re.sub(r"^\s*(?:(?:\d+\.|[-*])\s+)?\[(?:active|ready|blocked|not-now|done)\]\s*", "", first_line).strip()
+
+        desc = re.sub(
+            r"^\s*(?:(?:\d+\.|[-*])\s+)?\[(?:active|ready|blocked|not-now|done)\]\s*",
+            "",
+            first_line,
+        ).strip()
 
         # Build decomposition hint block.
-        violations_text = "\n".join(
-            f"  - {v.detail}" for v in scope_result.violations
-        )
+        violations_text = "\n".join(f"  - {v.detail}" for v in scope_result.violations)
         hint_lines = [
             f"[blocked] {desc} (scope exceeded at round {round_index})",
             f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
@@ -444,11 +518,11 @@ class AutonomousReadyLoop:
             "",
             f"[ready] Decompose: {desc} (part 1 — files subset)",
             f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
-            f"  Scope: max-files=3, max-diff-lines=200",
+            "  Scope: max-files=3, max-diff-lines=200",
             "",
             f"[ready] Decompose: {desc} (part 2 — remaining files)",
             f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
-            f"  Scope: max-files=3, max-diff-lines=200",
+            "  Scope: max-files=3, max-diff-lines=200",
         ]
 
         # Read current queue, replace the original item, append hints.
@@ -459,12 +533,17 @@ class AutonomousReadyLoop:
             for item in items:
                 if not replaced and item.raw.strip() == queue_item.raw.strip():
                     # Replace with the blocked version + decomposition hints.
-                    new_items.append(type(item)(
-                        raw=hint_lines[0] + "\n" + "\n".join(hint_lines[1:5]),
-                        active=False, ready=False,
-                        layer=item.layer, change_id=item.change_id,
-                        packetization=item.packetization, evidence=item.evidence,
-                    ))
+                    new_items.append(
+                        type(item)(
+                            raw=hint_lines[0] + "\n" + "\n".join(hint_lines[1:5]),
+                            active=False,
+                            ready=False,
+                            layer=item.layer,
+                            change_id=item.change_id,
+                            packetization=item.packetization,
+                            evidence=item.evidence,
+                        )
+                    )
                     replaced = True
                 else:
                     new_items.append(item)
@@ -472,15 +551,20 @@ class AutonomousReadyLoop:
             if replaced:
                 # Append the decomposition [ready] items.
                 for i in range(6, len(hint_lines), 4):
-                    block = "\n".join(hint_lines[i:i+4])
+                    block = "\n".join(hint_lines[i : i + 4])
                     if block.strip():
-                        new_items.append(type(queue_item)(
-                            raw=block, active=False, ready=True,
-                            layer=getattr(queue_item, 'layer', None),
-                        ))
+                        new_items.append(
+                            type(queue_item)(
+                                raw=block,
+                                active=False,
+                                ready=True,
+                                layer=getattr(queue_item, "layer", None),
+                            )
+                        )
 
                 self.queue_file.write_text(
-                    format_queue(new_items), encoding="utf-8",
+                    format_queue(new_items),
+                    encoding="utf-8",
                 )
                 logger.info("decomposition hints written to %s", self.queue_file)
         except Exception:

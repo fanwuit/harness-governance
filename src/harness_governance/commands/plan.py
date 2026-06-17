@@ -81,7 +81,9 @@ def plan_show_cmd(ctx: click.Context, plan_id: str | None) -> None:
         raise click.ClickException(str(exc)) from exc
     attestation = target.plan_dir / ".attestation"
     if not attestation.is_file():
-        raise click.ClickException(bilingual("plan.no_attestation", plan_id=target.plan_id))
+        raise click.ClickException(
+            bilingual("plan.no_attestation", plan_id=target.plan_id)
+        )
     digest = attestation.read_text(encoding="utf-8").strip()
     click.echo(
         bilingual(

@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
 
 from harness_governance.state_machine.isolation import (
     _CANONICAL_ROLES,
@@ -20,7 +19,7 @@ from harness_governance.models.schemas import (
     IsolationSummary,
     IsolationWorkspace,
 )
-from tests.conftest import write_permissive_config, seed_session
+from tests.conftest import write_permissive_config
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +53,9 @@ class TestConstants:
 
     def test_default_role_allowances_covers_all_canonical_roles(self) -> None:
         for role in _CANONICAL_ROLES:
-            assert role in _DEFAULT_ROLE_ALLOWANCES, f"Missing allowances for role: {role}"
+            assert role in _DEFAULT_ROLE_ALLOWANCES, (
+                f"Missing allowances for role: {role}"
+            )
 
     def test_default_role_allowances_values_are_lists(self) -> None:
         for role, allowed in _DEFAULT_ROLE_ALLOWANCES.items():
@@ -89,7 +90,7 @@ class TestCreateWorkspace:
     def test_creates_role_directory(self, tmp_path: Path) -> None:
         write_permissive_config(tmp_path)
         mgr = IsolationManager(tmp_path)
-        ws = mgr.create_workspace("planner", "sess-001")
+        _ws = mgr.create_workspace("planner", "sess-001")
 
         role_dir = tmp_path / ".harness" / "isolation" / "sess-001" / "planner"
         assert role_dir.is_dir()
@@ -119,7 +120,12 @@ class TestCreateWorkspace:
         mgr.create_workspace("reviewer", "sess-002")
 
         config_path = (
-            tmp_path / ".harness" / "isolation" / "sess-002" / "reviewer" / "workspace.json"
+            tmp_path
+            / ".harness"
+            / "isolation"
+            / "sess-002"
+            / "reviewer"
+            / "workspace.json"
         )
         assert config_path.is_file()
         data = json.loads(config_path.read_text(encoding="utf-8"))
@@ -169,9 +175,7 @@ class TestCreateWorkspace:
         write_permissive_config(tmp_path)
         mgr = IsolationManager(tmp_path)
         custom_roles = ["reviewer", "planner"]
-        ws = mgr.create_workspace(
-            "implementer", "sess-007", allowed_roles=custom_roles
-        )
+        ws = mgr.create_workspace("implementer", "sess-007", allowed_roles=custom_roles)
 
         assert list(ws.allowed_roles) == custom_roles
 
@@ -536,9 +540,7 @@ class TestVerifyWorkspace:
             )
 
         summary = mgr.verify_workspace("sess-209")
-        assert list(summary.files_outside_scope) == sorted(
-            summary.files_outside_scope
-        )
+        assert list(summary.files_outside_scope) == sorted(summary.files_outside_scope)
 
 
 # ---------------------------------------------------------------------------
@@ -593,7 +595,12 @@ class TestLoadWorkspace:
 
         # Corrupt the workspace.json
         config_path = (
-            tmp_path / ".harness" / "isolation" / "sess-303" / "planner" / "workspace.json"
+            tmp_path
+            / ".harness"
+            / "isolation"
+            / "sess-303"
+            / "planner"
+            / "workspace.json"
         )
         config_path.write_text("not valid json {{{", encoding="utf-8")
 
@@ -616,9 +623,7 @@ class TestMatchesAnyGlob:
         assert IsolationManager._matches_any_glob("README.md", ["*.md"]) is True
 
     def test_recursive_glob_match(self) -> None:
-        assert IsolationManager._matches_any_glob(
-            "src/app/main.py", ["src/**"]
-        ) is True
+        assert IsolationManager._matches_any_glob("src/app/main.py", ["src/**"]) is True
 
     def test_no_match(self) -> None:
         assert IsolationManager._matches_any_glob("src/main.py", ["docs/**"]) is False
@@ -627,21 +632,28 @@ class TestMatchesAnyGlob:
         assert IsolationManager._matches_any_glob("any/file.py", []) is False
 
     def test_multiple_patterns_one_matches(self) -> None:
-        assert IsolationManager._matches_any_glob(
-            "tests/test_main.py",
-            ["src/**", "tests/**", "docs/**"],
-        ) is True
+        assert (
+            IsolationManager._matches_any_glob(
+                "tests/test_main.py",
+                ["src/**", "tests/**", "docs/**"],
+            )
+            is True
+        )
 
     def test_harness_glob(self) -> None:
-        assert IsolationManager._matches_any_glob(
-            ".harness/config.toml", [".harness/**"]
-        ) is True
+        assert (
+            IsolationManager._matches_any_glob(".harness/config.toml", [".harness/**"])
+            is True
+        )
 
     def test_fnmatch_style_double_star(self) -> None:
         # fnmatch treats ** same as * (no recursive semantics)
-        assert IsolationManager._matches_any_glob(
-            "docs/briefs/overview.md", ["docs/briefs/**"]
-        ) is True
+        assert (
+            IsolationManager._matches_any_glob(
+                "docs/briefs/overview.md", ["docs/briefs/**"]
+            )
+            is True
+        )
 
     def test_star_matches_extension(self) -> None:
         assert IsolationManager._matches_any_glob("CHANGELOG.md", ["*.md"]) is True

@@ -23,7 +23,9 @@ class TransitionRule:
     title: str
     rule: str
     target_layer: HarnessLayer
-    source: str = "harness-engineering/references/layer-progression.md § Transition Rules"
+    source: str = (
+        "harness-engineering/references/layer-progression.md § Transition Rules"
+    )
 
 
 # The 10 rules, in canonical order. ``target_layer`` is the layer the

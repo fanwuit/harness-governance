@@ -12,8 +12,6 @@ import click
 from ..messages import bilingual
 from ..state_machine.isolation import (
     _CANONICAL_ROLES,
-    _DEFAULT_ROLE_PATHS,
-    _DEFAULT_ROLE_ALLOWANCES,
     IsolationManager,
 )
 from ._util import resolve_root
@@ -32,7 +30,9 @@ def isolation_group() -> None:
 @isolation_group.command("init")
 @click.option("--session-id", required=True, help="Governance session ID.")
 @click.option("--change-id", default="", help="Change/packet identifier.")
-@click.option("--role", "roles", multiple=True, help="Roles to initialize (repeatable).")
+@click.option(
+    "--role", "roles", multiple=True, help="Roles to initialize (repeatable)."
+)
 @click.pass_context
 def isolation_init(
     ctx: click.Context,
@@ -82,7 +82,9 @@ def isolation_check(ctx: click.Context, session_id: str) -> None:
     click.echo(
         bilingual(
             "isolation.roles_found",
-            roles=", ".join(summary.roles_isolated) if summary.roles_isolated else "none",
+            roles=", ".join(summary.roles_isolated)
+            if summary.roles_isolated
+            else "none",
         ),
     )
     click.echo(
@@ -136,4 +138,3 @@ def isolation_list(ctx: click.Context, session_id: str) -> None:
         click.echo(f"  {role}:")
         click.echo(f"    {bilingual('isolation.paths_label')}: {paths_str}")
         click.echo(f"    {bilingual('isolation.roles_label')}: {roles_str}")
-

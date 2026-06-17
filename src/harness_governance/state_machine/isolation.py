@@ -15,7 +15,6 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from ..file_ops.ndjson_writer import NDJSONWriter
 from ..models.schemas import IsolationRecord, IsolationSummary, IsolationWorkspace
@@ -150,7 +149,9 @@ class IsolationManager:
         """
         ws = self._load_workspace_config(session_id, role) if session_id else None
 
-        allowed_globs = list(ws.allowed_paths) if ws else _DEFAULT_ROLE_PATHS.get(role, [])
+        allowed_globs = (
+            list(ws.allowed_paths) if ws else _DEFAULT_ROLE_PATHS.get(role, [])
+        )
         violations: list[str] = []
 
         for file_path in files_touched:
@@ -249,9 +250,7 @@ class IsolationManager:
                 path.read_text(encoding="utf-8")
             )
         except Exception:
-            logger.warning(
-                "Failed to parse workspace config: %s", path, exc_info=True
-            )
+            logger.warning("Failed to parse workspace config: %s", path, exc_info=True)
             return None
 
     @staticmethod

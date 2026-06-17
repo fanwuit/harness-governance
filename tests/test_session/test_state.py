@@ -124,8 +124,18 @@ class TestRigorTierAndLayerQA:
             routing_path=RoutingPath.GOVERNED_PATH,
             rigor_tier="strict",
             layer_qa=(
-                {"layer": "intake-orientation", "question": "What is the task?", "answer": "Build X", "timestamp": "2026-06-16T10:00:00Z"},
-                {"layer": "intake-orientation", "question": "Any constraints?", "answer": "No", "timestamp": "2026-06-16T10:00:01Z"},
+                {
+                    "layer": "intake-orientation",
+                    "question": "What is the task?",
+                    "answer": "Build X",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Any constraints?",
+                    "answer": "No",
+                    "timestamp": "2026-06-16T10:00:01Z",
+                },
             ),
         )
         raw = json.loads(state.model_dump_json())

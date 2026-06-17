@@ -52,14 +52,14 @@ if _IS_WINDOWS:
             pass
 
 else:
-    import fcntl
+    import fcntl  # type: ignore[import-untyped]
 
     def _lock_file(fd: int) -> bool:
         """Acquire an exclusive advisory lock on *fd*.  Returns True on success."""
         deadline = time.perf_counter() + _LOCK_TIMEOUT
         while True:
             try:
-                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)  # type: ignore[attr-defined]
                 return True
             except BlockingIOError:
                 if time.perf_counter() >= deadline:
@@ -71,7 +71,7 @@ else:
     def _unlock_file(fd: int) -> None:
         """Release the advisory lock on *fd*."""
         try:
-            fcntl.flock(fd, fcntl.LOCK_UN)
+            fcntl.flock(fd, fcntl.LOCK_UN)  # type: ignore[attr-defined]
         except OSError:
             pass
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -16,9 +15,7 @@ from harness_governance.cli import cli
 
 def _init_config(runner: CliRunner, tmp_repo: Path) -> None:
     """Run ``harness config init`` to create a baseline config."""
-    result = runner.invoke(
-        cli, ["--project-root", str(tmp_repo), "config", "init"]
-    )
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "config", "init"])
     assert result.exit_code == 0, result.output
 
 
@@ -29,9 +26,7 @@ class TestConfigShow:
     def test_show_displays_fields(self, tmp_repo: Path) -> None:
         runner = CliRunner()
         _init_config(runner, tmp_repo)
-        result = runner.invoke(
-            cli, ["--project-root", str(tmp_repo), "config", "show"]
-        )
+        result = runner.invoke(cli, ["--project-root", str(tmp_repo), "config", "show"])
         assert result.exit_code == 0, result.output
         assert "agent_platform" in result.output
         assert "queue_file" in result.output
@@ -52,9 +47,7 @@ class TestConfigShow:
     def test_show_uses_defaults_when_no_file(self, tmp_repo: Path) -> None:
         """show should work even without a config file (using defaults)."""
         runner = CliRunner()
-        result = runner.invoke(
-            cli, ["--project-root", str(tmp_repo), "config", "show"]
-        )
+        result = runner.invoke(cli, ["--project-root", str(tmp_repo), "config", "show"])
         assert result.exit_code == 0, result.output
         # Defaults should still show agent_platform
         assert "agent_platform" in result.output
@@ -69,7 +62,13 @@ class TestConfigSet:
         _init_config(runner, tmp_repo)
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_repo), "config", "set", "check_frequency=always"],
+            [
+                "--project-root",
+                str(tmp_repo),
+                "config",
+                "set",
+                "check_frequency=always",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert "check_frequency" in result.output
@@ -84,8 +83,10 @@ class TestConfigSet:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
-                "config", "set",
+                "--project-root",
+                str(tmp_repo),
+                "config",
+                "set",
                 "check_frequency=phase-closeout",
                 "queue_file=TODO.md",
             ],
@@ -114,7 +115,13 @@ class TestConfigSet:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_repo), "config", "set", "check_frequency=always"],
+            [
+                "--project-root",
+                str(tmp_repo),
+                "config",
+                "set",
+                "check_frequency=always",
+            ],
         )
         assert result.exit_code != 0
 
@@ -124,8 +131,11 @@ class TestConfigSet:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
-                "--json", "config", "set",
+                "--project-root",
+                str(tmp_repo),
+                "--json",
+                "config",
+                "set",
                 "check_frequency=always",
             ],
         )
@@ -182,9 +192,7 @@ class TestConfigValidate:
         runner = CliRunner()
         harness_dir = tmp_repo / ".harness"
         harness_dir.mkdir(parents=True)
-        (harness_dir / "config.toml").write_text(
-            'bogus = "x"\n', encoding="utf-8"
-        )
+        (harness_dir / "config.toml").write_text('bogus = "x"\n', encoding="utf-8")
         result = runner.invoke(
             cli,
             ["--project-root", str(tmp_repo), "--json", "config", "validate"],

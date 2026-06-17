@@ -48,6 +48,7 @@ def _migrate(raw: dict[str, Any], *, from_version: int) -> dict[str, Any]:
     payload["schema_version"] = CURRENT_SCHEMA_VERSION
     return payload
 
+
 if sys.version_info >= (3, 11):  # pragma: no cover - branch covered by version gate
     import tomllib as _toml
 else:  # pragma: no cover
@@ -99,10 +100,13 @@ def load_config(
         logger.debug("no config file at %s; using defaults", cfg_path)
 
     # Schema migration: bring old configs up to date.
-    file_version = int(raw.get("schema_version", 0))
+    file_version = int(raw.get("schema_version", 0) or 0)  # type: ignore[call-overload]
     if file_version < CURRENT_SCHEMA_VERSION:
-        logger.info("migrating config from schema v%d to v%d",
-                     file_version, CURRENT_SCHEMA_VERSION)
+        logger.info(
+            "migrating config from schema v%d to v%d",
+            file_version,
+            CURRENT_SCHEMA_VERSION,
+        )
         raw = _migrate(raw, from_version=file_version)
 
     payload: dict[str, object] = dict(raw)
@@ -127,6 +131,7 @@ def load_config(
     # Parse scope_budget string if present (e.g. "10/800" -> ScopeBudget).
     if scope_budget_raw is not None and isinstance(scope_budget_raw, str):
         from ..file_ops.queue import _parse_scope
+
         sb = _parse_scope(scope_budget_raw)
         config = config.model_copy(update={"scope_budget": sb})
 
@@ -170,7 +175,7 @@ def write_default_config(
         'planning_root = ".planning"\n'
         'harness_dir = ".harness"\n'
         'check_frequency = "targeted"\n'
-        'require_session = true\n'
+        "require_session = true\n"
         "\n"
         "# Scope budget: limits per-task change size to prevent agent drift.\n"
         "# Format: max-files/max-diff-lines. Set to 0/0 to disable.\n"

@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from click.testing import CliRunner, Result
 
 from harness_governance.cli import cli
@@ -20,7 +19,7 @@ from harness_governance.models.schemas import (
     ScopeDeclaration,
 )
 from harness_governance.state_machine.drift import DriftDetectionEngine
-from tests.conftest import seed_session, write_permissive_config
+from tests.conftest import write_permissive_config
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +182,7 @@ class TestDriftCheck:
         assert "1" in result.output
         # Line stats.
         assert "10" in result.output  # added
-        assert "5" in result.output   # deleted
+        assert "5" in result.output  # deleted
 
     @patch(PATCH_BASE_CMD, return_value="abc12345")
     @patch(PATCH_BASE, return_value="abc12345")
@@ -229,11 +228,16 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-s1",
-                "--file", "src/a.py",
-                "--file", "src/b.py",
-                "--max-files", "10",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-s1",
+                "--file",
+                "src/a.py",
+                "--file",
+                "src/b.py",
+                "--max-files",
+                "10",
             ],
             project_root=tmp_path,
         )
@@ -253,11 +257,16 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-f1",
-                "--file", "src/a.py",
-                "--forbidden", "secrets/*",
-                "--forbidden", "vendor/**",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-f1",
+                "--file",
+                "src/a.py",
+                "--forbidden",
+                "secrets/*",
+                "--forbidden",
+                "vendor/**",
             ],
             project_root=tmp_path,
         )
@@ -272,9 +281,12 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-strict",
-                "--tier", "strict",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-strict",
+                "--tier",
+                "strict",
             ],
             project_root=tmp_path,
         )
@@ -289,9 +301,12 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-light",
-                "--tier", "light",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-light",
+                "--tier",
+                "light",
             ],
             project_root=tmp_path,
         )
@@ -307,10 +322,14 @@ class TestDriftScope:
         # First declaration.
         _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-upd",
-                "--file", "src/a.py",
-                "--max-files", "10",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-upd",
+                "--file",
+                "src/a.py",
+                "--max-files",
+                "10",
             ],
             project_root=tmp_path,
         )
@@ -318,9 +337,12 @@ class TestDriftScope:
         # Update with additional files.
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-upd",
-                "--file", "src/b.py",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-upd",
+                "--file",
+                "src/b.py",
             ],
             project_root=tmp_path,
         )
@@ -336,9 +358,12 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-ml",
-                "--max-lines", "300",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-ml",
+                "--max-lines",
+                "300",
             ],
             project_root=tmp_path,
         )
@@ -352,9 +377,12 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-msg",
-                "--file", "src/a.py",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-msg",
+                "--file",
+                "src/a.py",
             ],
             project_root=tmp_path,
         )
@@ -366,10 +394,14 @@ class TestDriftScope:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-sess",
-                "--session-id", "my-session",
-                "--file", "src/a.py",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-sess",
+                "--session-id",
+                "my-session",
+                "--file",
+                "src/a.py",
             ],
             project_root=tmp_path,
         )
@@ -434,9 +466,7 @@ class TestDriftBoundary:
         assert "secrets/*" in result.output
         assert "vendor/**" in result.output
 
-    def test_boundary_shows_infinity_for_zero_thresholds(
-        self, tmp_path: Path
-    ) -> None:
+    def test_boundary_shows_infinity_for_zero_thresholds(self, tmp_path: Path) -> None:
         """Zero thresholds display as infinity symbol."""
         write_permissive_config(tmp_path)
         _seed_scope(tmp_path, "chg-inf", files=("src/a.py",))
@@ -481,9 +511,12 @@ class TestProjectRoot:
         write_permissive_config(tmp_path)
         result = _invoke(
             [
-                "drift", "scope",
-                "--change-id", "chg-root",
-                "--file", "src/a.py",
+                "drift",
+                "scope",
+                "--change-id",
+                "chg-root",
+                "--file",
+                "src/a.py",
             ],
             project_root=tmp_path,
         )
@@ -506,9 +539,7 @@ class TestProjectRoot:
         )
         assert result.exit_code == 0, result.output
 
-    def test_project_root_boundary_reads_from_correct_dir(
-        self, tmp_path: Path
-    ) -> None:
+    def test_project_root_boundary_reads_from_correct_dir(self, tmp_path: Path) -> None:
         """``drift boundary`` reads scope from the specified project root."""
         write_permissive_config(tmp_path)
         _seed_scope(tmp_path, "chg-prb", files=("src/x.py",), max_files=7)

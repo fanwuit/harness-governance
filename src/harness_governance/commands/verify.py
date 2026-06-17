@@ -44,16 +44,25 @@ def verify_cmd(ctx: click.Context, preset: str) -> None:
             "inventory": check_inventory,
         }
         if runner_name == "all":
-            results = [runners[k](project_root) for k in ("routing", "packets", "entry", "inventory")]
+            results = [
+                runners[k](project_root)
+                for k in ("routing", "packets", "entry", "inventory")
+            ]
             passed = all(r.passed for r in results)
-            click.echo(bilingual("verify.passed" if passed else "verify.failed", preset=preset))
+            click.echo(
+                bilingual("verify.passed" if passed else "verify.failed", preset=preset)
+            )
             for r in results:
                 click.echo(f"  {r.check}: {'pass' if r.passed else 'FAIL'}")
             if not passed:
                 raise click.exceptions.Exit(code=1)
             return
         result = runners[runner_name](project_root)
-        click.echo(bilingual("verify.passed" if result.passed else "verify.failed", preset=preset))
+        click.echo(
+            bilingual(
+                "verify.passed" if result.passed else "verify.failed", preset=preset
+            )
+        )
         if not result.passed:
             for finding in result.findings:
                 click.echo(f"  - {finding.target}: {finding.message}")

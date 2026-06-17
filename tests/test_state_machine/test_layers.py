@@ -79,6 +79,4 @@ def test_layer_index() -> None:
 def test_layer_entries_have_author_guide() -> None:
     """Every LayerEntry must have a non-empty author_guide key."""
     for entry in LAYER_MAP:
-        assert entry.author_guide, (
-            f"Layer {entry.layer.value} is missing author_guide"
-        )
+        assert entry.author_guide, f"Layer {entry.layer.value} is missing author_guide"

@@ -37,7 +37,7 @@ class Checkpoint:
         # Known field names on the dataclass; unknown headings are ignored
         # rather than crashing cls(**fields) with TypeError.
         valid_field_names = {f.name for f in fields(cls)}
-        fields = {
+        field_defaults = {
             "last_worker": "",
             "durable_state_updated": "",
             "verification": "",
@@ -50,7 +50,7 @@ class Checkpoint:
             stripped = line.strip()
             if stripped.startswith("## "):
                 if current is not None:
-                    fields[current] = "\n".join(buffer).strip()
+                    field_defaults[current] = "\n".join(buffer).strip()
                 candidate = _heading_to_field(stripped[3:])
                 # Only track headings that map to a real dataclass field.
                 current = candidate if candidate in valid_field_names else None
@@ -58,8 +58,8 @@ class Checkpoint:
             elif current is not None:
                 buffer.append(line)
         if current is not None:
-            fields[current] = "\n".join(buffer).strip()
-        return cls(**fields)
+            field_defaults[current] = "\n".join(buffer).strip()
+        return cls(**field_defaults)
 
     def dump(self, path: Path) -> None:
         """Write the checkpoint as Markdown to ``path``."""

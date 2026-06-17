@@ -6,7 +6,6 @@ import os
 import time
 from pathlib import Path
 
-import pytest
 
 from harness_governance.file_ops import _cache
 from harness_governance.file_ops._cache import (

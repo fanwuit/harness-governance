@@ -52,7 +52,9 @@ def test_implementation_after_brief_blocked(engine: StateMachineEngine) -> None:
     )
     verdict = engine.evaluate(ctx)
     assert not verdict.allowed
-    assert any(v.rule_code == "T1-READINESS-BEFORE-IMPLEMENTATION" for v in verdict.violations)
+    assert any(
+        v.rule_code == "T1-READINESS-BEFORE-IMPLEMENTATION" for v in verdict.violations
+    )
 
 
 def test_prototype_exception_only_when_safe(engine: StateMachineEngine) -> None:
@@ -74,7 +76,9 @@ def test_prototype_exception_only_when_safe(engine: StateMachineEngine) -> None:
     assert any(v.rule_code == "T2-PROTOTYPE-EXCEPTION" for v in verdict.violations)
 
 
-def test_contract_freezing_boundaries_requires_arch_or_adr(engine: StateMachineEngine) -> None:
+def test_contract_freezing_boundaries_requires_arch_or_adr(
+    engine: StateMachineEngine,
+) -> None:
     bad_ctx = TransitionContext(
         from_layer=HarnessLayer.BRAINSTORMING,
         to_layer=HarnessLayer.CONTRACT,
@@ -90,7 +94,9 @@ def test_contract_freezing_boundaries_requires_arch_or_adr(engine: StateMachineE
     assert engine.evaluate(good_ctx).allowed
 
 
-def test_adr_chat_only_with_long_lived_boundary_blocked(engine: StateMachineEngine) -> None:
+def test_adr_chat_only_with_long_lived_boundary_blocked(
+    engine: StateMachineEngine,
+) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.ARCHITECTURE,
         to_layer=HarnessLayer.ADR,
@@ -113,7 +119,9 @@ def test_fact_discovery_blocks_forward_transition(engine: StateMachineEngine) ->
     assert any(v.rule_code == "T5-FACT-DISCOVERY-INTERRUPT" for v in verdict.violations)
 
 
-def test_fact_discovery_allows_staying_at_same_layer(engine: StateMachineEngine) -> None:
+def test_fact_discovery_allows_staying_at_same_layer(
+    engine: StateMachineEngine,
+) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.BRIEF,
         to_layer=HarnessLayer.BRIEF,
@@ -123,7 +131,9 @@ def test_fact_discovery_allows_staying_at_same_layer(engine: StateMachineEngine)
     assert verdict.allowed
 
 
-def test_fact_discovery_allows_entering_fact_discovery(engine: StateMachineEngine) -> None:
+def test_fact_discovery_allows_entering_fact_discovery(
+    engine: StateMachineEngine,
+) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.BRIEF,
         to_layer=HarnessLayer.FACT_DISCOVERY,
@@ -136,15 +146,19 @@ def test_fact_discovery_allows_entering_fact_discovery(engine: StateMachineEngin
 def test_verification_failure_blocks_layer_change(engine: StateMachineEngine) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.IMPLEMENTATION,
-        to_layer=HarnessLayer.READINESS,
+        to_layer=HarnessLayer.REVIEW_NEXT,
         verification_failed=True,
     )
     verdict = engine.evaluate(ctx)
     assert not verdict.allowed
-    assert any(v.rule_code == "T8-VERIFICATION-FAILURE-OWNER" for v in verdict.violations)
+    assert any(
+        v.rule_code == "T8-VERIFICATION-FAILURE-OWNER" for v in verdict.violations
+    )
 
 
-def test_verification_failure_allows_staying_at_same_layer(engine: StateMachineEngine) -> None:
+def test_verification_failure_allows_staying_at_same_layer(
+    engine: StateMachineEngine,
+) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.IMPLEMENTATION,
         to_layer=HarnessLayer.IMPLEMENTATION,
@@ -154,7 +168,9 @@ def test_verification_failure_allows_staying_at_same_layer(engine: StateMachineE
     assert verdict.allowed
 
 
-def test_implementation_uncontracted_returns_to_contract(engine: StateMachineEngine) -> None:
+def test_implementation_uncontracted_returns_to_contract(
+    engine: StateMachineEngine,
+) -> None:
     ctx = TransitionContext(
         from_layer=HarnessLayer.IMPLEMENTATION,
         to_layer=HarnessLayer.IMPLEMENTATION,

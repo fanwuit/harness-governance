@@ -14,7 +14,6 @@ Two patterns:
 from __future__ import annotations
 
 import functools
-import os
 from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable, ParamSpec, TypeVar
@@ -73,11 +72,15 @@ def file_cache(func: Callable[P, T]) -> Callable[P, T]:
             store.popitem(last=False)
         return result
 
-    wrapper.cache_info = lambda: type("Info", (), {
-        "hits": cache_hits,
-        "misses": cache_misses,
-        "size": len(store),
-    })()
+    wrapper.cache_info = lambda: type(  # type: ignore[attr-defined]
+        "Info",
+        (),
+        {
+            "hits": cache_hits,
+            "misses": cache_misses,
+            "size": len(store),
+        },
+    )()
     wrapper.cache_clear = store.clear  # type: ignore[attr-defined]
     return wrapper
 

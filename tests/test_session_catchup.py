@@ -5,14 +5,12 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from harness_governance.plugins.session_catchup import (
     CatchupReport,
     MIN_SESSION_BYTES,
-    PLANNING_FILES,
     _claude_project_dir,
     _codex_sessions_dir,
     _extract_claude_after,
@@ -33,6 +31,7 @@ from harness_governance.plugins.session_catchup import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_big_session(path: Path, extra_lines: list[dict] | None = None) -> Path:
     """Write a JSONL session file that exceeds MIN_SESSION_BYTES."""
@@ -57,6 +56,7 @@ def _make_big_session(path: Path, extra_lines: list[dict] | None = None) -> Path
 # ===========================================================================
 # 1. _normalize_path
 # ===========================================================================
+
 
 class TestNormalizePath:
     def test_git_bash_path_conversion(self) -> None:
@@ -95,6 +95,7 @@ class TestNormalizePath:
 # 2. _claude_project_dir
 # ===========================================================================
 
+
 class TestClaudeProjectDir:
     def test_special_chars_sanitized(self) -> None:
         result = _claude_project_dir("/home/user/my_project")
@@ -118,6 +119,7 @@ class TestClaudeProjectDir:
 # 3. _codex_sessions_dir
 # ===========================================================================
 
+
 class TestCodexSessionsDir:
     def test_default_path(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("CODEX_SESSIONS_DIR", raising=False)
@@ -134,6 +136,7 @@ class TestCodexSessionsDir:
 # ===========================================================================
 # 4. _list_claude_sessions
 # ===========================================================================
+
 
 class TestListClaudeSessions:
     def test_non_dir_returns_empty(self, tmp_path: Path) -> None:
@@ -180,13 +183,18 @@ class TestListClaudeSessions:
 # 5. _list_codex_sessions
 # ===========================================================================
 
+
 class TestListCodexSessions:
-    def test_no_sessions_dir_returns_empty(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_no_sessions_dir_returns_empty(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("CODEX_SESSIONS_DIR", str(tmp_path / "missing"))
         result = _list_codex_sessions(str(tmp_path))
         assert result == []
 
-    def test_thread_filter(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_thread_filter(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
         monkeypatch.setenv("CODEX_SESSIONS_DIR", str(sessions_dir))
@@ -207,7 +215,9 @@ class TestListCodexSessions:
         assert "rollout-thread-abc.jsonl" in names
         assert "rollout-thread-xyz.jsonl" not in names
 
-    def test_project_matching(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_project_matching(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         sessions_dir = tmp_path / "sessions"
         sessions_dir.mkdir()
         monkeypatch.setenv("CODEX_SESSIONS_DIR", str(sessions_dir))
@@ -236,6 +246,7 @@ class TestListCodexSessions:
 # 6. _is_codex_session_for_project
 # ===========================================================================
 
+
 class TestIsCodexSessionForProject:
     def test_small_file_returns_false(self, tmp_path: Path) -> None:
         f = tmp_path / "tiny.jsonl"
@@ -249,7 +260,9 @@ class TestIsCodexSessionForProject:
         f.write_text(content, encoding="utf-8")
         assert _is_codex_session_for_project(f, "/some/path") is False
 
-    def test_session_meta_with_valid_cwd(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_session_meta_with_valid_cwd(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         project_path = "/my/project"
         normalized_project = _normalize_path(project_path)
 
@@ -296,6 +309,7 @@ class TestIsCodexSessionForProject:
 # 7. _safe_mtime
 # ===========================================================================
 
+
 class TestSafeMtime:
     def test_normal_path(self, tmp_path: Path) -> None:
         f = tmp_path / "file.txt"
@@ -311,6 +325,7 @@ class TestSafeMtime:
 # ===========================================================================
 # 8. _is_substantial
 # ===========================================================================
+
 
 class TestIsSubstantial:
     def test_large_file(self, tmp_path: Path) -> None:
@@ -332,6 +347,7 @@ class TestIsSubstantial:
 # 9. _planning_file_from_path
 # ===========================================================================
 
+
 class TestPlanningFileFromPath:
     def test_match_task_plan(self) -> None:
         assert _planning_file_from_path("/some/dir/task_plan.md") == "task_plan.md"
@@ -352,6 +368,7 @@ class TestPlanningFileFromPath:
 # ===========================================================================
 # 10. CatchupReport.to_markdown
 # ===========================================================================
+
 
 class TestCatchupReportToMarkdown:
     def test_none_previous_session_returns_empty(self) -> None:
@@ -404,12 +421,15 @@ class TestCatchupReportToMarkdown:
 # 11. _parse_claude_messages
 # ===========================================================================
 
+
 class TestParseClaudeMessages:
     def test_normal_jsonl(self, tmp_path: Path) -> None:
         f = tmp_path / "session.jsonl"
         line1 = {"type": "user", "message": {"content": "hi"}}
         line2 = {"type": "assistant", "message": {"content": "hello"}}
-        f.write_text(json.dumps(line1) + "\n" + json.dumps(line2) + "\n", encoding="utf-8")
+        f.write_text(
+            json.dumps(line1) + "\n" + json.dumps(line2) + "\n", encoding="utf-8"
+        )
         msgs = _parse_claude_messages(f)
         assert len(msgs) == 2
         assert msgs[0]["type"] == "user"
@@ -428,7 +448,9 @@ class TestParseClaudeMessages:
 
     def test_empty_lines_skipped(self, tmp_path: Path) -> None:
         f = tmp_path / "session.jsonl"
-        f.write_text('\n\n{"type":"user","message":{"content":"x"}}\n\n', encoding="utf-8")
+        f.write_text(
+            '\n\n{"type":"user","message":{"content":"x"}}\n\n', encoding="utf-8"
+        )
         msgs = _parse_claude_messages(f)
         assert len(msgs) == 1
 
@@ -440,6 +462,7 @@ class TestParseClaudeMessages:
 # ===========================================================================
 # 12. _find_last_claude_planning_update
 # ===========================================================================
+
 
 class TestFindLastClaudePlanningUpdate:
     def test_with_write_tool(self) -> None:
@@ -557,13 +580,16 @@ class TestFindLastClaudePlanningUpdate:
 # 13. _extract_claude_after
 # ===========================================================================
 
+
 class TestExtractClaudeAfter:
     def test_user_message_included(self) -> None:
         messages = [
             {
                 "type": "user",
                 "_line_num": 5,
-                "message": {"content": "please continue the work that was started earlier in this session"},
+                "message": {
+                    "content": "please continue the work that was started earlier in this session"
+                },
             }
         ]
         result = _extract_claude_after(messages, 3)
@@ -588,17 +614,23 @@ class TestExtractClaudeAfter:
             {
                 "type": "user",
                 "_line_num": 5,
-                "message": {"content": "<local-command>this is a command</local-command>"},
+                "message": {
+                    "content": "<local-command>this is a command</local-command>"
+                },
             },
             {
                 "type": "user",
                 "_line_num": 6,
-                "message": {"content": "<command-message>another command here</command-message>"},
+                "message": {
+                    "content": "<command-message>another command here</command-message>"
+                },
             },
             {
                 "type": "user",
                 "_line_num": 7,
-                "message": {"content": "<task-notification>notification body here</task-notification>"},
+                "message": {
+                    "content": "<task-notification>notification body here</task-notification>"
+                },
             },
         ]
         result = _extract_claude_after(messages, 3)
@@ -685,7 +717,9 @@ class TestExtractClaudeAfter:
             {
                 "type": "assistant",
                 "_line_num": 7,
-                "message": {"content": "Here is some text response with enough length to be included."},
+                "message": {
+                    "content": "Here is some text response with enough length to be included."
+                },
             }
         ]
         result = _extract_claude_after(messages, 3)
@@ -698,12 +732,16 @@ class TestExtractClaudeAfter:
             {
                 "type": "user",
                 "_line_num": 2,
-                "message": {"content": "this message is before the cutoff line number and should be excluded from results"},
+                "message": {
+                    "content": "this message is before the cutoff line number and should be excluded from results"
+                },
             },
             {
                 "type": "user",
                 "_line_num": 10,
-                "message": {"content": "this message is after the cutoff and should appear in the output list"},
+                "message": {
+                    "content": "this message is after the cutoff and should appear in the output list"
+                },
             },
         ]
         result = _extract_claude_after(messages, 5)
@@ -715,8 +753,11 @@ class TestExtractClaudeAfter:
 # 14. catchup — additional scenarios
 # ===========================================================================
 
+
 class TestCatchup:
-    def test_claude_session_no_planning_update(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_claude_session_no_planning_update(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Session exists but has no Write/Edit to planning files → previous_session set, no planning info."""
         (tmp_path / "task_plan.md").write_text("# Plan\n", encoding="utf-8")
         claude_dir = tmp_path / "claude_proj"
@@ -724,7 +765,14 @@ class TestCatchup:
         session = claude_dir / "session-1.jsonl"
         # Only Bash tool, no planning file edits
         lines = [
-            {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}]}},
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}
+                    ]
+                },
+            },
         ]
         _make_big_session(session, lines)
 
@@ -738,7 +786,9 @@ class TestCatchup:
         assert report.last_planning_update_file is None
         assert report.last_planning_update_line == -1
 
-    def test_codex_sessions_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_codex_sessions_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """No claude dir → falls through to codex path."""
         project_dir = tmp_path / "myproj"
         project_dir.mkdir()
@@ -764,7 +814,9 @@ class TestCatchup:
         assert report.runtime == "codex"
         assert report.previous_session == codex_session
 
-    def test_no_sessions_found(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_no_sessions_found(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Planning file exists but no sessions at all."""
         (tmp_path / "findings.md").write_text("# Findings\n", encoding="utf-8")
         monkeypatch.setattr(
@@ -779,7 +831,9 @@ class TestCatchup:
         assert report.runtime == "none"
         assert report.previous_session is None
 
-    def test_claude_dir_exists_but_no_sessions(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_claude_dir_exists_but_no_sessions(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Claude project dir exists but is empty."""
         (tmp_path / "task_plan.md").write_text("# Plan\n", encoding="utf-8")
         claude_dir = tmp_path / "empty_claude"
@@ -797,8 +851,14 @@ class TestCatchup:
 # 15. main
 # ===========================================================================
 
+
 class TestMain:
-    def test_with_args(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_with_args(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
         # Make catchup return an empty report
         monkeypatch.setattr(
             "harness_governance.plugins.session_catchup.catchup",
@@ -810,7 +870,9 @@ class TestMain:
         # Empty report → no markdown output
         assert captured.out == ""
 
-    def test_with_report_output(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_with_report_output(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         report = CatchupReport(
             runtime="claude",
             previous_session=Path("/tmp/sess.jsonl"),
@@ -835,12 +897,16 @@ class TestMain:
             captured_paths.append(path)
             return CatchupReport(runtime="none")
 
-        monkeypatch.setattr("harness_governance.plugins.session_catchup.catchup", fake_catchup)
+        monkeypatch.setattr(
+            "harness_governance.plugins.session_catchup.catchup", fake_catchup
+        )
         main([])
         assert len(captured_paths) == 1
         assert captured_paths[0] == os.getcwd()
 
-    def test_empty_report_no_stdout(self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_empty_report_no_stdout(
+        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         monkeypatch.setattr(
             "harness_governance.plugins.session_catchup.catchup",
             lambda path: CatchupReport(runtime="none"),

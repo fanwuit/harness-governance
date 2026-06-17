@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -44,9 +42,12 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -64,9 +65,12 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -78,9 +82,12 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -92,9 +99,12 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -107,11 +117,16 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
-                "--role", "planner",
-                "--role", "reviewer",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
+                "--role",
+                "planner",
+                "--role",
+                "reviewer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -128,10 +143,14 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
-                "--change-id", "chg-001",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
+                "--change-id",
+                "chg-001",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -142,9 +161,12 @@ class TestIsolationInit:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -161,8 +183,10 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
             ],
         )
         assert result.exit_code != 0
@@ -174,10 +198,14 @@ class TestIsolationInit:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
-                "--role", "implementer",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
+                "--role",
+                "implementer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -201,9 +229,12 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -211,9 +242,12 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -225,18 +259,24 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -252,9 +292,12 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -274,9 +317,12 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 1
@@ -288,18 +334,24 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -314,9 +366,12 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", "nonexistent-session",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                "nonexistent-session",
             ],
         )
         # No roles isolated, but no violations either
@@ -330,8 +385,10 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
             ],
         )
         assert result.exit_code != 0
@@ -343,9 +400,12 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -365,9 +425,12 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 1
@@ -380,9 +443,12 @@ class TestIsolationCheck:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -402,9 +468,12 @@ class TestIsolationCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 1
@@ -425,18 +494,24 @@ class TestIsolationList:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -450,18 +525,24 @@ class TestIsolationList:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -475,18 +556,24 @@ class TestIsolationList:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -502,19 +589,26 @@ class TestIsolationList:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
-                "--role", "planner",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
+                "--role",
+                "planner",
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -529,9 +623,12 @@ class TestIsolationList:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", "empty-session",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                "empty-session",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -544,8 +641,10 @@ class TestIsolationList:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
             ],
         )
         assert result.exit_code != 0
@@ -558,18 +657,24 @@ class TestIsolationList:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -592,9 +697,12 @@ class TestProjectRootOption:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -610,18 +718,24 @@ class TestProjectRootOption:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "check",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "check",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -633,18 +747,24 @@ class TestProjectRootOption:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output
@@ -664,9 +784,12 @@ class TestProjectRootOption:
         runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "isolation", "init",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(tmp_path),
+                "isolation",
+                "init",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
 
@@ -674,9 +797,12 @@ class TestProjectRootOption:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(other_root),
-                "isolation", "list",
-                "--session-id", _SESSION_ID,
+                "--project-root",
+                str(other_root),
+                "isolation",
+                "list",
+                "--session-id",
+                _SESSION_ID,
             ],
         )
         assert result.exit_code == 0, result.output

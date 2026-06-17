@@ -26,7 +26,17 @@ class HarnessConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     schema_version: int = 1
-    agent_platform: Literal["claude-code", "codex", "cline", "cursor", "opencode", "windsurf", "qoderwork", "generic", "multi"] = "claude-code"
+    agent_platform: Literal[
+        "claude-code",
+        "codex",
+        "cline",
+        "cursor",
+        "opencode",
+        "windsurf",
+        "qoderwork",
+        "generic",
+        "multi",
+    ] = "claude-code"
     project_root: Path = Field(default_factory=Path.cwd)
     queue_file: Path = Path("NEXT.md")
     changes_root: Path = Path("docs/changes")
@@ -36,7 +46,9 @@ class HarnessConfig(BaseModel):
     blocked_statuses: tuple[str, ...] = ("blocked", "archived")
     check_frequency: Literal["targeted", "phase-closeout", "always"] = "targeted"
     require_session: bool = True
-    scope_budget: ScopeBudget = Field(default_factory=lambda: ScopeBudget(max_files=10, max_diff_lines=800))
+    scope_budget: ScopeBudget = Field(
+        default_factory=lambda: ScopeBudget(max_files=10, max_diff_lines=800)
+    )
 
     @field_validator("project_root")
     @classmethod
@@ -626,7 +638,9 @@ class AlignmentFinding(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    issue: str  # "missing", "renamed", "type_mismatch", "extra_field", "required_missing"
+    issue: (
+        str  # "missing", "renamed", "type_mismatch", "extra_field", "required_missing"
+    )
     contract_field: str = ""
     contract_type: str = ""
     implementation_field: str = ""
@@ -645,7 +659,9 @@ class AlignmentReport(BaseModel):
     fields_matched: int = 0
     findings: tuple[AlignmentFinding, ...] = ()
     passed: bool = False
-    unsupported_languages: tuple[str, ...] = ()  # non-empty → gate downgrades to warning
+    unsupported_languages: tuple[
+        str, ...
+    ] = ()  # non-empty → gate downgrades to warning
     generated_at: str = ""
 
 

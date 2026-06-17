@@ -61,12 +61,38 @@ from .logging_setup import setup_logging
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     help="Project root (defaults to current directory).",
 )
-@click.option("--json", "json_output", is_flag=True, default=False, help="Emit machine-readable JSON output.")
-@click.option("--verbose", "-v", "verbose", is_flag=True, default=False, help="Show informational messages (INFO level).")
-@click.option("--debug", "-d", "debug", is_flag=True, default=False, help="Show detailed diagnostic output (DEBUG level).")
+@click.option(
+    "--json",
+    "json_output",
+    is_flag=True,
+    default=False,
+    help="Emit machine-readable JSON output.",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    "verbose",
+    is_flag=True,
+    default=False,
+    help="Show informational messages (INFO level).",
+)
+@click.option(
+    "--debug",
+    "-d",
+    "debug",
+    is_flag=True,
+    default=False,
+    help="Show detailed diagnostic output (DEBUG level).",
+)
 @click.version_option(__version__, prog_name="harness")
 @click.pass_context
-def cli(ctx: click.Context, project_root: Path | None, json_output: bool, verbose: bool, debug: bool) -> None:
+def cli(
+    ctx: click.Context,
+    project_root: Path | None,
+    json_output: bool,
+    verbose: bool,
+    debug: bool,
+) -> None:
     """harness governance CLI — AI engineering workflow enforcement."""
     if verbose and debug:
         raise click.UsageError("--verbose and --debug are mutually exclusive.")

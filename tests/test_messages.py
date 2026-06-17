@@ -65,7 +65,12 @@ def test_bilingual_returns_only_english_in_en_mode(monkeypatch) -> None:
 
 def test_message_format_substitutes_placeholders(monkeypatch) -> None:
     monkeypatch.setenv("HARNESS_LANG", "zh-CN")
-    text = bilingual("packet.label_invalid_status", label="x/y", filename="contracts.md", value="bogus")
+    text = bilingual(
+        "packet.label_invalid_status",
+        label="x/y",
+        filename="contracts.md",
+        value="bogus",
+    )
     assert "x/y" in text
     assert "bogus" in text
 

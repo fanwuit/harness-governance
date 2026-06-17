@@ -15,7 +15,13 @@ from pathlib import Path
 
 import click
 
-from ..config.defaults import ENV_HINTS, GOVERNANCE_TIERS, PLATFORM_HINTS, PLATFORM_SKILL_PATHS, PLATFORM_SKILL_PATHS_BY_TIER
+from ..config.defaults import (
+    ENV_HINTS,
+    GOVERNANCE_TIERS,
+    PLATFORM_HINTS,
+    PLATFORM_SKILL_PATHS,
+    PLATFORM_SKILL_PATHS_BY_TIER,
+)
 from ..config.settings import write_default_config
 from ..file_ops._util import write_text_no_bom
 from ..messages import bilingual
@@ -39,6 +45,7 @@ def extract_skill_version(content: str) -> str | None:
     """
     m = _SKILL_VERSION_RE.search(content)
     return m.group(1) if m else None
+
 
 _NEXT_MD_TEMPLATE = """\
 <!-- Harness Governance Queue (NEXT.md)
@@ -212,10 +219,14 @@ def load_skill_template(platform: str, tier: str = "standard") -> str:
     Templates are stored under ``data/skills/{tier}/{platform}.{ext}``.
     """
     ext = ".mdc" if platform == "cursor" else ".md"
-    resource = resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath(f"{platform}{ext}")
+    resource = (
+        resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath(f"{platform}{ext}")
+    )
     if not resource.is_file():
         # Fall back to the generic adapter in the same tier.
-        resource = resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath("generic.md")
+        resource = (
+            resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath("generic.md")
+        )
     return resource.read_text(encoding="utf-8")
 
 
@@ -227,7 +238,9 @@ def write_skill_file(project_root: Path, platform: str, tier: str = "standard") 
     byte is not ``-``; a BOM in the template would silently propagate
     into every user project, so it is stripped defensively.
     """
-    tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(platform, PLATFORM_SKILL_PATHS_BY_TIER["generic"])
+    tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(
+        platform, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
+    )
     rel = tier_paths.get(tier, tier_paths["standard"])
     target = (project_root / rel).resolve()
     content = load_skill_template(platform, tier)
@@ -245,7 +258,9 @@ def write_all_skill_files(project_root: Path, platform: str) -> list[Path]:
     paths: list[Path] = []
     # Platforms that use a single shared file for all tiers
     _shared_file_platforms = {"qoderwork", "generic"}
-    tiers_to_write = ["standard"] if platform in _shared_file_platforms else list(GOVERNANCE_TIERS)
+    tiers_to_write = (
+        ["standard"] if platform in _shared_file_platforms else list(GOVERNANCE_TIERS)
+    )
     for tier in tiers_to_write:
         paths.append(write_skill_file(project_root, platform, tier))
     return paths
@@ -279,11 +294,15 @@ def _prompt_platform_choice(default: str | None = None) -> str:
     default_label = _PLATFORM_DISPLAY_NAMES.get(default, default) if default else None
 
     if default:
-        click.echo(bilingual("init.prompt_platform_with_default", default=default_label))
+        click.echo(
+            bilingual("init.prompt_platform_with_default", default=default_label)
+        )
     else:
         click.echo(bilingual("init.prompt_platform"))
 
-    default_idx = platforms.index(default) + 1 if default and default in platforms else None
+    default_idx = (
+        platforms.index(default) + 1 if default and default in platforms else None
+    )
 
     for i, p in enumerate(platforms, 1):
         label = _PLATFORM_DISPLAY_NAMES.get(p, p)
@@ -351,9 +370,7 @@ def init_cmd(
     """Initialize harness governance in the current project."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd()).resolve()
     if no_detect and not platform:
-        raise click.UsageError(
-            "--no-detect requires --platform to be set explicitly."
-        )
+        raise click.UsageError("--no-detect requires --platform to be set explicitly.")
     if all_platforms and skip_skill:
         raise click.UsageError(
             "--all-platforms and --skip-skill are mutually exclusive."
@@ -376,7 +393,9 @@ def init_cmd(
     if minimal:
         skip_skill = True
 
-    config_path = write_default_config(project_root, agent_platform=detected, force=force)
+    config_path = write_default_config(
+        project_root, agent_platform=detected, force=force
+    )
     notes: list[str] = [f"Detected platform: {detected}"]
 
     skill_path: Path | None = None
@@ -387,17 +406,28 @@ def init_cmd(
         seen_paths: set[Path] = set()
         for plat in sorted(PLATFORM_SKILL_PATHS):
             for tier in GOVERNANCE_TIERS:
-                tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"])
+                tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(
+                    plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
+                )
                 target = (project_root / tier_paths[tier]).resolve()
                 if target not in seen_paths:
                     seen_paths.add(target)
                     skill_paths.append(target)
             template_ver = extract_skill_version(load_skill_template(plat, "standard"))
-            standard_target = (project_root / PLATFORM_SKILL_PATHS_BY_TIER.get(plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"])["standard"]).resolve()
+            standard_target = (
+                project_root
+                / PLATFORM_SKILL_PATHS_BY_TIER.get(
+                    plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
+                )["standard"]
+            ).resolve()
             if standard_target.exists() and not force:
-                disk_ver = extract_skill_version(standard_target.read_text(encoding="utf-8"))
+                disk_ver = extract_skill_version(
+                    standard_target.read_text(encoding="utf-8")
+                )
                 if template_ver and disk_ver == template_ver:
-                    notes.append(f"skill up-to-date (v{template_ver}): {standard_target}")
+                    notes.append(
+                        f"skill up-to-date (v{template_ver}): {standard_target}"
+                    )
                 else:
                     notes.append(
                         bilingual(
@@ -409,7 +439,9 @@ def init_cmd(
                     )
             else:
                 for tier in GOVERNANCE_TIERS:
-                    tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"])
+                    tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(
+                        plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
+                    )
                     tier_target = (project_root / tier_paths[tier]).resolve()
                     if not tier_target.exists() or force:
                         write_skill_file(project_root, plat, tier)
@@ -417,11 +449,18 @@ def init_cmd(
                             bilingual("init.skill_created", path=str(tier_target))
                         )
         # skill_path points to the primary detected platform's standard file
-        primary_rel = PLATFORM_SKILL_PATHS_BY_TIER.get(platform or "generic", PLATFORM_SKILL_PATHS_BY_TIER["generic"])["standard"]
+        primary_rel = PLATFORM_SKILL_PATHS_BY_TIER.get(
+            platform or "generic", PLATFORM_SKILL_PATHS_BY_TIER["generic"]
+        )["standard"]
         primary = (project_root / primary_rel).resolve()
-        skill_path = primary if primary.exists() else (skill_paths[0] if skill_paths else None)
+        skill_path = (
+            primary if primary.exists() else (skill_paths[0] if skill_paths else None)
+        )
     elif not skip_skill:
-        existing = (project_root / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])).resolve()
+        existing = (
+            project_root
+            / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])
+        ).resolve()
         template_ver = extract_skill_version(load_skill_template(detected, "standard"))
         should_write = True
         if existing.exists() and not force:
@@ -451,18 +490,26 @@ def init_cmd(
         if all_platforms:
             # Multi-platform: reference is generic
             agents_md = _ensure_agents_md_triggers(
-                project_root, skill_ref="", force=force,
+                project_root,
+                skill_ref="",
+                force=force,
             )
         elif detected in ("generic", "qoderwork"):
             # AGENTS.md is the full skill file — triggers with no external ref
             agents_md = _ensure_agents_md_triggers(
-                project_root, skill_ref="", force=force,
+                project_root,
+                skill_ref="",
+                force=force,
             )
         else:
             # Other platform: reference the platform-specific skill file
-            skill_rel = PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])
+            skill_rel = PLATFORM_SKILL_PATHS.get(
+                detected, PLATFORM_SKILL_PATHS["generic"]
+            )
             agents_md = _ensure_agents_md_triggers(
-                project_root, skill_ref=str(skill_rel), force=force,
+                project_root,
+                skill_ref=str(skill_rel),
+                force=force,
             )
         notes.append(f"AGENTS.md triggers: {agents_md}")
 
@@ -512,7 +559,9 @@ def init_cmd(
                 {
                     "project_root": str(result.project_root),
                     "detected_platform": result.detected_platform,
-                    "config_path": str(result.config_path) if result.config_path else None,
+                    "config_path": str(result.config_path)
+                    if result.config_path
+                    else None,
                     "skill_path": str(result.skill_path) if result.skill_path else None,
                     "skill_paths": [str(p) for p in result.skill_paths],
                     "notes": list(result.notes),

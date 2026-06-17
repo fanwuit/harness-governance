@@ -16,7 +16,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..base import AgentExecutor, ExecutionResult, detect_marker, detect_verification_summary
+from ..base import (
+    AgentExecutor,
+    ExecutionResult,
+    detect_marker,
+    detect_verification_summary,
+)
 from ._heartbeat import (
     HeartbeatCounters,
     format_progress_line,
@@ -145,7 +150,8 @@ class CodexCliExecutor(AgentExecutor):
             return ExecutionResult(
                 exit_code=124,
                 stdout="".join(stdout_lines),
-                stderr="".join(stderr_lines) + f"\n[harness runner] timed out after {timeout_seconds}s",
+                stderr="".join(stderr_lines)
+                + f"\n[harness runner] timed out after {timeout_seconds}s",
                 marker=None,
                 duration_seconds=time.monotonic() - started,
             )

@@ -17,11 +17,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from ..file_ops.checkpoint import Checkpoint
 from ..file_ops.queue import read_queue
 from ..models.schemas import QueueItem
 from .template_renderer import TemplateRenderer
-from .variables import RoleVariables, VariableExtractor
+from .variables import VariableExtractor
 
 # Platform-specific dispatch instructions for the orchestrator template.
 _PLATFORM_DISPATCH: dict[str, str] = {
@@ -210,9 +209,7 @@ class OrchestratorPromptBuilder:
         all_missing: list[str] = []
 
         for role in roles_needed:
-            variables = self._extractor.extract_for_role(
-                project_root, queue_item, role
-            )
+            variables = self._extractor.extract_for_role(project_root, queue_item, role)
             rendered = self._renderer.render(role, variables)
             rendered_prompts[role] = rendered
             unresolved = self._renderer.find_unresolved(rendered)
@@ -306,14 +303,14 @@ class OrchestratorPromptBuilder:
         sections: list[str] = []
 
         # Substitute platform-specific placeholders in the template
-        dispatch_text = _PLATFORM_DISPATCH.get(
-            platform, _PLATFORM_DISPATCH["generic"]
-        )
+        dispatch_text = _PLATFORM_DISPATCH.get(platform, _PLATFORM_DISPATCH["generic"])
         hard_gate_text = _PLATFORM_HARD_GATE.get(
             platform, _PLATFORM_HARD_GATE["generic"]
         )
         resolved_template = template.replace("{{DISPATCH_INSTRUCTION}}", dispatch_text)
-        resolved_template = resolved_template.replace("{{HARD_GATE_COMMAND}}", hard_gate_text)
+        resolved_template = resolved_template.replace(
+            "{{HARD_GATE_COMMAND}}", hard_gate_text
+        )
 
         # Orchestrator rules
         sections.append(resolved_template)

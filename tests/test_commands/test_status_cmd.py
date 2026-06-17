@@ -17,7 +17,9 @@ def test_status_empty_repo(tmp_repo: Path) -> None:
     assert payload.current_layer == "unknown"
     assert payload.queue_summary.total == 0
     # Uninitialized project: single informational notice, no noisy warnings.
-    assert any("not initialized" in w.lower() or "未初始化" in w for w in payload.warnings)
+    assert any(
+        "not initialized" in w.lower() or "未初始化" in w for w in payload.warnings
+    )
 
 
 def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
@@ -27,7 +29,9 @@ def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
         encoding="utf-8",
     )
     runner = CliRunner()
-    runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "scaffold-cli"])
+    runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "packet", "init", "scaffold-cli"]
+    )
     payload = build_status(tmp_repo)
     assert payload.current_layer == "implementation"
     assert payload.queue_summary.active == 1

@@ -61,9 +61,14 @@ def review_close_cmd(
     preserved otherwise.
     """
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
-    target = (project_root / checkpoint).resolve() if not checkpoint.is_absolute() else checkpoint
+    target = (
+        (project_root / checkpoint).resolve()
+        if not checkpoint.is_absolute()
+        else checkpoint
+    )
 
     from ..file_ops._util import assert_inside
+
     try:
         assert_inside(project_root, target)
     except ValueError as exc:

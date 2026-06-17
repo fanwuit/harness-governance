@@ -499,9 +499,7 @@ class LayerGateEngine:
         required = gate_def.min_questions_answered.get(tier, 1)
 
         # Count answered questions for this layer from the session Q&A log.
-        qa_count = sum(
-            1 for qa in session.layer_qa if qa.get("layer") == layer.value
-        )
+        qa_count = sum(1 for qa in session.layer_qa if qa.get("layer") == layer.value)
 
         # Check required artifacts on disk.
         artifacts_found: list[str] = []
@@ -509,7 +507,9 @@ class LayerGateEngine:
         for pattern in gate_def.required_artifacts:
             matches = list(project_root.glob(pattern))
             if matches:
-                artifacts_found.extend(str(m.relative_to(project_root)) for m in matches)
+                artifacts_found.extend(
+                    str(m.relative_to(project_root)) for m in matches
+                )
             else:
                 artifacts_missing.append(pattern)
 
@@ -622,7 +622,9 @@ class LockFileManager:
             "questions_required": status.questions_required,
             "check_duration_ms": getattr(status, "check_duration_ms", 0.0),
         }
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
         return path
 
     def read_lock(self, layer: HarnessLayer) -> dict | None:
@@ -671,7 +673,6 @@ class LockFileManager:
             lock_file.unlink()
             count += 1
         return count
-
 
 
 __all__ = [

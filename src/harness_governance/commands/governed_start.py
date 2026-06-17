@@ -13,8 +13,11 @@ import click
 from ..messages import bilingual
 from ..models.schemas import RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
-from ..state_machine.classification import classify, RoutingPath, PUBLIC_CONTRACT_KEYWORDS
-from ..state_machine.layers import HarnessLayer
+from ..state_machine.classification import (
+    classify,
+    RoutingPath,
+    PUBLIC_CONTRACT_KEYWORDS,
+)
 from ..state_machine.rigor import resolve_rigor, STRICT_DETECTION_KEYWORDS
 from ..config.defaults import PLATFORM_SKILL_PATHS
 
@@ -22,16 +25,62 @@ from ..config.defaults import PLATFORM_SKILL_PATHS
 # Keywords that imply external side effects (persisted data, network,
 # deployments, billing, etc.) — used for auto-inferring --external.
 _EXTERNAL_IMPLYING_KEYWORDS: tuple[str, ...] = (
-    "database", "db", "sql", "redis", "mongo", "postgres", "mysql",
-    "api", "endpoint", "http", "request", "response", "webhook",
-    "deploy", "deployment", "release", "ci/cd", "pipeline",
-    "payment", "billing", "charge", "invoice", "subscription",
-    "email", "notification", "push", "sms",
-    "auth", "login", "signup", "register", "session", "token",
-    "persist", "store", "save", "write", "insert", "update",
-    "migration", "seed", "fixture",
-    "数据库", "接口", "部署", "发布", "支付", "账单", "邮件",
-    "通知", "认证", "登录", "注册", "持久化", "存储", "迁移",
+    "database",
+    "db",
+    "sql",
+    "redis",
+    "mongo",
+    "postgres",
+    "mysql",
+    "api",
+    "endpoint",
+    "http",
+    "request",
+    "response",
+    "webhook",
+    "deploy",
+    "deployment",
+    "release",
+    "ci/cd",
+    "pipeline",
+    "payment",
+    "billing",
+    "charge",
+    "invoice",
+    "subscription",
+    "email",
+    "notification",
+    "push",
+    "sms",
+    "auth",
+    "login",
+    "signup",
+    "register",
+    "session",
+    "token",
+    "persist",
+    "store",
+    "save",
+    "write",
+    "insert",
+    "update",
+    "migration",
+    "seed",
+    "fixture",
+    "数据库",
+    "接口",
+    "部署",
+    "发布",
+    "支付",
+    "账单",
+    "邮件",
+    "通知",
+    "认证",
+    "登录",
+    "注册",
+    "持久化",
+    "存储",
+    "迁移",
 )
 
 
@@ -50,14 +99,12 @@ def _infer_flags(description: str) -> tuple[bool, bool]:
     """
     description_lc = description.lower()
 
-    inferred_contracts = (
-        any(kw in description_lc for kw in PUBLIC_CONTRACT_KEYWORDS)
-        or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
-    )
-    inferred_external = (
-        any(kw in description_lc for kw in _EXTERNAL_IMPLYING_KEYWORDS)
-        or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
-    )
+    inferred_contracts = any(
+        kw in description_lc for kw in PUBLIC_CONTRACT_KEYWORDS
+    ) or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
+    inferred_external = any(
+        kw in description_lc for kw in _EXTERNAL_IMPLYING_KEYWORDS
+    ) or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
 
     return inferred_contracts, inferred_external
 
@@ -242,7 +289,9 @@ def governed_start_cmd(
             if len(competing) > 5:
                 names += f" (+{len(competing) - 5} more)"
             click.echo(
-                bilingual("priority.runtime_warning", count=len(competing), names=names),
+                bilingual(
+                    "priority.runtime_warning", count=len(competing), names=names
+                ),
                 err=True,
             )
     except Exception:
@@ -256,7 +305,9 @@ def governed_start_cmd(
                 {
                     "path": result.path.value,
                     "rationale": result.rationale,
-                    "current_layer": result.current_layer.value if result.current_layer else None,
+                    "current_layer": result.current_layer.value
+                    if result.current_layer
+                    else None,
                     "primary_skill": result.primary_skill,
                     "disclosure": result.disclosure,
                     "recommended_next_command": result.recommended_next_command,
@@ -295,9 +346,13 @@ def governed_start_cmd(
     click.echo(bilingual("governed_start.routing", path=result.path.value))
     click.echo(bilingual("governed_start.rationale", text=result.rationale))
     if result.current_layer:
-        click.echo(bilingual("governed_start.current_layer", layer=result.current_layer.value))
+        click.echo(
+            bilingual("governed_start.current_layer", layer=result.current_layer.value)
+        )
     if result.primary_skill:
-        click.echo(bilingual("governed_start.primary_skill", skill=result.primary_skill))
+        click.echo(
+            bilingual("governed_start.primary_skill", skill=result.primary_skill)
+        )
     if result.rigor_tier:
         click.echo(bilingual("governed_start.rigor_tier", tier=result.rigor_tier))
     click.echo("")

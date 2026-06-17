@@ -5,6 +5,7 @@ from __future__ import annotations
 import json as _json
 import sys
 from pathlib import Path
+from typing import Literal
 
 import click
 
@@ -12,6 +13,7 @@ from ..commands.verify import verify_cmd
 from ..messages import bilingual
 from ..runner.adapters.codex_cli import CodexCliExecutor
 from ..runner.adapters.generic import SubprocessAgentExecutor
+from ..runner.base import AgentExecutor
 from ..runner.loop import AutonomousReadyLoop
 from ..runner.orchestrator import OrchestratorPromptBuilder
 from ..runner.result_parser import ResultParser, append_invocation_log
@@ -34,16 +36,17 @@ def _default_prompt(queue_item) -> str:
 
 def _resolve_scope_budget(project_root: Path, cli_override: str | None):
     """Resolve the scope budget from CLI override, project config, or None."""
-    from ..models.schemas import ScopeBudget
 
     # CLI override takes highest priority.
     if cli_override is not None:
         from ..file_ops.queue import _parse_scope
+
         return _parse_scope(cli_override)
 
     # Fall back to project config.
     try:
         from ..config import load_config
+
         cfg = load_config(project_root)
         return cfg.scope_budget
     except Exception:
@@ -191,6 +194,7 @@ def runner_start_cmd(
 ) -> None:
     """Start the autonomous-ready loop."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _mode: Literal["bounded", "boundary"] = mode  # type: ignore[assignment]
 
     # Orchestrator mode: generate prompt, don't run executor
     if executor == "orchestrator":
@@ -198,6 +202,7 @@ def runner_start_cmd(
         platform_value = None
         try:
             from ..config import load_config
+
             cfg = load_config(project_root)
             platform_value = cfg.agent_platform
         except Exception:
@@ -208,7 +213,7 @@ def runner_start_cmd(
             project_root=project_root,
             queue_file=queue_file,
             checkpoint_file=checkpoint_file,
-            mode=mode,
+            mode=_mode,
             max_rounds=max_rounds,
             platform=platform_value,
         )
@@ -216,6 +221,7 @@ def runner_start_cmd(
         if output_file:
             output_path = (project_root / output_file).resolve()
             from ..file_ops._util import assert_inside
+
             try:
                 assert_inside(project_root, output_path)
             except ValueError as exc:
@@ -231,13 +237,18 @@ def runner_start_cmd(
             if len(prompt.missing_variables) > 5:
                 vars_preview += "..."
             click.echo(
-                "\n" + bilingual("runner.unresolved_variables", count=str(len(prompt.missing_variables)), vars=vars_preview),
+                "\n"
+                + bilingual(
+                    "runner.unresolved_variables",
+                    count=str(len(prompt.missing_variables)),
+                    vars=vars_preview,
+                ),
                 err=True,
             )
         return
 
     if executor == "codex":
-        agent = CodexCliExecutor(model=model, workdir=project_root)
+        agent: AgentExecutor = CodexCliExecutor(model=model, workdir=project_root)
     else:  # subprocess
         if not command:
             raise click.ClickException(bilingual("runner.command_required"))
@@ -272,7 +283,7 @@ def runner_start_cmd(
         heartbeat_interval_seconds=heartbeat_interval,
         default_scope_budget=_resolve_scope_budget(project_root, scope_budget),
     )
-    result = loop.run(mode=mode, max_rounds=max_rounds)
+    result = loop.run(mode=_mode, max_rounds=max_rounds)
 
     click.echo(
         _json.dumps(
@@ -289,9 +300,14 @@ def runner_start_cmd(
 
     if verification:
         from .verify import _PRESETS
+
         if verification not in _PRESETS:
             raise click.ClickException(
-                bilingual("runner.unknown_verification", preset=verification, available=", ".join(sorted(_PRESETS)))
+                bilingual(
+                    "runner.unknown_verification",
+                    preset=verification,
+                    available=", ".join(sorted(_PRESETS)),
+                )
             )
         # Delegate to verify for a sanity check after the loop.
         ctx.invoke(verify_cmd, preset=verification)
@@ -300,7 +316,12 @@ def runner_start_cmd(
         raise click.exceptions.Exit(code=1)
 
 
-__all__ = ["runner_group", "runner_start_cmd", "runner_render_cmd", "runner_parse_result_cmd"]
+__all__ = [
+    "runner_group",
+    "runner_start_cmd",
+    "runner_render_cmd",
+    "runner_parse_result_cmd",
+]
 
 
 @runner_group.command("render")
@@ -308,11 +329,19 @@ __all__ = ["runner_group", "runner_start_cmd", "runner_render_cmd", "runner_pars
     "--role",
     "role",
     required=True,
-    type=click.Choice([
-        "planner", "contract-writer", "implementer", "reviewer",
-        "adr-writer", "fact-finder-reviewer", "readiness-gate-writer",
-        "document-gardener", "integrator",
-    ]),
+    type=click.Choice(
+        [
+            "planner",
+            "contract-writer",
+            "implementer",
+            "reviewer",
+            "adr-writer",
+            "fact-finder-reviewer",
+            "readiness-gate-writer",
+            "document-gardener",
+            "integrator",
+        ]
+    ),
     help="Role template to render.",
 )
 @click.option(
@@ -380,7 +409,12 @@ def runner_render_cmd(
         if len(unresolved) > 5:
             unresolved_preview += "..."
         click.echo(
-            "\n" + bilingual("runner.render_unresolved", count=str(len(unresolved)), vars=unresolved_preview),
+            "\n"
+            + bilingual(
+                "runner.render_unresolved",
+                count=str(len(unresolved)),
+                vars=unresolved_preview,
+            ),
             err=True,
         )
 
@@ -390,11 +424,19 @@ def runner_render_cmd(
     "--role",
     "role",
     required=True,
-    type=click.Choice([
-        "planner", "contract-writer", "implementer", "reviewer",
-        "adr-writer", "fact-finder-reviewer", "readiness-gate-writer",
-        "document-gardener", "integrator",
-    ]),
+    type=click.Choice(
+        [
+            "planner",
+            "contract-writer",
+            "implementer",
+            "reviewer",
+            "adr-writer",
+            "fact-finder-reviewer",
+            "readiness-gate-writer",
+            "document-gardener",
+            "integrator",
+        ]
+    ),
     help="Role that produced the result.",
 )
 @click.option(
@@ -456,16 +498,18 @@ def runner_parse_result_cmd(
         raise click.ClickException(str(exc)) from exc
     append_invocation_log(log_path, result, round_index=round_index)
 
-    click.echo(_json.dumps(
-        {
-            "role": result.role,
-            "filesChanged": result.files_changed,
-            "contractBlocked": result.contract_blocked,
-            "verdict": result.verdict,
-            "verificationPassed": result.verification_passed,
-            "isAcceptable": result.is_acceptable,
-            "findingsCount": len(result.findings),
-        },
-        indent=2,
-        ensure_ascii=False,
-    ))
+    click.echo(
+        _json.dumps(
+            {
+                "role": result.role,
+                "filesChanged": result.files_changed,
+                "contractBlocked": result.contract_blocked,
+                "verdict": result.verdict,
+                "verificationPassed": result.verification_passed,
+                "isAcceptable": result.is_acceptable,
+                "findingsCount": len(result.findings),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )

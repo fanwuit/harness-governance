@@ -18,7 +18,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
-from ..base import AgentExecutor, ExecutionResult, detect_marker, detect_verification_summary
+from ..base import (
+    AgentExecutor,
+    ExecutionResult,
+    detect_marker,
+    detect_verification_summary,
+)
 from ._heartbeat import (
     HeartbeatCounters,
     format_progress_line,
@@ -91,14 +96,14 @@ class SubprocessAgentExecutor(AgentExecutor):
             )
 
             # --- Heartbeat thread ---
-            hb_thread = None
+            _hb_thread = None
             if self.heartbeat_interval_seconds > 0:
                 hb_dir = self.heartbeat_dir or (
                     (self.workdir or Path.cwd()) / ".harness" / "worker-output"
                 )
                 stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
                 hb_path = hb_dir / f"{stamp}-heartbeat.ndjson"
-                hb_thread = start_heartbeat_thread(
+                _hb_thread = start_heartbeat_thread(
                     proc,
                     hb_path,
                     counters,
@@ -154,7 +159,8 @@ class SubprocessAgentExecutor(AgentExecutor):
             return ExecutionResult(
                 exit_code=124,
                 stdout="".join(stdout_lines),
-                stderr="".join(stderr_lines) + f"\n[harness runner] timed out after {timeout_seconds}s",
+                stderr="".join(stderr_lines)
+                + f"\n[harness runner] timed out after {timeout_seconds}s",
                 marker=None,
                 duration_seconds=time.monotonic() - started,
             )

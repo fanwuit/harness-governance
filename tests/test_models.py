@@ -17,7 +17,6 @@ from harness_governance.models.schemas import (
     GateStatus,
     HarnessConfig,
     QAPair,
-    QueueItem,
     RigorProfile,
     RoutingInput,
     RoutingResult,
@@ -141,13 +140,15 @@ class TestQAPair:
 
     def test_qa_pair_forbids_extra(self) -> None:
         with pytest.raises(ValidationError):
-            QAPair.model_validate({
-                "layer": "idea",
-                "question": "Q",
-                "answer": "A",
-                "timestamp": "2026-06-16T10:00:00Z",
-                "extra": "nope",
-            })
+            QAPair.model_validate(
+                {
+                    "layer": "idea",
+                    "question": "Q",
+                    "answer": "A",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                    "extra": "nope",
+                }
+            )
 
 
 class TestGateStatus:
@@ -219,7 +220,14 @@ class TestRigorProfile:
     def test_full_profile(self) -> None:
         rp = RigorProfile(
             tier="light",
-            required_layers=("intake-orientation", "brief", "readiness", "implementation", "verification", "review-next"),
+            required_layers=(
+                "intake-orientation",
+                "brief",
+                "readiness",
+                "implementation",
+                "verification",
+                "review-next",
+            ),
             min_questions_per_layer={"intake-orientation": 1},
             auto_interrupt_on_unknowns=False,
         )

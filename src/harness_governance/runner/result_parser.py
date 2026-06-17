@@ -31,7 +31,9 @@ class SubagentResult:
     open_risks: list[str] = field(default_factory=list)
 
     # Reviewer specific
-    verdict: str | None = None  # accept|accept_with_advisory|reject|insufficient_evidence
+    verdict: str | None = (
+        None  # accept|accept_with_advisory|reject|insufficient_evidence
+    )
     findings: list[dict] = field(default_factory=list)
     residual_risks: list[str] = field(default_factory=list)
 
@@ -72,17 +74,13 @@ class SubagentResult:
         if not self.verification_results:
             return False
         return all(
-            r.get("status", "").lower() == "passed"
-            for r in self.verification_results
+            r.get("status", "").lower() == "passed" for r in self.verification_results
         )
 
     @property
     def has_blocking_findings(self) -> bool:
         """True if any reviewer finding has severity 'blocking'."""
-        return any(
-            f.get("severity", "").lower() == "blocking"
-            for f in self.findings
-        )
+        return any(f.get("severity", "").lower() == "blocking" for f in self.findings)
 
     @property
     def is_acceptable(self) -> bool:
@@ -235,7 +233,9 @@ def append_invocation_log(
     """Append a parsed result as an NDJSON line to the invocation log."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("a", encoding="utf-8") as handle:
-        handle.write(result.to_ndjson(round_index=round_index, queue_item=queue_item) + "\n")
+        handle.write(
+            result.to_ndjson(round_index=round_index, queue_item=queue_item) + "\n"
+        )
 
 
 __all__ = [

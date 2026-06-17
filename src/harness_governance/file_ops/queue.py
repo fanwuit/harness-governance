@@ -198,23 +198,29 @@ def format_queue(items: Iterable[QueueItem]) -> str:
 
 # Extended inline field keys beyond the core Layer/Change/Packetization/Evidence.
 # Used by extract_ready_block_fields() for Subagent runner variable extraction.
-_EXTENDED_FIELD_KEYS = frozenset({
-    "layer", "change", "packetization", "evidence", "scope",
-    "role",
-    "forbidden shortcut",
-    "forbidden scope",
-    "verification command",
-    "verification commands",
-    "done when",
-    "allowed assumptions",
-    "expected behavior",
-    "failure behavior",
-    "owner files",
-    "success criteria",
-    "non-goals",
-    "non goals",
-    "stop conditions",
-})
+_EXTENDED_FIELD_KEYS = frozenset(
+    {
+        "layer",
+        "change",
+        "packetization",
+        "evidence",
+        "scope",
+        "role",
+        "forbidden shortcut",
+        "forbidden scope",
+        "verification command",
+        "verification commands",
+        "done when",
+        "allowed assumptions",
+        "expected behavior",
+        "failure behavior",
+        "owner files",
+        "success criteria",
+        "non-goals",
+        "non goals",
+        "stop conditions",
+    }
+)
 
 
 def extract_ready_block_fields(raw: str) -> dict[str, str]:
@@ -245,7 +251,7 @@ def extract_ready_block_fields(raw: str) -> dict[str, str]:
                 if current_key is not None:
                     result[current_key] = "\n".join(buffer).strip()
                 current_key = candidate
-                value = stripped[colon_idx + 1:].strip()
+                value = stripped[colon_idx + 1 :].strip()
                 buffer = [value] if value else []
                 continue
 

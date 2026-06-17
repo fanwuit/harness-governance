@@ -13,7 +13,6 @@ from click.testing import CliRunner, Result
 
 from harness_governance.cli import cli
 from harness_governance.state_machine.tech_stack import TechStackManager
-from tests.conftest import seed_session, write_permissive_config
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +65,7 @@ class TestTechStackCaptureCLI:
     def test_capture_with_lint_config(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         result = _invoke(tmp_path, "tech-stack", "capture")
         assert result.exit_code == 0, result.output
@@ -115,16 +114,20 @@ class TestTechStackCheckCLI:
         combined = result.output + (result.stderr if hasattr(result, "stderr") else "")
         assert len(combined) > 0
 
-    def test_check_passes_after_lint_and_docstyle_confirmed(self, tmp_path: Path) -> None:
+    def test_check_passes_after_lint_and_docstyle_confirmed(
+        self, tmp_path: Path
+    ) -> None:
         """After capture detects a lint tool + doc style is set, check passes."""
         _seed_python_project(tmp_path)
         # Create lint config BEFORE capture so it lands in manifest.lint_tools
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         _invoke(tmp_path, "tech-stack", "capture")
         # Set doc style
-        _invoke(tmp_path, "tech-stack", "docstyle", "Python", "--style", "Google docstring")
+        _invoke(
+            tmp_path, "tech-stack", "docstyle", "Python", "--style", "Google docstring"
+        )
         result = _invoke(tmp_path, "tech-stack", "check")
         assert result.exit_code == 0, result.output
 
@@ -156,24 +159,42 @@ class TestTechStackAddCLI:
     def test_add_tool_with_category(self, tmp_path: Path) -> None:
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(
-            tmp_path, "tech-stack", "add", "ruff",
-            "--version", "0.11.0", "--category", "lint",
+            tmp_path,
+            "tech-stack",
+            "add",
+            "ruff",
+            "--version",
+            "0.11.0",
+            "--category",
+            "lint",
         )
         assert result.exit_code == 0, result.output
 
     def test_add_tool_with_reason(self, tmp_path: Path) -> None:
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(
-            tmp_path, "tech-stack", "add", "black",
-            "--version", "24.0", "--reason", "Code formatter",
+            tmp_path,
+            "tech-stack",
+            "add",
+            "black",
+            "--version",
+            "24.0",
+            "--reason",
+            "Code formatter",
         )
         assert result.exit_code == 0, result.output
 
     def test_add_tool_with_session_id(self, tmp_path: Path) -> None:
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(
-            tmp_path, "tech-stack", "add", "mypy",
-            "--version", "1.9", "--session-id", "sess-01",
+            tmp_path,
+            "tech-stack",
+            "add",
+            "mypy",
+            "--version",
+            "1.9",
+            "--session-id",
+            "sess-01",
         )
         assert result.exit_code == 0, result.output
 
@@ -219,7 +240,7 @@ class TestTechStackShowCLI:
     def test_show_with_lint_tools(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(tmp_path, "tech-stack", "show")
@@ -266,21 +287,35 @@ class TestTechStackLintCLI:
         _seed_python_project(tmp_path)
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(
-            tmp_path, "tech-stack", "lint", "Python",
-            "--tool", "ruff", "--version", "0.11.0",
+            tmp_path,
+            "tech-stack",
+            "lint",
+            "Python",
+            "--tool",
+            "ruff",
+            "--version",
+            "0.11.0",
         )
         assert result.exit_code == 0, result.output
 
     def test_lint_confirm_tool_persists(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         _invoke(tmp_path, "tech-stack", "capture")
-        _invoke(tmp_path, "tech-stack", "lint", "Python", "--tool", "ruff", "--version", "0.11.0")
+        _invoke(
+            tmp_path,
+            "tech-stack",
+            "lint",
+            "Python",
+            "--tool",
+            "ruff",
+            "--version",
+            "0.11.0",
+        )
         mgr = TechStackManager(tmp_path)
         manifest = mgr.load()
         assert manifest is not None
         assert any(
-            t.tool_name == "ruff" and t.confirmed
-            for t in manifest.introduced_tools
+            t.tool_name == "ruff" and t.confirmed for t in manifest.introduced_tools
         )
 
     def test_lint_unknown_language(self, tmp_path: Path) -> None:
@@ -316,15 +351,21 @@ class TestTechStackDocstyleCLI:
         _seed_python_project(tmp_path)
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(
-            tmp_path, "tech-stack", "docstyle", "Python",
-            "--style", "Google docstring",
+            tmp_path,
+            "tech-stack",
+            "docstyle",
+            "Python",
+            "--style",
+            "Google docstring",
         )
         assert result.exit_code == 0, result.output
 
     def test_docstyle_confirm_persists(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         _invoke(tmp_path, "tech-stack", "capture")
-        _invoke(tmp_path, "tech-stack", "docstyle", "Python", "--style", "Google docstring")
+        _invoke(
+            tmp_path, "tech-stack", "docstyle", "Python", "--style", "Google docstring"
+        )
         mgr = TechStackManager(tmp_path)
         manifest = mgr.load()
         assert manifest is not None
@@ -339,8 +380,12 @@ class TestTechStackDocstyleCLI:
         """docstyle --style should capture first if no manifest exists."""
         _seed_python_project(tmp_path)
         result = _invoke(
-            tmp_path, "tech-stack", "docstyle", "Python",
-            "--style", "Google docstring",
+            tmp_path,
+            "tech-stack",
+            "docstyle",
+            "Python",
+            "--style",
+            "Google docstring",
         )
         assert result.exit_code == 0, result.output
         assert (tmp_path / ".harness" / "tech-stack.json").is_file()
@@ -366,15 +411,19 @@ class TestTechStackFullWorkflow:
 
         # Step 3: add lint config file on disk, then re-capture
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         result = _invoke(tmp_path, "tech-stack", "capture")
         assert result.exit_code == 0
 
         # Step 4: fix doc style
         result = _invoke(
-            tmp_path, "tech-stack", "docstyle", "Python",
-            "--style", "Google docstring",
+            tmp_path,
+            "tech-stack",
+            "docstyle",
+            "Python",
+            "--style",
+            "Google docstring",
         )
         assert result.exit_code == 0
 

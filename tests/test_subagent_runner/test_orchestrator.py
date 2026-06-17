@@ -72,9 +72,7 @@ class TestOrchestratorPromptBuilder:
 
     def test_build_includes_execution_params(self, project: Path) -> None:
         builder = OrchestratorPromptBuilder()
-        prompt = builder.build(
-            project_root=project, mode="boundary", max_rounds=5
-        )
+        prompt = builder.build(project_root=project, mode="boundary", max_rounds=5)
 
         assert "boundary" in prompt.text
         assert "5" in prompt.text
@@ -130,9 +128,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_detects_adr_writer(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Write ADR for DB migration\n"
-            "- Layer: adr\n"
-            "Role: ADR Writer\n",
+            "[ready] Write ADR for DB migration\n- Layer: adr\nRole: ADR Writer\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -166,8 +162,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_detects_document_gardener(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Fix documentation drift\n"
-            "Role: Document Gardener\n",
+            "[ready] Fix documentation drift\nRole: Document Gardener\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -177,8 +172,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_detects_integrator(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Integrate worker outputs\n"
-            "Role: Integrator\n",
+            "[ready] Integrate worker outputs\nRole: Integrator\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -188,8 +182,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_layer_adr_infers_adr_writer(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Record architectural decision\n"
-            "- Layer: adr\n",
+            "[ready] Record architectural decision\n- Layer: adr\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -198,8 +191,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_layer_fact_discovery_infers_fact_finder(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Discover facts\n"
-            "- Layer: fact-discovery\n",
+            "[ready] Discover facts\n- Layer: fact-discovery\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -208,8 +200,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_layer_readiness_infers_readiness_gate(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Prepare readiness\n"
-            "- Layer: readiness\n",
+            "[ready] Prepare readiness\n- Layer: readiness\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -218,8 +209,7 @@ class TestOrchestratorGovernanceRoles:
 
     def test_hyphenated_role_name(self, tmp_path: Path) -> None:
         (tmp_path / "NEXT.md").write_text(
-            "[ready] Write ADR\n"
-            "Role: adr-writer\n",
+            "[ready] Write ADR\nRole: adr-writer\n",
             encoding="utf-8",
         )
         builder = OrchestratorPromptBuilder()
@@ -269,7 +259,15 @@ class TestOrchestratorPlatformDispatch:
 
     def test_no_raw_placeholders_remain(self, project: Path) -> None:
         """All {{DISPATCH_INSTRUCTION}} and {{HARD_GATE_COMMAND}} must be resolved."""
-        for platform in ("claude-code", "codex", "cline", "cursor", "opencode", "qoderwork", "generic"):
+        for platform in (
+            "claude-code",
+            "codex",
+            "cline",
+            "cursor",
+            "opencode",
+            "qoderwork",
+            "generic",
+        ):
             builder = OrchestratorPromptBuilder()
             prompt = builder.build(project_root=project, platform=platform)
             assert "{{DISPATCH_INSTRUCTION}}" not in prompt.text

@@ -113,7 +113,9 @@ def check_file(file: Path, repo_root: Path | None = None) -> list[str]:
     if impl_match:
         errors.extend(
             bilingual(
-                "entry.readiness_format" if "Readiness gate" in msg else "entry.packetization_format",
+                "entry.readiness_format"
+                if "Readiness gate" in msg
+                else "entry.packetization_format",
                 label=label,
             )
             for msg in _validate_implementation(text)
@@ -122,7 +124,9 @@ def check_file(file: Path, repo_root: Path | None = None) -> list[str]:
     return errors
 
 
-def discover_entry_files(repo_root: Path, marker: str = "Implementation Entry Record") -> list[Path]:
+def discover_entry_files(
+    repo_root: Path, marker: str = "Implementation Entry Record"
+) -> list[Path]:
     """Return the default set of entry-record files to check.
 
     Mirrors the legacy discovery: ``governed-implementation-entry/tests/fixtures/valid-entry-record.md``
@@ -132,7 +136,9 @@ def discover_entry_files(repo_root: Path, marker: str = "Implementation Entry Re
 
     files: list[Path] = []
     try:
-        bundled = resources.files("harness_governance.data.fixtures").joinpath("valid-entry-record.md")
+        bundled = resources.files("harness_governance.data.fixtures").joinpath(
+            "valid-entry-record.md"
+        )
         if bundled.is_file():
             with resources.as_file(bundled) as fp:
                 files.append(Path(fp))
@@ -173,6 +179,7 @@ def entry_check_cmd(
     marker = "Implementation Entry Record"
     try:
         from ..config import load_config
+
         cfg = load_config(root)
         marker = cfg.entry_block_marker
     except Exception:
@@ -249,7 +256,11 @@ def entry_check_cmd(
     show_default=True,
     help="Packetization state (ready|not-needed|missing).",
 )
-@click.option("--verification-command", required=True, help="Command that proves the change works.")
+@click.option(
+    "--verification-command",
+    required=True,
+    help="Command that proves the change works.",
+)
 @click.option(
     "--review-next-state",
     required=True,
@@ -309,6 +320,7 @@ def entry_record_cmd(
     rendered = entry_ops.render_entry_record(record) + "\n"
     if output:
         from ..file_ops._util import assert_inside
+
         try:
             assert_inside(root, output)
         except ValueError as exc:

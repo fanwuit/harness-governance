@@ -10,7 +10,6 @@ from click.testing import CliRunner
 from harness_governance.cli import cli
 from harness_governance.commands.check import (
     _check_self_docs,
-    check_docs,
     check_inventory,
     check_routing,
 )
@@ -119,33 +118,28 @@ def test_self_check_catches_missing_i18n_key(tmp_repo: Path) -> None:
     messages_dir = tmp_repo / "src" / "harness_governance"
     messages_dir.mkdir(parents=True, exist_ok=True)
     (messages_dir / "messages.py").write_text(
-        '_MESSAGES = {}\n', encoding="utf-8",
+        "_MESSAGES = {}\n",
+        encoding="utf-8",
     )
     src_file = messages_dir / "fake_cmd.py"
     src_file.write_text(
-        'bilingual("missing.key", x=1)\n', encoding="utf-8",
+        'bilingual("missing.key", x=1)\n',
+        encoding="utf-8",
     )
     findings = _check_self_docs(tmp_repo, "0.7.1")
-    assert any(
-        "missing.key" in f.message for f in findings
-    )
+    assert any("missing.key" in f.message for f in findings)
 
 
 def test_self_check_catches_skill_version_mismatch(tmp_repo: Path) -> None:
     """--self flags when skill version sentinel doesn't match package version."""
-    skills_dir = (
-        tmp_repo / "src" / "harness_governance" / "data" / "skills" / "strict"
-    )
+    skills_dir = tmp_repo / "src" / "harness_governance" / "data" / "skills" / "strict"
     skills_dir.mkdir(parents=True, exist_ok=True)
     (skills_dir / "claude-code.md").write_text(
         "<!-- harness-skill-version: 0.6.0 -->\n\n# Skill\n",
         encoding="utf-8",
     )
     findings = _check_self_docs(tmp_repo, "0.7.1")
-    assert any(
-        "0.6.0" in f.message and "0.7.1" in f.message
-        for f in findings
-    )
+    assert any("0.6.0" in f.message and "0.7.1" in f.message for f in findings)
 
 
 def test_self_check_passes_on_clean_project(tmp_repo: Path) -> None:

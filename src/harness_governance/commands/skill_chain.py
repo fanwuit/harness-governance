@@ -25,8 +25,13 @@ def skill_chain_group() -> None:
 
 @skill_chain_group.command("trace")
 @click.option("--session-id", required=True, help="Governance session ID.")
-@click.option("--format", "fmt", type=click.Choice(["ascii", "mermaid"]), default="ascii",
-              help="Output format (default: ascii).")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["ascii", "mermaid"]),
+    default="ascii",
+    help="Output format (default: ascii).",
+)
 @click.pass_context
 def skill_chain_trace(
     ctx: click.Context,
@@ -62,8 +67,13 @@ def skill_chain_trace(
 
 @skill_chain_group.command("visualize")
 @click.option("--session-id", required=True, help="Governance session ID.")
-@click.option("--format", "fmt", type=click.Choice(["mermaid", "ascii"]), default="mermaid",
-              help="Output format (default: mermaid).")
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["mermaid", "ascii"]),
+    default="mermaid",
+    help="Output format (default: mermaid).",
+)
 @click.pass_context
 def skill_chain_visualize(
     ctx: click.Context,
@@ -117,7 +127,9 @@ def skill_chain_inspect(
     )
 
     if report.unique_skills:
-        click.echo(bilingual("skill_chain.skills_list", skills=", ".join(report.unique_skills)))
+        click.echo(
+            bilingual("skill_chain.skills_list", skills=", ".join(report.unique_skills))
+        )
 
     if report.orphan_invocations:
         click.echo(
@@ -145,4 +157,3 @@ def skill_chain_inspect(
         raise SystemExit(1)
 
     click.echo(bilingual("skill_chain.clean"))
-

@@ -112,7 +112,8 @@ class StateMachineEngine:
         """Return a verdict describing whether ``context`` is allowed."""
         logger.debug(
             "evaluating transition: %s -> %s",
-            context.from_layer.value, context.to_layer.value,
+            context.from_layer.value,
+            context.to_layer.value,
         )
         violations: list[Violation] = []
         notes: list[str] = []
@@ -152,7 +153,8 @@ class StateMachineEngine:
 
         # Rule T3: contract that freezes boundaries must follow architecture/ADR.
         if context.to_layer is HarnessLayer.CONTRACT and (
-            context.has_persistence_or_side_effect or context.touches_long_lived_boundary
+            context.has_persistence_or_side_effect
+            or context.touches_long_lived_boundary
         ):
             allowed_predecessors = {
                 HarnessLayer.ARCHITECTURE,
@@ -214,7 +216,8 @@ class StateMachineEngine:
         if (
             context.contract_work_repeating
             and context.to_layer is HarnessLayer.CONTRACT
-            and context.from_layer in (
+            and context.from_layer
+            in (
                 HarnessLayer.CONTRACT,
                 HarnessLayer.READINESS,
                 HarnessLayer.VERIFICATION,
@@ -261,7 +264,7 @@ class StateMachineEngine:
                 HarnessLayer.CONTRACT,
                 HarnessLayer.READINESS,
                 HarnessLayer.FACT_DISCOVERY,
-                HarnessLayer.INTAKE,
+                HarnessLayer.INTAKE_ORIENTATION,
             }
             if context.to_layer not in _T8_OWNER_LAYERS:
                 violations.append(
@@ -315,13 +318,16 @@ class StateMachineEngine:
         if violations:
             logger.info(
                 "transition %s -> %s BLOCKED: %d violation(s): %s",
-                context.from_layer.value, context.to_layer.value,
-                len(violations), ", ".join(v.rule_code for v in violations),
+                context.from_layer.value,
+                context.to_layer.value,
+                len(violations),
+                ", ".join(v.rule_code for v in violations),
             )
         else:
             logger.debug(
                 "transition %s -> %s allowed",
-                context.from_layer.value, context.to_layer.value,
+                context.from_layer.value,
+                context.to_layer.value,
             )
         return TransitionVerdict(
             allowed=allowed,

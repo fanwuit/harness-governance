@@ -13,7 +13,9 @@ from harness_governance.cli import cli
 
 def test_governed_start_classifies_qa_as_fast() -> None:
     runner = CliRunner()
-    result = runner.invoke(cli, ["--project-root", ".", "governed-start", "What does this skill do?"])
+    result = runner.invoke(
+        cli, ["--project-root", ".", "governed-start", "What does this skill do?"]
+    )
     assert result.exit_code == 0, result.output
     assert "fast-path" in result.output
 
@@ -156,7 +158,9 @@ def test_governed_start_includes_companions(tmp_repo: Path) -> None:
 def test_fast_path_minimal_output() -> None:
     """Fast-path produces a one-liner + recommendation, no disclosure block."""
     runner = CliRunner()
-    result = runner.invoke(cli, ["--project-root", ".", "governed-start", "What does this skill do?"])
+    result = runner.invoke(
+        cli, ["--project-root", ".", "governed-start", "What does this skill do?"]
+    )
     assert result.exit_code == 0, result.output
     assert "fast-path" in result.output.lower()
     # Should NOT contain the full disclosure block
@@ -170,7 +174,13 @@ def test_fast_path_verbose_shows_full_disclosure() -> None:
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["--project-root", ".", "--verbose", "governed-start", "What does this skill do?"],
+        [
+            "--project-root",
+            ".",
+            "--verbose",
+            "governed-start",
+            "What does this skill do?",
+        ],
     )
     assert result.exit_code == 0, result.output
     assert "Disclosure" in result.output
@@ -211,11 +221,13 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "add a new feature to user module",
-                "--files", "src/user.py",
+                "--files",
+                "src/user.py",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -227,12 +239,15 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "fix a typo in README",
-                "--files", "README.md",
-                "--rigor", "light",
+                "--files",
+                "README.md",
+                "--rigor",
+                "light",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -244,12 +259,15 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "add avatar field to user table",
-                "--files", "src/models.py",
-                "--rigor", "standard",
+                "--files",
+                "src/models.py",
+                "--rigor",
+                "standard",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -261,11 +279,13 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--verbose",
                 "governed-start",
                 "build a new SaaS platform",
-                "--files", "src/",
+                "--files",
+                "src/",
                 "--contracts",
             ],
         )
@@ -277,13 +297,16 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "implement payment billing system",
-                "--files", "src/billing.py",
+                "--files",
+                "src/billing.py",
                 "--external",
-                "--rigor", "strict",
+                "--rigor",
+                "strict",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -304,11 +327,13 @@ class TestGovernedStartRigor:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "从零构建一个SaaS平台",
-                "--files", "src/",
+                "--files",
+                "src/",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -332,7 +357,8 @@ class TestAutoInferFlags:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "SaaS 平台 - 用户与认证系统",
@@ -348,7 +374,8 @@ class TestAutoInferFlags:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "Add authentication to the API",
@@ -364,7 +391,8 @@ class TestAutoInferFlags:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "Add database migration for user table",
@@ -380,7 +408,8 @@ class TestAutoInferFlags:
         result = runner.invoke(
             cli,
             [
-                "--project-root", ".",
+                "--project-root",
+                ".",
                 "--json",
                 "governed-start",
                 "What does the harness-engineering skill do?",
@@ -396,7 +425,8 @@ class TestAutoInferFlags:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
+                "--project-root",
+                str(tmp_repo),
                 "--json",
                 "governed-start",
                 "Add authentication to the API",

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from harness_governance.session.state import SessionState, TransitionRecord
+from harness_governance.session.state import SessionState
 from harness_governance.session.store import (
     create_session,
     find_active_session,

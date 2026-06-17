@@ -21,7 +21,7 @@ def write_permissive_config(project_root: Path) -> Path:
     cfg_dir.mkdir(parents=True, exist_ok=True)
     cfg = cfg_dir / "config.toml"
     cfg.write_text(
-        'schema_version = 1\nrequire_session = false\n',
+        "schema_version = 1\nrequire_session = false\n",
         encoding="utf-8",
     )
     return cfg

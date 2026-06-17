@@ -9,18 +9,16 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 import click
 
 from ..messages import bilingual
-from ..models.schemas import GateCheckInput, GateResult, CheckFinding
-from ..session import find_active_session, load_session
+from ..models.schemas import GateResult, CheckFinding
+from ..session import TransitionRecord, find_active_session, load_session
 from ..state_machine.gates import (
     LayerGateEngine,
     LockFileManager,
-    gate_for_layer,
     layers_for_tier,
 )
 from ..state_machine.layers import HarnessLayer
@@ -60,7 +58,7 @@ def gate_check(ctx: click.Context, layer: str, session_id: str | None) -> None:
     try:
         hlayer = HarnessLayer(layer)
     except ValueError:
-        valid = ", ".join(l.value for l in HarnessLayer)
+        valid = ", ".join(m.value for m in HarnessLayer)
         raise click.BadParameter(f"Invalid layer: {layer!r}. Valid: {valid}")
 
     # Find the active session.
@@ -108,7 +106,9 @@ def gate_check(ctx: click.Context, layer: str, session_id: str | None) -> None:
                     layer=layer,
                     questions=status.questions_answered,
                     required=status.questions_required,
-                    missing=", ".join(status.artifacts_missing) if status.artifacts_missing else "none",
+                    missing=", ".join(status.artifacts_missing)
+                    if status.artifacts_missing
+                    else "none",
                 ),
                 err=True,
             )
@@ -171,7 +171,7 @@ def gate_status(ctx: click.Context, layer: str | None) -> None:
         try:
             hlayer = HarnessLayer(layer)
         except ValueError:
-            valid = ", ".join(l.value for l in HarnessLayer)
+            valid = ", ".join(m.value for m in HarnessLayer)
             raise click.BadParameter(f"Invalid layer: {layer!r}. Valid: {valid}")
         layers_to_show = [hlayer]
     else:
@@ -214,7 +214,9 @@ def gate_status(ctx: click.Context, layer: str | None) -> None:
 @gate_group.command("reset")
 @click.argument("layer", required=False)
 @click.option("--confirmed", is_flag=True, default=False, help="Required safety flag.")
-@click.option("--all", "all_layers", is_flag=True, default=False, help="Reset all locks.")
+@click.option(
+    "--all", "all_layers", is_flag=True, default=False, help="Reset all locks."
+)
 @click.pass_context
 def gate_reset(
     ctx: click.Context,
@@ -227,9 +229,7 @@ def gate_reset(
     Use ``--all`` to remove all lock files at once.
     """
     if not confirmed:
-        raise click.UsageError(
-            bilingual("gate.reset.requires_confirmed")
-        )
+        raise click.UsageError(bilingual("gate.reset.requires_confirmed"))
 
     if not all_layers and not layer:
         raise click.UsageError("Must specify LAYER or --all.")
@@ -245,7 +245,7 @@ def gate_reset(
     try:
         hlayer = HarnessLayer(layer)
     except ValueError:
-        valid = ", ".join(l.value for l in HarnessLayer)
+        valid = ", ".join(m.value for m in HarnessLayer)
         raise click.BadParameter(f"Invalid layer: {layer!r}. Valid: {valid}")
 
     if locks.remove_lock(hlayer):
@@ -261,11 +261,16 @@ def gate_reset(
 
 @gate_group.command("timing")
 @click.option(
-    "--session", "session_id", default=None,
+    "--session",
+    "session_id",
+    default=None,
     help="Session ID (defaults to active session).",
 )
 @click.option(
-    "--all", "all_sessions", is_flag=True, default=False,
+    "--all",
+    "all_sessions",
+    is_flag=True,
+    default=False,
     help="Show timing for all sessions.",
 )
 @click.pass_context
@@ -279,6 +284,7 @@ def gate_timing(
 
     if all_sessions:
         from ..session import list_sessions
+
         sessions = list_sessions(project_root)
     elif session_id:
         try:
@@ -296,37 +302,41 @@ def gate_timing(
     if ctx.obj.get("json_output"):
         output = []
         for s in sessions:
-            transitions = []
+            json_transitions = []
             for t in s.transitions:
-                transitions.append({
-                    "from": t.from_layer.value,
-                    "to": t.to_layer.value,
-                    "timestamp": t.timestamp,
-                    "duration_s": round(t.duration_seconds, 3),
-                    "verdict": t.engine_verdict,
-                })
+                t_rec: TransitionRecord = t
+                json_transitions.append(
+                    {
+                        "from": t_rec.from_layer.value,
+                        "to": t_rec.to_layer.value,
+                        "timestamp": t_rec.timestamp,
+                        "duration_s": round(t_rec.duration_seconds, 3),
+                        "verdict": t_rec.engine_verdict,
+                    }
+                )
             locks_mgr = LockFileManager(project_root)
             gate_timings: dict[str, float] = {}
             for t in s.transitions:
-                lock_data = locks_mgr.read_lock(t.from_layer)
+                t_rec2: TransitionRecord = t
+                lock_data = locks_mgr.read_lock(t_rec2.from_layer)
                 if lock_data:
-                    gate_timings[t.from_layer.value] = lock_data.get(
+                    gate_timings[t_rec2.from_layer.value] = lock_data.get(
                         "check_duration_ms", 0.0
                     )
-            output.append({
-                "session_id": s.session_id,
-                "rigor_tier": s.rigor_tier,
-                "transitions": transitions,
-                "gate_check_timings_ms": gate_timings,
-            })
+            output.append(
+                {
+                    "session_id": s.session_id,
+                    "rigor_tier": s.rigor_tier,
+                    "transitions": json_transitions,
+                    "gate_check_timings_ms": gate_timings,
+                }
+            )
         click.echo(json.dumps(output, indent=2, ensure_ascii=False))
         return
 
     for s in sessions:
-        click.echo(
-            bilingual("gate.timing.header", session=s.session_id)
-        )
-        transitions = s.transitions
+        click.echo(bilingual("gate.timing.header", session=s.session_id))
+        transitions: tuple[TransitionRecord, ...] = s.transitions
         if not transitions:
             click.echo(bilingual("gate.timing.no_transitions"))
             continue

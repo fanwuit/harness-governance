@@ -51,9 +51,12 @@ class TestRunnerStartOrchestrator:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "start",
-                "--executor", "orchestrator",
+                "--project-root",
+                str(project),
+                "runner",
+                "start",
+                "--executor",
+                "orchestrator",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -66,10 +69,14 @@ class TestRunnerStartOrchestrator:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "start",
-                "--executor", "orchestrator",
-                "--output", str(output),
+                "--project-root",
+                str(project),
+                "runner",
+                "start",
+                "--executor",
+                "orchestrator",
+                "--output",
+                str(output),
             ],
         )
         assert result.exit_code == 0, result.output
@@ -86,9 +93,12 @@ class TestRunnerStartOrchestrator:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "runner", "start",
-                "--executor", "orchestrator",
+                "--project-root",
+                str(tmp_path),
+                "runner",
+                "start",
+                "--executor",
+                "orchestrator",
             ],
         )
         assert result.exit_code != 0
@@ -100,9 +110,12 @@ class TestRunnerRender:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "render",
-                "--role", "implementer",
+                "--project-root",
+                str(project),
+                "runner",
+                "render",
+                "--role",
+                "implementer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -113,9 +126,12 @@ class TestRunnerRender:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "render",
-                "--role", "reviewer",
+                "--project-root",
+                str(project),
+                "runner",
+                "render",
+                "--role",
+                "reviewer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -128,10 +144,14 @@ class TestRunnerRender:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "render",
-                "--role", "implementer",
-                "--output", str(output),
+                "--project-root",
+                str(project),
+                "runner",
+                "render",
+                "--role",
+                "implementer",
+                "--output",
+                str(output),
             ],
         )
         assert result.exit_code == 0, result.output
@@ -143,9 +163,12 @@ class TestRunnerRender:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "runner", "render",
-                "--role", "implementer",
+                "--project-root",
+                str(tmp_path),
+                "runner",
+                "render",
+                "--role",
+                "implementer",
             ],
         )
         assert result.exit_code != 0
@@ -182,9 +205,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "render",
-                "--role", "adr-writer",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "render",
+                "--role",
+                "adr-writer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -196,9 +222,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "render",
-                "--role", "fact-finder-reviewer",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "render",
+                "--role",
+                "fact-finder-reviewer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -210,9 +239,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "render",
-                "--role", "readiness-gate-writer",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "render",
+                "--role",
+                "readiness-gate-writer",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -223,9 +255,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "render",
-                "--role", "document-gardener",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "render",
+                "--role",
+                "document-gardener",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -236,9 +271,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "render",
-                "--role", "integrator",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "render",
+                "--role",
+                "integrator",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -249,9 +287,12 @@ class TestRunnerRenderGovernance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(adr_project),
-                "runner", "start",
-                "--executor", "orchestrator",
+                "--project-root",
+                str(adr_project),
+                "runner",
+                "start",
+                "--executor",
+                "orchestrator",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -261,25 +302,34 @@ class TestRunnerRenderGovernance:
 class TestRunnerParseResult:
     def test_parse_implementer_result(self, project: Path) -> None:
         input_file = project / "result.json"
-        input_file.write_text(json.dumps({
-            "role": "implementer",
-            "filesChanged": ["src/dashboard.py"],
-            "summary": "Done",
-            "verificationResults": [
-                {"command": "npm test", "status": "passed", "evidence": "ok"},
-            ],
-            "contractBlocked": False,
-            "openRisks": [],
-        }), encoding="utf-8")
+        input_file.write_text(
+            json.dumps(
+                {
+                    "role": "implementer",
+                    "filesChanged": ["src/dashboard.py"],
+                    "summary": "Done",
+                    "verificationResults": [
+                        {"command": "npm test", "status": "passed", "evidence": "ok"},
+                    ],
+                    "contractBlocked": False,
+                    "openRisks": [],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         runner = CliRunner()
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "parse-result",
-                "--role", "implementer",
-                "--input", str(input_file),
+                "--project-root",
+                str(project),
+                "runner",
+                "parse-result",
+                "--role",
+                "implementer",
+                "--input",
+                str(input_file),
             ],
         )
         assert result.exit_code == 0, result.output
@@ -294,24 +344,33 @@ class TestRunnerParseResult:
 
     def test_parse_reviewer_reject(self, project: Path) -> None:
         input_file = project / "review.json"
-        input_file.write_text(json.dumps({
-            "role": "reviewer",
-            "verdict": "reject",
-            "findings": [
-                {"severity": "blocking", "description": "Missing test"},
-            ],
-            "verificationResults": [],
-            "residualRisks": [],
-        }), encoding="utf-8")
+        input_file.write_text(
+            json.dumps(
+                {
+                    "role": "reviewer",
+                    "verdict": "reject",
+                    "findings": [
+                        {"severity": "blocking", "description": "Missing test"},
+                    ],
+                    "verificationResults": [],
+                    "residualRisks": [],
+                }
+            ),
+            encoding="utf-8",
+        )
 
         runner = CliRunner()
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "parse-result",
-                "--role", "reviewer",
-                "--input", str(input_file),
+                "--project-root",
+                str(project),
+                "runner",
+                "parse-result",
+                "--role",
+                "reviewer",
+                "--input",
+                str(input_file),
             ],
         )
         assert result.exit_code == 0, result.output
@@ -326,9 +385,12 @@ class TestRunnerParseResult:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(project),
-                "runner", "parse-result",
-                "--role", "implementer",
+                "--project-root",
+                str(project),
+                "runner",
+                "parse-result",
+                "--role",
+                "implementer",
             ],
             input=data,
         )

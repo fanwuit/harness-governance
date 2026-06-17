@@ -38,21 +38,25 @@ def _toml_value_repr(value: object) -> str:
     if isinstance(value, Path):
         return json.dumps(str(value))
     if isinstance(value, (list, tuple)):
-        items = ", ".join(json.dumps(str(v) if isinstance(v, Path) else v) for v in value)
+        items = ", ".join(
+            json.dumps(str(v) if isinstance(v, Path) else v) for v in value
+        )
         return f"[{items}]"
     return json.dumps(str(value))
 
 
-def _read_and_update_toml(
-    config_path: Path, updates: dict[str, object]
-) -> str:
+def _read_and_update_toml(config_path: Path, updates: dict[str, object]) -> str:
     """Read a flat TOML file, replace/add keys, return new content.
 
     Works for the simple flat schema used by ``.harness/config.toml``.
     Comments and blank lines that are *not* adjacent to a replaced key
     are preserved.
     """
-    lines = config_path.read_text(encoding="utf-8").splitlines() if config_path.exists() else []
+    lines = (
+        config_path.read_text(encoding="utf-8").splitlines()
+        if config_path.exists()
+        else []
+    )
     updated_keys: set[str] = set()
     result: list[str] = []
 
@@ -76,9 +80,7 @@ def _read_and_update_toml(
     return "\n".join(result) + "\n"
 
 
-def _validate_toml_text(
-    project_root: Path, content: str, config_path: Path
-) -> None:
+def _validate_toml_text(project_root: Path, content: str, config_path: Path) -> None:
     """Validate *content* by writing it to a temp file and loading it.
 
     The temp file is removed afterwards.  Raises whatever
@@ -128,7 +130,7 @@ def config_group() -> None:
 def config_init_cmd(ctx: click.Context, platform: str | None, force: bool) -> None:
     """Initialize ``.harness/config.toml``."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
-    detected = platform or detect_platform(project_root)
+    detected = platform or detect_platform(project_root) or "claude-code"
     path = write_default_config(project_root, agent_platform=detected, force=force)
     logger.info("wrote config: %s", path)
     click.echo(bilingual("config.created", path=str(path)))
@@ -165,7 +167,11 @@ def config_show_cmd(ctx: click.Context) -> None:
         for key, value in data.items():
             if key == "project_root":
                 continue
-            display = value if not isinstance(value, list) else ", ".join(str(v) for v in value)
+            display = (
+                value
+                if not isinstance(value, list)
+                else ", ".join(str(v) for v in value)
+            )
             click.echo(f"  {key} = {display}")
 
 
@@ -188,8 +194,15 @@ _FIELD_TYPES: dict[str, type] = {
 # Literal choices for fields that use Literal types in HarnessConfig.
 _FIELD_CHOICES: dict[str, tuple[str, ...]] = {
     "agent_platform": (
-        "claude-code", "codex", "cline", "cursor",
-        "opencode", "windsurf", "qoderwork", "generic", "multi",
+        "claude-code",
+        "codex",
+        "cline",
+        "cursor",
+        "opencode",
+        "windsurf",
+        "qoderwork",
+        "generic",
+        "multi",
     ),
     "check_frequency": ("targeted", "phase-closeout", "always"),
 }
@@ -247,9 +260,7 @@ def config_set_cmd(ctx: click.Context, pairs: tuple[str, ...]) -> None:
 
     config_path = (project_root / DEFAULT_CONFIG_FILE).resolve()
     if not config_path.exists():
-        raise click.ClickException(
-            bilingual("config.not_found", path=str(config_path))
-        )
+        raise click.ClickException(bilingual("config.not_found", path=str(config_path)))
 
     # Parse key=value pairs and coerce to the proper type.
     updates: dict[str, object] = {}
@@ -285,7 +296,7 @@ def config_set_cmd(ctx: click.Context, pairs: tuple[str, ...]) -> None:
 
     # Reload to confirm (defensive — should match the in-memory check above).
     try:
-        config = load_config(project_root, config_file=config_path)
+        _config = load_config(project_root, config_file=config_path)
     except Exception as exc:
         raise click.ClickException(
             bilingual("config.validate_failed", error=str(exc))
@@ -311,9 +322,7 @@ def config_validate_cmd(ctx: click.Context) -> None:
 
     config_path = (project_root / DEFAULT_CONFIG_FILE).resolve()
     if not config_path.exists():
-        raise click.ClickException(
-            bilingual("config.not_found", path=str(config_path))
-        )
+        raise click.ClickException(bilingual("config.not_found", path=str(config_path)))
 
     try:
         config = load_config(project_root, config_file=config_path)
@@ -326,7 +335,9 @@ def config_validate_cmd(ctx: click.Context) -> None:
 
     logger.info("config validation passed: %s", config_path)
     if json_output:
-        click.echo(json.dumps({"valid": True, "fields": len(type(config).model_fields)}))
+        click.echo(
+            json.dumps({"valid": True, "fields": len(type(config).model_fields)})
+        )
     else:
         click.echo(bilingual("config.validate_passed"))
 
@@ -343,12 +354,11 @@ def config_migrate_cmd(ctx: click.Context) -> None:
 
     config_path = (project_root / DEFAULT_CONFIG_FILE).resolve()
     if not config_path.exists():
-        raise click.ClickException(
-            bilingual("config.not_found", path=str(config_path))
-        )
+        raise click.ClickException(bilingual("config.not_found", path=str(config_path)))
 
     # Read the raw TOML to detect the file's schema version.
     import sys
+
     if sys.version_info >= (3, 11):
         import tomllib as _toml
     else:
@@ -362,16 +372,23 @@ def config_migrate_cmd(ctx: click.Context) -> None:
     if file_version >= CURRENT_SCHEMA_VERSION:
         logger.info("config already at schema v%d", file_version)
         if json_output:
-            click.echo(json.dumps({
-                "migrated": False,
-                "version": file_version,
-            }))
+            click.echo(
+                json.dumps(
+                    {
+                        "migrated": False,
+                        "version": file_version,
+                    }
+                )
+            )
         else:
-            click.echo(bilingual("config.migrate_already_current", version=str(file_version)))
+            click.echo(
+                bilingual("config.migrate_already_current", version=str(file_version))
+            )
         return
 
     # Apply migration: rewrite the file with schema_version and any new fields.
     from ..config.settings import _migrate
+
     migrated = _migrate(raw, from_version=file_version)
 
     # Serialize back to TOML (simple flat schema).
@@ -387,17 +404,23 @@ def config_migrate_cmd(ctx: click.Context) -> None:
 
     logger.info("migrated config from v%d to v%d", file_version, CURRENT_SCHEMA_VERSION)
     if json_output:
-        click.echo(json.dumps({
-            "migrated": True,
-            "from": file_version,
-            "to": CURRENT_SCHEMA_VERSION,
-        }))
+        click.echo(
+            json.dumps(
+                {
+                    "migrated": True,
+                    "from": file_version,
+                    "to": CURRENT_SCHEMA_VERSION,
+                }
+            )
+        )
     else:
-        click.echo(bilingual(
-            "config.migrate_done",
-            old=str(file_version),
-            new=str(CURRENT_SCHEMA_VERSION),
-        ))
+        click.echo(
+            bilingual(
+                "config.migrate_done",
+                old=str(file_version),
+                new=str(CURRENT_SCHEMA_VERSION),
+            )
+        )
 
 
 __all__ = [

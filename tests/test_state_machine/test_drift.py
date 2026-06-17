@@ -14,11 +14,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from harness_governance.models.schemas import (
-    DecompositionTrigger,
-    DriftDetection,
     ScopeBoundary,
     ScopeDeclaration,
 )
@@ -120,9 +117,7 @@ class TestResolveDiffBase:
         assert result == "face0ff"
 
     @patch("harness_governance.state_machine.drift.subprocess.run")
-    def test_both_raise_exceptions(
-        self, mock_run: MagicMock, tmp_path: Path
-    ) -> None:
+    def test_both_raise_exceptions(self, mock_run: MagicMock, tmp_path: Path) -> None:
         """If both calls raise, fall back to the empty-tree hash."""
         mock_run.side_effect = OSError("no git")
         result = resolve_diff_base(tmp_path)
@@ -241,9 +236,7 @@ class TestCheckBoundary:
     ) -> None:
         """All changed files match declared scope — no drift."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-ok", files=("src/a.py", "src/b.py"))
-        )
+        engine.declare_scope(_make_scope("chg-ok", files=("src/a.py", "src/b.py")))
         drift = engine.check_boundary("chg-ok")
         assert drift.drift_detected is False
         assert drift.files_out_of_scope == ()
@@ -255,9 +248,7 @@ class TestCheckBoundary:
     ) -> None:
         """A file not in declared_files triggers drift."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-drift", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("chg-drift", files=("src/a.py",)))
         drift = engine.check_boundary("chg-drift")
 
         assert drift.drift_detected is True
@@ -288,9 +279,7 @@ class TestCheckBoundary:
     ) -> None:
         """No thresholds set, all files declared — clean."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-clean", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("chg-clean", files=("src/a.py",)))
         drift = engine.check_boundary("chg-clean")
         assert drift.drift_detected is False
         assert drift.triggers_decomposition == ()
@@ -347,9 +336,7 @@ class TestCheckBoundary:
     ) -> None:
         """No changes at all — no drift."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-empty", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("chg-empty", files=("src/a.py",)))
         drift = engine.check_boundary("chg-empty")
         assert drift.drift_detected is False
 
@@ -530,9 +517,7 @@ class TestGateHookDrift:
     ) -> None:
         """No drift detected — hook returns empty list."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-clean", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("chg-clean", files=("src/a.py",)))
         session = MagicMock()
         session.change_id = "chg-clean"
         session.session_id = "sess-1"
@@ -546,9 +531,7 @@ class TestGateHookDrift:
     ) -> None:
         """Out-of-scope files produce failure messages."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("chg-drift", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("chg-drift", files=("src/a.py",)))
         session = MagicMock()
         session.change_id = "chg-drift"
         session.session_id = "sess-2"
@@ -601,7 +584,9 @@ class TestGateHookDrift:
         session.change_id = "chg-big"
         session.session_id = "sess-4"
         failures = _gate_hook_drift(session, tmp_path)
-        assert any("decomposition" in f.lower() or "split" in f.lower() for f in failures)
+        assert any(
+            "decomposition" in f.lower() or "split" in f.lower() for f in failures
+        )
 
     def test_no_change_id_no_scopes_dir_returns_empty(self, tmp_path: Path) -> None:
         """No change_id and no scopes dir — advisory, returns empty."""
@@ -630,9 +615,7 @@ class TestGateHookDrift:
     ) -> None:
         """When change_id is empty, session_id is used as fallback."""
         engine = DriftDetectionEngine(tmp_path)
-        engine.declare_scope(
-            _make_scope("sess-fallback", files=("src/a.py",))
-        )
+        engine.declare_scope(_make_scope("sess-fallback", files=("src/a.py",)))
         session = MagicMock()
         session.change_id = ""
         session.session_id = "sess-fallback"

@@ -5,7 +5,6 @@ from __future__ import annotations
 from harness_governance.state_machine.classification import (
     RoutingPath,
     classify,
-    RoutingDecision,
 )
 from harness_governance.state_machine.rigor import RigorTier
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -16,10 +15,30 @@ from harness_governance.state_machine.layers import HarnessLayer
 
 
 _MOCK_INTAKE_QA: tuple[dict[str, str], ...] = (
-    {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
-    {"layer": "intake-orientation", "question": "Q2", "answer": "A2", "timestamp": "2026-06-16T10:00:01Z"},
-    {"layer": "intake-orientation", "question": "Q3", "answer": "A3", "timestamp": "2026-06-16T10:00:02Z"},
-    {"layer": "intake-orientation", "question": "Q4", "answer": "A4", "timestamp": "2026-06-16T10:00:03Z"},
+    {
+        "layer": "intake-orientation",
+        "question": "Q1",
+        "answer": "A1",
+        "timestamp": "2026-06-16T10:00:00Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q2",
+        "answer": "A2",
+        "timestamp": "2026-06-16T10:00:01Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q3",
+        "answer": "A3",
+        "timestamp": "2026-06-16T10:00:02Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q4",
+        "answer": "A4",
+        "timestamp": "2026-06-16T10:00:03Z",
+    },
 )
 
 
@@ -98,10 +117,14 @@ class TestLayerAdvance:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "layer", "advance", "contract",
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "contract",
                 "--boundary-touch",
-                "--skip-gate", "--confirmed",
+                "--skip-gate",
+                "--confirmed",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -109,7 +132,9 @@ class TestLayerAdvance:
     def test_advance_records_transition(self, tmp_path: Path) -> None:
         sid = _seed_session(tmp_path)
         runner = CliRunner()
-        runner.invoke(cli, ["--project-root", str(tmp_path), "layer", "advance", "idea"])
+        runner.invoke(
+            cli, ["--project-root", str(tmp_path), "layer", "advance", "idea"]
+        )
         # Verify the session file was updated with the transition.
         from harness_governance.session import load_session
 
@@ -225,7 +250,14 @@ class TestLayerAdvanceConfirmed:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -244,7 +276,14 @@ class TestLayerAdvanceConfirmed:
         runner = CliRunner()
         runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         from harness_governance.session import load_session
 
@@ -290,7 +329,9 @@ class TestLayerAdvanceGateEnforcement:
             cli,
             ["--project-root", str(tmp_path), "layer", "advance", "idea"],
         )
-        assert result.exit_code != 0, f"Gate should have blocked advance, got: {result.output}"
+        assert result.exit_code != 0, (
+            f"Gate should have blocked advance, got: {result.output}"
+        )
 
     def test_advance_passes_gate_with_sufficient_qa(self, tmp_path: Path) -> None:
         """With enough Q&A, the gate passes and writes a lock file."""
@@ -314,7 +355,14 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--skip-gate"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--skip-gate",
+            ],
         )
         assert result.exit_code != 0, "Should require --confirmed with --skip-gate"
 
@@ -333,7 +381,15 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--skip-gate", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--skip-gate",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -370,7 +426,12 @@ class TestLayerAdvanceGateEnforcement:
             current_layer=HarnessLayer.INTAKE_ORIENTATION,
             rigor_tier="light",
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
             ),
         )
         create_session(tmp_path, state)
@@ -391,7 +452,12 @@ class TestLayerAdvanceGateEnforcement:
             current_layer=HarnessLayer.INTAKE_ORIENTATION,
             rigor_tier="strict",
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
             ),
         )
         create_session(tmp_path, state)
@@ -399,7 +465,15 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--rigor", "light"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--rigor",
+                "light",
+            ],
         )
         assert result.exit_code == 0, result.output
 
@@ -414,7 +488,12 @@ class TestLayerAdvanceGateEnforcement:
             current_layer=HarnessLayer.INTAKE_ORIENTATION,
             rigor_tier="light",
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
             ),
         )
         create_session(tmp_path, state)
@@ -432,4 +511,6 @@ class TestLayerAdvanceGateEnforcement:
             cli,
             ["--project-root", str(tmp_path), "layer", "advance", "brief"],
         )
-        assert r2.exit_code == 0, f"idea→brief should pass (idea gate skipped): {r2.output}"
+        assert r2.exit_code == 0, (
+            f"idea→brief should pass (idea gate skipped): {r2.output}"
+        )

@@ -70,7 +70,16 @@ def detect_verification_summary(output: str) -> str | None:
     """Pull a ``- pytest: …`` / ``pytest -> pass`` style line if present."""
     for line in output.splitlines():
         stripped = line.strip().lstrip("-").strip()
-        if any(stripped.startswith(prefix) for prefix in ("pytest", "npm test", "python -m pytest", "go test", "cargo test")):
+        if any(
+            stripped.startswith(prefix)
+            for prefix in (
+                "pytest",
+                "npm test",
+                "python -m pytest",
+                "go test",
+                "cargo test",
+            )
+        ):
             return stripped[:200]
     return None
 

@@ -25,8 +25,13 @@ def alignment_group() -> None:
 
 
 @alignment_group.command("check")
-@click.option("--contract", "contract_file", default=None, type=click.Path(exists=True),
-              help="Specific contract file to check (all contracts if omitted).")
+@click.option(
+    "--contract",
+    "contract_file",
+    default=None,
+    type=click.Path(exists=True),
+    help="Specific contract file to check (all contracts if omitted).",
+)
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
 @click.pass_context
 def alignment_check(
@@ -124,4 +129,3 @@ def alignment_trace(ctx: click.Context, session_id: str) -> None:
             click.echo(f"    implementation: {entry.implementation_ref}")
         if entry.verification_ref:
             click.echo(f"    verification: {entry.verification_ref}")
-

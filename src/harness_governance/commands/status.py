@@ -60,7 +60,9 @@ def _read_invocation_log(path: Path) -> tuple[list[dict], list[str]]:
     if not path.is_file():
         return [], [f"Invocation log not found or empty: {path}"]
     records: list[dict] = []
-    for index, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for index, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         line = line.strip()
         if not line:
             continue
@@ -79,7 +81,16 @@ def _summarise_verification(
     summary = None
     if last:
         summary = last.get("verificationSummary") or last.get("verification")
-    text = (summary or " ".join(["- " + v for v in (checkpoint.verification or "").splitlines() if v.strip()])).lower()
+    text = (
+        summary
+        or " ".join(
+            [
+                "- " + v
+                for v in (checkpoint.verification or "").splitlines()
+                if v.strip()
+            ]
+        )
+    ).lower()
     if not summary and checkpoint.verification:
         # Use the first non-empty line.
         for line in checkpoint.verification.splitlines():
@@ -93,9 +104,9 @@ def _summarise_verification(
         summary=summary,
         stale=(not summary) or has_fail or not has_pass,
         failed=has_fail,
-        source="invocation-log" if last and (last.get("verificationSummary") or last.get("verification")) else (
-            "checkpoint" if checkpoint.verification else "missing"
-        ),
+        source="invocation-log"
+        if last and (last.get("verificationSummary") or last.get("verification"))
+        else ("checkpoint" if checkpoint.verification else "missing"),
     )
 
 
@@ -179,8 +190,12 @@ def build_status(
     """
     if config is None:
         config = load_config(repo_root)
-    logger.debug("using config: queue_file=%s changes_root=%s harness_dir=%s",
-                 config.queue_file, config.changes_root, config.harness_dir)
+    logger.debug(
+        "using config: queue_file=%s changes_root=%s harness_dir=%s",
+        config.queue_file,
+        config.changes_root,
+        config.harness_dir,
+    )
 
     # Detect uninitialized project: no config file and no .harness directory.
     harness_dir = config.harness_dir
@@ -197,15 +212,16 @@ def build_status(
 
     packet_dirs = packet_ops.discover_packets(repo_root)
     summaries = [
-        packet_ops.check_packet(d, project_root=repo_root)[1]
-        for d in packet_dirs
+        packet_ops.check_packet(d, project_root=repo_root)[1] for d in packet_dirs
     ]
 
     active_plan = plan_ops.resolve_active_plan(repo_root)
 
     # --- Checkpoint: prefer per-change, fall back to global ---
     checkpoint, checkpoint_path = _find_latest_checkpoint(
-        repo_root, harness_dir, packet_dirs,
+        repo_root,
+        harness_dir,
+        packet_dirs,
     )
 
     # --- Invocation log: aggregate from all sources ---
@@ -238,14 +254,14 @@ def build_status(
 
     return StatusPayload(
         repo=str(repo_root),
-        generated_at=datetime.now(timezone.utc).isoformat(),
-        current_layer=current_layer,
-        queue_summary=StatusQueueSummary(
+        generatedAt=datetime.now(timezone.utc).isoformat(),
+        currentLayer=current_layer,
+        queueSummary=StatusQueueSummary(
             total=len(items),
             ready=sum(1 for i in items if i.ready),
             active=sum(1 for i in items if i.active),
         ),
-        queue_items=tuple(
+        queueItems=tuple(
             StatusQueueItem(
                 raw=i.raw,
                 active=i.active,
@@ -263,7 +279,7 @@ def build_status(
             )
             for s in summaries
         ),
-        active_plan=(
+        activePlan=(
             StatusActivePlan(
                 plan_id=active_plan.plan_id,
                 attested=active_plan.attested,
@@ -280,9 +296,9 @@ def build_status(
             stop_reason=checkpoint.stop_reason,
         ),
         runner=StatusRunner(
-            invocation_count=len(invocations),
-            last_round=(invocations[-1].get("round") if invocations else None),
-            last_exit_code=(
+            invocationCount=len(invocations),
+            lastRound=(invocations[-1].get("round") if invocations else None),
+            lastExitCode=(
                 invocations[-1].get("exitCode")
                 if invocations and isinstance(invocations[-1].get("exitCode"), int)
                 else None
@@ -313,13 +329,17 @@ def format_text(status: StatusPayload) -> str:
         lines.append(bilingual("status.queue_items"))
         for item in status.queue_items:
             details = " ".join(
-                part for part in (
+                part
+                for part in (
                     f"layer={item.layer}" if item.layer else "",
                     f"change={item.change_id}" if item.change_id else "",
-                ) if part
+                )
+                if part
             )
             tag = "active" if item.active else "ready" if item.ready else "other"
-            lines.append(f"- [{tag}] {item.raw.splitlines()[0]}{(' (' + details + ')') if details else ''}")
+            lines.append(
+                f"- [{tag}] {item.raw.splitlines()[0]}{(' (' + details + ')') if details else ''}"
+            )
 
     if status.packets:
         lines.append("")
@@ -329,7 +349,11 @@ def format_text(status: StatusPayload) -> str:
 
     if status.active_plan is not None:
         plan = status.active_plan
-        state = bilingual("status.plan_state_attested") if plan.attested else bilingual("status.plan_state_unattested")
+        state = (
+            bilingual("status.plan_state_attested")
+            if plan.attested
+            else bilingual("status.plan_state_unattested")
+        )
         lines.append("")
         lines.append(bilingual("status.active_plan", plan_id=plan.plan_id, state=state))
 
@@ -342,7 +366,11 @@ def format_text(status: StatusPayload) -> str:
         if ck.stop_reason:
             lines.append("- " + bilingual("status.stop_reason", value=ck.stop_reason))
 
-    state = bilingual("status.verification_stale") if status.verification.stale else bilingual("status.verification_fresh")
+    state = (
+        bilingual("status.verification_stale")
+        if status.verification.stale
+        else bilingual("status.verification_fresh")
+    )
     lines.append("")
     lines.append(
         bilingual(
@@ -437,7 +465,9 @@ def format_markdown(status: StatusPayload) -> str:
         for s in status.sessions:
             marker = "*" if s.status == "active" else " "
             layer = s.current_layer or "-"
-            lines.append(f"- {marker} `{s.session_id}` [{s.status}] layer={layer} — {s.description[:60]}")
+            lines.append(
+                f"- {marker} `{s.session_id}` [{s.status}] layer={layer} — {s.description[:60]}"
+            )
         lines.append("")
 
     lines.append("## Warnings")
@@ -459,7 +489,9 @@ def format_markdown(status: StatusPayload) -> str:
     show_default=True,
     help="Output format.",
 )
-@click.option("--refresh/--no-refresh", default=False, help="Write .harness/status.{md,json}.")
+@click.option(
+    "--refresh/--no-refresh", default=False, help="Write .harness/status.{md,json}."
+)
 @click.pass_context
 def status_cmd(ctx: click.Context, fmt: str, refresh: bool) -> None:
     """Aggregate queue, packets, checkpoint, and verification."""
@@ -472,7 +504,9 @@ def status_cmd(ctx: click.Context, fmt: str, refresh: bool) -> None:
         status_json = config.harness_dir / "status.json"
         status_md.parent.mkdir(parents=True, exist_ok=True)
         status_md.write_text(format_markdown(status), encoding="utf-8")
-        status_json.write_text(status.model_dump_json(indent=2, by_alias=True), encoding="utf-8")
+        status_json.write_text(
+            status.model_dump_json(indent=2, by_alias=True), encoding="utf-8"
+        )
         click.echo(bilingual("status.wrote_md", path=str(status_md)))
         click.echo(bilingual("status.wrote_md", path=str(status_json)))
 

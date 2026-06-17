@@ -131,7 +131,14 @@ class TestSessionClose:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "session", "close", "20260616-test"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "session",
+                "close",
+                "20260616-test",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)

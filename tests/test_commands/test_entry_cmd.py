@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -59,7 +58,9 @@ def test_check_entry_record_flags_invalid_layer(tmp_path: Path) -> None:
 
     Match that behavior so we don't break compatibility.
     """
-    body = VALID.replace("- Current layer: implementation\n", "- Current layer: not-a-layer\n")
+    body = VALID.replace(
+        "- Current layer: implementation\n", "- Current layer: not-a-layer\n"
+    )
     record = tmp_path / "record.md"
     _write_record(record, body)
     errors = check_file(record, repo_root=tmp_path)

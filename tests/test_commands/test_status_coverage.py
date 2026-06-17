@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -39,6 +38,7 @@ from harness_governance.state_machine.layers import HarnessLayer
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_payload(**overrides: object) -> StatusPayload:
     """Build a minimal ``StatusPayload`` with sensible defaults."""
@@ -86,9 +86,7 @@ class TestReadInvocationLog:
     def test_bad_json_lines_produce_warnings(self, tmp_path: Path) -> None:
         log = tmp_path / "invocations.ndjson"
         log.write_text(
-            '{"round": 1}\n'
-            "NOT-VALID-JSON\n"
-            '{"round": 3}\n',
+            '{"round": 1}\nNOT-VALID-JSON\n{"round": 3}\n',
             encoding="utf-8",
         )
         records, warnings = _read_invocation_log(log)
@@ -260,10 +258,13 @@ class TestBuildStatus:
     def test_with_invocation_log(self, tmp_repo: Path) -> None:
         """build_status reads invocations from the default log path."""
         log_path = tmp_repo / ".harness" / "invocations.ndjson"
-        _write_ndjson(log_path, [
-            {"round": 1, "exitCode": 0},
-            {"round": 2, "exitCode": 0},
-        ])
+        _write_ndjson(
+            log_path,
+            [
+                {"round": 1, "exitCode": 0},
+                {"round": 2, "exitCode": 0},
+            ],
+        )
         payload = build_status(tmp_repo)
         assert payload.runner.invocation_count == 2
         assert payload.runner.last_round == 2
@@ -288,7 +289,9 @@ class TestBuildStatus:
     def test_no_invocation_log_produces_warning(self, tmp_repo: Path) -> None:
         """Uninitialized project: single not_initialized notice, no per-file warnings."""
         payload = build_status(tmp_repo)
-        assert any("not initialized" in w.lower() or "未初始化" in w for w in payload.warnings)
+        assert any(
+            "not initialized" in w.lower() or "未初始化" in w for w in payload.warnings
+        )
         assert not any("invocation log" in w.lower() for w in payload.warnings)
 
     def test_last_exit_code_non_int_returns_none(self, tmp_repo: Path) -> None:
@@ -338,8 +341,12 @@ class TestFormatText:
 
     def test_with_change_packets(self) -> None:
         packets = (
-            StatusPacketItem(change_id="feat-a", path="docs/changes/feat-a", status="draft"),
-            StatusPacketItem(change_id="feat-b", path="docs/changes/feat-b", status="approved"),
+            StatusPacketItem(
+                change_id="feat-a", path="docs/changes/feat-a", status="draft"
+            ),
+            StatusPacketItem(
+                change_id="feat-b", path="docs/changes/feat-b", status="approved"
+            ),
         )
         payload = _make_payload(packets=packets)
         text = format_text(payload)
@@ -388,7 +395,9 @@ class TestFormatText:
         assert "change=my-change" in text
 
     def test_verification_fresh(self) -> None:
-        v = StatusVerification(summary="all passed", stale=False, source="invocation-log")
+        v = StatusVerification(
+            summary="all passed", stale=False, source="invocation-log"
+        )
         payload = _make_payload(verification=v)
         text = format_text(payload)
         assert "all passed" in text
@@ -459,7 +468,9 @@ class TestFormatMarkdown:
         assert "[draft] feat-x" in md
 
     def test_runner_section(self) -> None:
-        ck = StatusCheckpoint(found=True, path=".harness/run-checkpoint.md", last_worker="codex")
+        ck = StatusCheckpoint(
+            found=True, path=".harness/run-checkpoint.md", last_worker="codex"
+        )
         runner = StatusRunner(invocation_count=3, last_round=3, last_exit_code=0)
         payload = _make_payload(checkpoint=ck, runner=runner)
         md = format_markdown(payload)
@@ -467,7 +478,9 @@ class TestFormatMarkdown:
         assert "codex" in md
 
     def test_verification_section(self) -> None:
-        v = StatusVerification(summary="tests passed", stale=False, source="invocation-log")
+        v = StatusVerification(
+            summary="tests passed", stale=False, source="invocation-log"
+        )
         payload = _make_payload(verification=v)
         md = format_markdown(payload)
         assert "Source: invocation-log" in md
@@ -563,8 +576,12 @@ class TestStatusCmdCLI:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_repo),
-                "status", "--refresh", "--format", "markdown",
+                "--project-root",
+                str(tmp_repo),
+                "status",
+                "--refresh",
+                "--format",
+                "markdown",
             ],
         )
         assert result.exit_code == 0, result.output

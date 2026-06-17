@@ -191,8 +191,7 @@ class TestLoadConfigUnknownFields:
         _write_toml(
             cfg_dir,
             (
-                "schema_version = 1\n"
-                'agent_platfrom = "generic"\n'  # intentional typo
+                'schema_version = 1\nagent_platfrom = "generic"\n'  # intentional typo
             ),
         )
 

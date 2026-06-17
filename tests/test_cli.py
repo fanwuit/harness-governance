@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from click.testing import CliRunner
 
-from harness_governance.cli import cli, main
+from harness_governance import __version__ as _expected_version
+from harness_governance.cli import cli
 
 
 def test_help_lists_all_subcommands() -> None:
@@ -13,9 +14,6 @@ def test_help_lists_all_subcommands() -> None:
     assert result.exit_code == 0
     for sub in ("init", "governed-start", "packet"):
         assert sub in result.output
-
-
-from harness_governance import __version__ as _expected_version
 
 
 def test_version_is_reported() -> None:

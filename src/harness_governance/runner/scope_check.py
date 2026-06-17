@@ -11,7 +11,7 @@ and (optionally) auto-decompose the remaining work.
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -62,7 +62,9 @@ def _git_diff_since(
             timeout=15,
         )
         if result.returncode == 0:
-            files = [l.strip() for l in result.stdout.splitlines() if l.strip()]
+            files = [
+                line.strip() for line in result.stdout.splitlines() if line.strip()
+            ]
     except Exception:
         pass
 

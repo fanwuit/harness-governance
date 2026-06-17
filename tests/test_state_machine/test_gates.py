@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-import pytest
 
 from harness_governance.state_machine.gates import (
     GATE_CATALOG,
     RIGOR_LAYER_PROFILES,
-    LayerGateDefinition,
     LayerGateEngine,
     LockFileManager,
     gate_for_layer,
@@ -31,13 +28,20 @@ class TestGateCatalog:
             assert layer in GATE_CATALOG, f"Missing gate for {layer.value}"
             gate = GATE_CATALOG[layer]
             assert len(gate.required_questions) > 0, f"No questions for {layer.value}"
-            assert len(gate.confirmation_items) > 0, f"No confirmations for {layer.value}"
+            assert len(gate.confirmation_items) > 0, (
+                f"No confirmations for {layer.value}"
+            )
 
     def test_strict_requires_all_questions(self) -> None:
         for gate in GATE_CATALOG.values():
-            assert gate.min_questions_answered[RigorTier.STRICT] <= len(gate.required_questions)
+            assert gate.min_questions_answered[RigorTier.STRICT] <= len(
+                gate.required_questions
+            )
             # STRICT should require at least as many as STANDARD
-            assert gate.min_questions_answered[RigorTier.STRICT] >= gate.min_questions_answered[RigorTier.STANDARD]
+            assert (
+                gate.min_questions_answered[RigorTier.STRICT]
+                >= gate.min_questions_answered[RigorTier.STANDARD]
+            )
 
     def test_light_requires_one_question(self) -> None:
         for gate in GATE_CATALOG.values():
@@ -84,7 +88,9 @@ class TestRigorLayerProfiles:
         assert len(layers_for_tier(RigorTier.LIGHT)) == 6
 
     def test_is_layer_required(self) -> None:
-        assert is_layer_required(HarnessLayer.INTAKE_ORIENTATION, RigorTier.LIGHT) is True
+        assert (
+            is_layer_required(HarnessLayer.INTAKE_ORIENTATION, RigorTier.LIGHT) is True
+        )
         assert is_layer_required(HarnessLayer.ARCHITECTURE, RigorTier.LIGHT) is False
         assert is_layer_required(HarnessLayer.ARCHITECTURE, RigorTier.STRICT) is True
 
@@ -118,10 +124,30 @@ class TestLayerGateEngine:
     def test_check_passes_with_sufficient_qa(self, tmp_path: Path) -> None:
         session = self._make_session(
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q2", "answer": "A2", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q3", "answer": "A3", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q4", "answer": "A4", "timestamp": ""},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q2",
+                    "answer": "A2",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q3",
+                    "answer": "A3",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q4",
+                    "answer": "A4",
+                    "timestamp": "",
+                },
             ),
         )
         engine = LayerGateEngine()
@@ -134,7 +160,12 @@ class TestLayerGateEngine:
         session = self._make_session(
             rigor_tier="light",
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": ""},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "",
+                },
             ),
         )
         engine = LayerGateEngine()
@@ -159,10 +190,30 @@ class TestLayerGateEngine:
 
         session = self._make_session(
             layer_qa=(
-                {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q2", "answer": "A2", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q3", "answer": "A3", "timestamp": ""},
-                {"layer": "intake-orientation", "question": "Q4", "answer": "A4", "timestamp": ""},
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q1",
+                    "answer": "A1",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q2",
+                    "answer": "A2",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q3",
+                    "answer": "A3",
+                    "timestamp": "",
+                },
+                {
+                    "layer": "intake-orientation",
+                    "question": "Q4",
+                    "answer": "A4",
+                    "timestamp": "",
+                },
             ),
         )
         engine = LayerGateEngine()

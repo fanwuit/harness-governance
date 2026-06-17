@@ -14,10 +14,30 @@ from harness_governance.state_machine.layers import HarnessLayer
 
 
 _INTAKE_QA: tuple[dict[str, str], ...] = (
-    {"layer": "intake-orientation", "question": "Q1", "answer": "A1", "timestamp": "2026-06-16T10:00:00Z"},
-    {"layer": "intake-orientation", "question": "Q2", "answer": "A2", "timestamp": "2026-06-16T10:00:01Z"},
-    {"layer": "intake-orientation", "question": "Q3", "answer": "A3", "timestamp": "2026-06-16T10:00:02Z"},
-    {"layer": "intake-orientation", "question": "Q4", "answer": "A4", "timestamp": "2026-06-16T10:00:03Z"},
+    {
+        "layer": "intake-orientation",
+        "question": "Q1",
+        "answer": "A1",
+        "timestamp": "2026-06-16T10:00:00Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q2",
+        "answer": "A2",
+        "timestamp": "2026-06-16T10:00:01Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q3",
+        "answer": "A3",
+        "timestamp": "2026-06-16T10:00:02Z",
+    },
+    {
+        "layer": "intake-orientation",
+        "question": "Q4",
+        "answer": "A4",
+        "timestamp": "2026-06-16T10:00:03Z",
+    },
 )
 
 
@@ -78,7 +98,14 @@ class TestGateCheck:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "gate", "check", "intake-orientation"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "gate",
+                "check",
+                "intake-orientation",
+            ],
         )
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
@@ -139,7 +166,14 @@ class TestGateStatus:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "gate", "status", "intake-orientation"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "gate",
+                "status",
+                "intake-orientation",
+            ],
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -170,7 +204,14 @@ class TestGateReset:
         # Reset
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "gate", "reset", "intake-orientation", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "reset",
+                "intake-orientation",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert not lock.is_file()
@@ -191,7 +232,15 @@ class TestGateReset:
 
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "gate", "reset", "x", "--confirmed", "--all"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "reset",
+                "x",
+                "--confirmed",
+                "--all",
+            ],
         )
         assert result.exit_code == 0
         assert not locks.exists(HarnessLayer.INTAKE_ORIENTATION)

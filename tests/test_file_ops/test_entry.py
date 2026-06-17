@@ -44,7 +44,9 @@ def test_parse_entry_record_rejects_missing_field() -> None:
 
 
 def test_parse_entry_record_rejects_invalid_layer() -> None:
-    bad = SAMPLE_BLOCK.replace("- Current layer: implementation\n", "- Current layer: not-real\n")
+    bad = SAMPLE_BLOCK.replace(
+        "- Current layer: implementation\n", "- Current layer: not-real\n"
+    )
     with pytest.raises(ValueError):
         parse_entry_record(bad)
 

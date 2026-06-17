@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 import subprocess
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ..models.schemas import (
@@ -21,7 +20,6 @@ from ..models.schemas import (
     ScopeBoundary,
     ScopeDeclaration,
 )
-from .rigor import RigorTier
 
 logger = logging.getLogger("harness.drift")
 
@@ -97,9 +95,7 @@ def _run_git_diff(
         )
         if result.returncode == 0:
             files = [
-                line.strip()
-                for line in result.stdout.splitlines()
-                if line.strip()
+                line.strip() for line in result.stdout.splitlines() if line.strip()
             ]
     except Exception:
         logger.warning("git diff --name-only failed", exc_info=True)
@@ -230,9 +226,7 @@ class DriftDetectionEngine:
             boundary=boundary,
         )
 
-        drift_detected = bool(
-            files_out_of_scope or files_in_forbidden or triggers
-        )
+        drift_detected = bool(files_out_of_scope or files_in_forbidden or triggers)
 
         return DriftDetection(
             planned_files=tuple(planned),
@@ -327,8 +321,7 @@ def _gate_hook_drift(
 
     if drift.files_in_forbidden_paths:
         failures.append(
-            f"Forbidden paths touched: "
-            f"{', '.join(drift.files_in_forbidden_paths)}"
+            f"Forbidden paths touched: {', '.join(drift.files_in_forbidden_paths)}"
         )
 
     if drift.triggers_decomposition:

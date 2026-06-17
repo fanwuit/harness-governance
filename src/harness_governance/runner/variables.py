@@ -12,7 +12,7 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 
 from ..file_ops.packet import extract_task_packet_sections, packet_dir
-from ..file_ops.queue import extract_ready_block_fields, read_queue
+from ..file_ops.queue import extract_ready_block_fields
 from ..models.schemas import QueueItem
 
 # Sentinel for variables that could not be resolved.
@@ -89,8 +89,12 @@ class VariableExtractor:
         # Parse inline fields from the raw ready block.
         inline = extract_ready_block_fields(queue_item.raw)
         variables.role = inline.get("role", "")
-        variables.forbidden_scope = inline.get("forbidden shortcut", "") or inline.get("forbidden scope", "")
-        variables.verification_commands = inline.get("verification command", "") or inline.get("verification commands", "")
+        variables.forbidden_scope = inline.get("forbidden shortcut", "") or inline.get(
+            "forbidden scope", ""
+        )
+        variables.verification_commands = inline.get(
+            "verification command", ""
+        ) or inline.get("verification commands", "")
         variables.done_when = inline.get("done when", "")
 
         # --- From the task packet (if change_id is set) ---
@@ -142,24 +146,42 @@ class VariableExtractor:
         design_path = pkt / "design.md"
 
         if tasks_path.is_file():
-            sections = extract_task_packet_sections(tasks_path.read_text(encoding="utf-8"))
-            variables.owner_files = variables.owner_files or sections.get("owner files", "")
-            variables.expected_behavior = variables.expected_behavior or sections.get("expected behavior", "")
-            variables.failure_behavior = variables.failure_behavior or sections.get("failure behavior", "")
-            variables.allowed_assumptions = variables.allowed_assumptions or sections.get("allowed assumptions", "")
+            sections = extract_task_packet_sections(
+                tasks_path.read_text(encoding="utf-8")
+            )
+            variables.owner_files = variables.owner_files or sections.get(
+                "owner files", ""
+            )
+            variables.expected_behavior = variables.expected_behavior or sections.get(
+                "expected behavior", ""
+            )
+            variables.failure_behavior = variables.failure_behavior or sections.get(
+                "failure behavior", ""
+            )
+            variables.allowed_assumptions = (
+                variables.allowed_assumptions or sections.get("allowed assumptions", "")
+            )
             # Scope and allowed scope from task packet
             variables.scope = variables.scope or sections.get("scope", "")
-            variables.allowed_scope = variables.allowed_scope or sections.get("allowed scope", "")
+            variables.allowed_scope = variables.allowed_scope or sections.get(
+                "allowed scope", ""
+            )
             # Packet-level fallbacks for fields not yet set from inline
             if not variables.forbidden_scope:
-                variables.forbidden_scope = sections.get("forbidden scope", "") or sections.get("forbidden shortcuts", "")
+                variables.forbidden_scope = sections.get(
+                    "forbidden scope", ""
+                ) or sections.get("forbidden shortcuts", "")
             if not variables.verification_commands:
-                variables.verification_commands = sections.get("verification commands", "") or sections.get("verification", "")
+                variables.verification_commands = sections.get(
+                    "verification commands", ""
+                ) or sections.get("verification", "")
             if not variables.done_when:
                 variables.done_when = sections.get("done when", "")
             # Planner extras
             variables.success_criteria = sections.get("success criteria", "")
-            variables.non_goals = sections.get("non-goals", "") or sections.get("non goals", "")
+            variables.non_goals = sections.get("non-goals", "") or sections.get(
+                "non goals", ""
+            )
             variables.stop_conditions = sections.get("stop conditions", "")
 
         if contracts_path.is_file():
@@ -173,6 +195,7 @@ class VariableExtractor:
 # ---------------------------------------------------------------------------
 # Git diff helper
 # ---------------------------------------------------------------------------
+
 
 def _safe_git_diff(project_root: Path) -> str:
     """Run ``git diff HEAD`` and return output, or empty string on failure."""
@@ -193,6 +216,7 @@ def _safe_git_diff(project_root: Path) -> str:
 # Project context builder (for planner)
 # ---------------------------------------------------------------------------
 
+
 def _build_project_context(project_root: Path) -> str:
     """Build a lightweight project-context summary for the planner role.
 
@@ -210,8 +234,7 @@ def _build_project_context(project_root: Path) -> str:
     changes_root = project_root / "docs" / "changes"
     if changes_root.is_dir():
         packet_ids = sorted(
-            d.name for d in changes_root.iterdir()
-            if d.is_dir() and d.name != "archive"
+            d.name for d in changes_root.iterdir() if d.is_dir() and d.name != "archive"
         )
         if packet_ids:
             parts.append("## Active Change Packets\n")
@@ -229,6 +252,7 @@ def _build_project_context(project_root: Path) -> str:
 # ---------------------------------------------------------------------------
 # Utility: check if a variable is "not found"
 # ---------------------------------------------------------------------------
+
 
 def is_not_found(value: str) -> bool:
     """Return True if the value is a NOT FOUND sentinel."""
@@ -252,16 +276,18 @@ def fill_missing(variables: RoleVariables) -> RoleVariables:
 
 
 # Fields that are role-conditional and should NOT get NOT FOUND.
-_OPTIONAL_FIELDS = frozenset({
-    "git_diff",
-    "project_context",
-    "success_criteria",
-    "non_goals",
-    "stop_conditions",
-    "scope",
-    "allowed_scope",
-    "worker_results",
-})
+_OPTIONAL_FIELDS = frozenset(
+    {
+        "git_diff",
+        "project_context",
+        "success_criteria",
+        "non_goals",
+        "stop_conditions",
+        "scope",
+        "allowed_scope",
+        "worker_results",
+    }
+)
 
 
 __all__ = [

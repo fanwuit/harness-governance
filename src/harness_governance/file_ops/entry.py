@@ -72,7 +72,9 @@ def parse_entry_record(block: str) -> EntryRecord:
 
     missing = [name for name in _FIELD_MAP.values() if not fields.get(name)]
     if missing:
-        raise ValueError(f"Implementation Entry Record missing fields: {', '.join(missing)}")
+        raise ValueError(
+            f"Implementation Entry Record missing fields: {', '.join(missing)}"
+        )
 
     try:
         layer = HarnessLayer(fields["current_layer"].lower())

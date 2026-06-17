@@ -11,11 +11,10 @@ import json
 import textwrap
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
-from tests.conftest import write_permissive_config, seed_session
+from tests.conftest import write_permissive_config
 
 
 # ---------------------------------------------------------------------------
@@ -108,13 +107,13 @@ def _setup_multi_contract_project(tmp_path: Path) -> None:
 
 
 class TestAlignmentCheck:
-
     def test_check_no_contracts_passes(self, tmp_path: Path) -> None:
         """With no contracts directory, alignment should pass."""
         _setup_project(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 0, result.output
 
@@ -122,7 +121,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 0, result.output
         # Should show summary line
@@ -132,7 +132,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MISSING_FIELD_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 1, result.output
         # Should show error findings
@@ -142,7 +143,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         # Parse JSON from output (may contain trailing newline)
         output = result.output.strip()
@@ -157,7 +159,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         data = json.loads(result.output.strip())
         assert data["passed"] is True
@@ -167,7 +170,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MISSING_FIELD_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         data = json.loads(result.output.strip())
         assert data["passed"] is False
@@ -177,7 +181,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MISSING_FIELD_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         data = json.loads(result.output.strip())
         errors = [f for f in data["findings"] if f["severity"] == "error"]
@@ -192,9 +197,12 @@ class TestAlignmentCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "alignment", "check",
-                "--contract", str(contract_path),
+                "--project-root",
+                str(tmp_path),
+                "alignment",
+                "check",
+                "--contract",
+                str(contract_path),
             ],
         )
         # The command should run without error (flag is accepted)
@@ -207,9 +215,12 @@ class TestAlignmentCheck:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "alignment", "check",
-                "--contract", str(tmp_path / "no_such_file.md"),
+                "--project-root",
+                str(tmp_path),
+                "alignment",
+                "check",
+                "--contract",
+                str(tmp_path / "no_such_file.md"),
             ],
         )
         assert result.exit_code != 0
@@ -219,7 +230,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MISSING_FIELD_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         # Should show at least one finding line with [missing]
         assert "[missing]" in result.output
@@ -229,7 +241,8 @@ class TestAlignmentCheck:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 0
         # Should contain passed or no-findings message
@@ -249,7 +262,8 @@ class TestAlignmentCheck:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         # Should mention unsupported languages or TypeScript
         assert (
@@ -265,13 +279,13 @@ class TestAlignmentCheck:
 
 
 class TestAlignmentCheckProjectRoot:
-
     def test_project_root_is_respected(self, tmp_path: Path) -> None:
         """--project-root should change where the engine looks for contracts."""
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 0, result.output
         assert "4" in result.output  # 4 fields expected
@@ -281,7 +295,8 @@ class TestAlignmentCheckProjectRoot:
         write_permissive_config(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         assert result.exit_code == 0
 
@@ -292,12 +307,12 @@ class TestAlignmentCheckProjectRoot:
 
 
 class TestAlignmentTrace:
-
     def test_trace_empty_project(self, tmp_path: Path) -> None:
         _setup_project(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         assert result.exit_code == 0, result.output
         assert "0" in result.output  # 0 fields
@@ -306,7 +321,8 @@ class TestAlignmentTrace:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         assert result.exit_code == 0, result.output
         # Should show field names
@@ -317,17 +333,24 @@ class TestAlignmentTrace:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
-        assert "contract:" in result.output.lower() or "contract" in result.output.lower()
+        assert (
+            "contract:" in result.output.lower() or "contract" in result.output.lower()
+        )
 
     def test_trace_shows_implementation_ref(self, tmp_path: Path) -> None:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
-        assert "implementation:" in result.output.lower() or "implementation" in result.output.lower()
+        assert (
+            "implementation:" in result.output.lower()
+            or "implementation" in result.output.lower()
+        )
 
     def test_trace_with_session_id(self, tmp_path: Path) -> None:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
@@ -335,9 +358,12 @@ class TestAlignmentTrace:
         result = runner.invoke(
             cli,
             [
-                "--project-root", str(tmp_path),
-                "alignment", "trace",
-                "--session-id", "test-sess-001",
+                "--project-root",
+                str(tmp_path),
+                "alignment",
+                "trace",
+                "--session-id",
+                "test-sess-001",
             ],
         )
         assert result.exit_code == 0, result.output
@@ -347,7 +373,8 @@ class TestAlignmentTrace:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         assert result.exit_code == 0, result.output
 
@@ -355,13 +382,11 @@ class TestAlignmentTrace:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         # Should contain a summary line with total and traced counts
-        assert (
-            "traceability" in result.output.lower()
-            or "追溯" in result.output
-        )
+        assert "traceability" in result.output.lower() or "追溯" in result.output
 
     def test_trace_verification_ref(self, tmp_path: Path) -> None:
         """When test files reference fields, verification ref should appear."""
@@ -374,10 +399,14 @@ class TestAlignmentTrace:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         assert result.exit_code == 0
-        assert "verification:" in result.output.lower() or "verification" in result.output.lower()
+        assert (
+            "verification:" in result.output.lower()
+            or "verification" in result.output.lower()
+        )
 
 
 # ===================================================================
@@ -386,12 +415,12 @@ class TestAlignmentTrace:
 
 
 class TestAlignmentTraceProjectRoot:
-
     def test_project_root_is_respected(self, tmp_path: Path) -> None:
         _setup_multi_contract_project(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "trace"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "trace"],
         )
         assert result.exit_code == 0
         # Both user and order fields should appear
@@ -412,10 +441,12 @@ class TestAlignmentTraceProjectRoot:
 
         runner = CliRunner()
         result_a = runner.invoke(
-            cli, ["--project-root", str(project_a), "alignment", "trace"],
+            cli,
+            ["--project-root", str(project_a), "alignment", "trace"],
         )
         result_b = runner.invoke(
-            cli, ["--project-root", str(project_b), "alignment", "trace"],
+            cli,
+            ["--project-root", str(project_b), "alignment", "trace"],
         )
         assert "user_id" in result_a.output
         assert "user_id" not in result_b.output
@@ -427,7 +458,6 @@ class TestAlignmentTraceProjectRoot:
 
 
 class TestAlignmentGroupHelp:
-
     def test_alignment_help(self) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["alignment", "--help"])
@@ -455,7 +485,6 @@ class TestAlignmentGroupHelp:
 
 
 class TestAlignmentEdgeCases:
-
     def test_check_contract_with_no_fields(self, tmp_path: Path) -> None:
         """A contract file without parseable fields should still run."""
         write_permissive_config(tmp_path)
@@ -465,7 +494,8 @@ class TestAlignmentEdgeCases:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         # Should pass — no fields to check
         assert result.exit_code == 0
@@ -483,17 +513,21 @@ class TestAlignmentEdgeCases:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         # Should not crash — exit 1 because fields are missing is fine
         assert result.exit_code in (0, 1)
 
     def test_check_multiple_findings_all_listed(self, tmp_path: Path) -> None:
         """All findings should be listed in text output."""
-        _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl="class Empty:\n    pass\n")
+        _setup_project(
+            tmp_path, contract=SIMPLE_TABLE_MD, impl="class Empty:\n    pass\n"
+        )
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check"],
         )
         # All 4 contract fields should be reported as missing
         assert result.exit_code == 1
@@ -504,7 +538,8 @@ class TestAlignmentEdgeCases:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         # Must be valid JSON
         data = json.loads(result.output.strip())
@@ -515,7 +550,8 @@ class TestAlignmentEdgeCases:
         _setup_project(tmp_path, contract=SIMPLE_TABLE_MD, impl=MATCHING_IMPL)
         runner = CliRunner()
         result = runner.invoke(
-            cli, ["--project-root", str(tmp_path), "alignment", "check", "--json"],
+            cli,
+            ["--project-root", str(tmp_path), "alignment", "check", "--json"],
         )
         data = json.loads(result.output.strip())
         expected_keys = {

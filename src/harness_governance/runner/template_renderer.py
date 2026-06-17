@@ -93,7 +93,9 @@ class TemplateRenderer:
         """
         stem = _ROLE_TO_TEMPLATE.get(role)
         if stem is None:
-            raise ValueError(f"Unknown role: {role!r}. Known roles: {sorted(_ROLE_TO_TEMPLATE)}")
+            raise ValueError(
+                f"Unknown role: {role!r}. Known roles: {sorted(_ROLE_TO_TEMPLATE)}"
+            )
 
         resource = resources.files(_TEMPLATES_PACKAGE).joinpath(f"{stem}.md")
         if not resource.is_file():
@@ -133,6 +135,7 @@ class TemplateRenderer:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_substitution(variables: RoleVariables) -> dict[str, str]:
     """Build a ``{PLACEHOLDER: value}`` map from a RoleVariables instance."""
     # Fill missing fields with NOT FOUND sentinels.
@@ -155,6 +158,7 @@ def _substitute(template: str, substitution: Mapping[str, str]) -> str:
     Unknown placeholders are left as-is (they become ``NOT FOUND`` if
     the value was already filled with the sentinel).
     """
+
     def replacer(match: re.Match) -> str:
         key = match.group(1)
         return substitution.get(key, match.group(0))

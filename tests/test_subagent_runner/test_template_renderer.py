@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from harness_governance.runner.template_renderer import TemplateRenderer
-from harness_governance.runner.variables import RoleVariables, fill_missing
+from harness_governance.runner.variables import RoleVariables
 
 
 @pytest.fixture
@@ -83,7 +83,8 @@ class TestRender:
         assert "{{IMPLEMENTER_REASONING}}" not in rendered  # placeholder not leaked raw
 
     def test_render_preserves_exact_values(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         """Variables are substituted exactly, no paraphrasing."""
         v = RoleVariables(
@@ -96,7 +97,8 @@ class TestRender:
         assert "exact completion criteria" in rendered
 
     def test_render_missing_variable_shows_not_found(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables()
         template = "Files: {{OWNER_FILES}}\nContracts: {{CONTRACTS}}"
@@ -105,7 +107,8 @@ class TestRender:
         assert "NOT FOUND: {{CONTRACTS}}" in rendered
 
     def test_render_unknown_placeholder_left_as_is(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(owner_files="test.py")
         template = "{{OWNER_FILES}} and {{UNKNOWN_VAR}}"
@@ -193,7 +196,8 @@ class TestLoadGovernanceTemplates:
 
 class TestRenderGovernanceRoles:
     def test_render_adr_writer_substitutes(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(
             queue_item_raw="[ready] Write ADR for DB migration",
@@ -211,7 +215,8 @@ class TestRenderGovernanceRoles:
         assert "docs/adr/" in rendered
 
     def test_render_fact_finder_has_forbidden_inputs(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(
             queue_item_raw="[ready] Review evidence",
@@ -228,7 +233,8 @@ class TestRenderGovernanceRoles:
         assert "diff --git a/foo.py" in rendered
 
     def test_render_integrator_includes_worker_results(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(
             queue_item_raw="[ready] Integrate worker outputs",
@@ -245,7 +251,8 @@ class TestRenderGovernanceRoles:
         assert '{"worker1": "passed", "worker2": "passed"}' in rendered
 
     def test_render_readiness_gate_writer(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(
             queue_item_raw="[ready] Fix readiness gates",
@@ -262,7 +269,8 @@ class TestRenderGovernanceRoles:
         assert "tests/fixtures/" in rendered
 
     def test_render_document_gardener(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         v = RoleVariables(
             queue_item_raw="[ready] Fix doc drift",
@@ -300,7 +308,8 @@ class TestIsolationGuarantee:
         assert "CONTRACTS" in rendered
 
     def test_fact_finder_isolation(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         """Fact Finder template also has Forbidden Inputs section."""
         v = RoleVariables(
@@ -317,14 +326,22 @@ class TestPlaceholderSubstitution:
     """Verify all role templates have {{PLACEHOLDER}} tokens and substitution works."""
 
     ALL_ROLES_WITH_PLACEHOLDERS = [
-        "planner", "contract-writer", "implementer", "reviewer",
-        "adr-writer", "fact-finder-reviewer", "readiness-gate-writer",
-        "document-gardener", "integrator",
+        "planner",
+        "contract-writer",
+        "implementer",
+        "reviewer",
+        "adr-writer",
+        "fact-finder-reviewer",
+        "readiness-gate-writer",
+        "document-gardener",
+        "integrator",
     ]
 
     @pytest.mark.parametrize("role", ALL_ROLES_WITH_PLACEHOLDERS)
     def test_template_has_placeholders(
-        self, renderer: TemplateRenderer, role: str,
+        self,
+        renderer: TemplateRenderer,
+        role: str,
     ) -> None:
         raw = renderer.load_template(role)
         unresolved = renderer.find_unresolved(raw)
@@ -332,7 +349,9 @@ class TestPlaceholderSubstitution:
 
     @pytest.mark.parametrize("role", ALL_ROLES_WITH_PLACEHOLDERS)
     def test_render_substitutes_queue_item(
-        self, renderer: TemplateRenderer, role: str,
+        self,
+        renderer: TemplateRenderer,
+        role: str,
     ) -> None:
         """QUEUE_ITEM is the one variable all role templates share."""
         v = RoleVariables(queue_item_raw="[ready] Test queue item for substitution")
@@ -340,7 +359,8 @@ class TestPlaceholderSubstitution:
         assert "[ready] Test queue item for substitution" in rendered
 
     def test_orchestrator_has_no_placeholders(
-        self, renderer: TemplateRenderer,
+        self,
+        renderer: TemplateRenderer,
     ) -> None:
         """Orchestrator template only has platform-level placeholders resolved at assembly time."""
         raw = renderer.load_template("orchestrator")

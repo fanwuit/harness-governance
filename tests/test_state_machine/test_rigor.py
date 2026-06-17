@@ -6,8 +6,6 @@ import pytest
 
 from harness_governance.state_machine.rigor import (
     RigorTier,
-    STRICT_DETECTION_KEYWORDS,
-    LIGHT_DETECTION_KEYWORDS,
     detect_rigor,
     resolve_rigor,
 )
@@ -40,10 +38,16 @@ class TestDetectRigor:
         assert detect_rigor("build a saas platform from scratch") is RigorTier.STRICT
 
     def test_microservice_detected_as_strict(self) -> None:
-        assert detect_rigor("design a distributed microservice architecture") is RigorTier.STRICT
+        assert (
+            detect_rigor("design a distributed microservice architecture")
+            is RigorTier.STRICT
+        )
 
     def test_greenfield_detected_as_strict(self) -> None:
-        assert detect_rigor("greenfield project, building everything from scratch") is RigorTier.STRICT
+        assert (
+            detect_rigor("greenfield project, building everything from scratch")
+            is RigorTier.STRICT
+        )
 
     def test_payment_detected_as_strict(self) -> None:
         assert detect_rigor("add payment and billing system") is RigorTier.STRICT

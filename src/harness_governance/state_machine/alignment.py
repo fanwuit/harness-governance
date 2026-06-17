@@ -146,9 +146,7 @@ class FieldAlignmentEngine:
             except Exception:
                 continue
 
-            file_findings, file_found = self._scan_python_ast(
-                source, str(sf), spec_map
-            )
+            file_findings, file_found = self._scan_python_ast(source, str(sf), spec_map)
             findings.extend(file_findings)
             found_fields.update(file_found)
 
@@ -184,7 +182,9 @@ class FieldAlignmentEngine:
 
         # Find contract documents.
         contracts_dir = self._project_root / "docs" / "contracts"
-        contract_files = list(contracts_dir.glob("*.md")) if contracts_dir.is_dir() else []
+        contract_files = (
+            list(contracts_dir.glob("*.md")) if contracts_dir.is_dir() else []
+        )
 
         if not contract_files:
             return AlignmentReport(
@@ -213,12 +213,11 @@ class FieldAlignmentEngine:
 
             # Count matched fields (those in specs that were found).
             found_names = {
-                f.implementation_field
-                for f in findings
-                if f.issue not in ("missing",)
+                f.implementation_field for f in findings if f.issue not in ("missing",)
             }
-            matched = sum(
-                1 for s in specs
+            _matched = sum(
+                1
+                for s in specs
                 if s.field_name in found_names
                 or not any(
                     f.contract_field == s.field_name and f.issue == "missing"
@@ -226,9 +225,7 @@ class FieldAlignmentEngine:
                 )
             )
             # More accurate: matched = expected - missing findings
-            missing_count = sum(
-                1 for f in findings if f.issue == "missing"
-            )
+            missing_count = sum(1 for f in findings if f.issue == "missing")
             total_matched += len(specs) - missing_count
 
         errors = [f for f in all_findings if f.severity == "error"]
@@ -243,9 +240,7 @@ class FieldAlignmentEngine:
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
 
-    def build_traceability_matrix(
-        self, session_id: str = ""
-    ) -> TraceabilityMatrix:
+    def build_traceability_matrix(self, session_id: str = "") -> TraceabilityMatrix:
         """Build a cross-layer field traceability matrix.
 
         Scans artifacts across contract, adr, implementation, and
@@ -301,8 +296,7 @@ class FieldAlignmentEngine:
             entries=tuple(entries),
             fields_total=len(entries),
             fields_traced=sum(
-                1 for e in entries
-                if e.contract_ref and e.implementation_ref
+                1 for e in entries if e.contract_ref and e.implementation_ref
             ),
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -322,7 +316,7 @@ class FieldAlignmentEngine:
         # Find markdown table lines.
         lines = content.splitlines()
         in_table = False
-        headers: list[str] = []
+        _headers: list[str] = []
         field_col = -1
         type_col = -1
         required_col = -1
@@ -350,7 +344,7 @@ class FieldAlignmentEngine:
                         req_idx = i
 
                 if field_idx >= 0:
-                    headers = parts
+                    _headers = parts
                     field_col = field_idx
                     type_col = type_idx
                     required_col = req_idx
@@ -359,7 +353,7 @@ class FieldAlignmentEngine:
 
             # Separator line (e.g. |---|---| or |-------|------|----------|).
             if in_table and all(
-                re.fullmatch(r':?-+:?', c.strip())
+                re.fullmatch(r":?-+:?", c.strip())
                 for c in stripped.split("|")
                 if c.strip()
             ):
@@ -385,7 +379,15 @@ class FieldAlignmentEngine:
                     is_required = True
                     if required_col >= 0 and required_col < len(parts):
                         req_val = parts[required_col].lower()
-                        is_required = req_val in ("yes", "true", "y", "required", "是", "✓", "必填")
+                        is_required = req_val in (
+                            "yes",
+                            "true",
+                            "y",
+                            "required",
+                            "是",
+                            "✓",
+                            "必填",
+                        )
 
                     specs.append(
                         FieldAlignmentSpec(
@@ -491,7 +493,7 @@ class FieldAlignmentEngine:
     def _field_in_source(field_name: str, source: str) -> bool:
         """Quick check: does *field_name* appear as an identifier in *source*?"""
         # Look for the field name as a Python identifier (word boundary).
-        return bool(re.search(rf'\b{re.escape(field_name)}\b', source))
+        return bool(re.search(rf"\b{re.escape(field_name)}\b", source))
 
 
 # ---------------------------------------------------------------------------
@@ -540,9 +542,7 @@ class _FieldVisitor(ast.NodeVisitor):
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Top-level annotated assignments (module-level constants etc.)."""
         if isinstance(node.target, ast.Name) and not node.target.id.startswith("_"):
-            self._check_annotation(
-                node.target.id, node.annotation, node.lineno
-            )
+            self._check_annotation(node.target.id, node.annotation, node.lineno)
         self.generic_visit(node)
 
     # -- Internal ---------------------------------------------------------
@@ -578,9 +578,7 @@ class _FieldVisitor(ast.NodeVisitor):
         """Compare an assigned field (type inferred) against the spec."""
         self._compare(field_name, "inferred", lineno)
 
-    def _compare(
-        self, field_name: str, impl_type: str, lineno: int
-    ) -> None:
+    def _compare(self, field_name: str, impl_type: str, lineno: int) -> None:
         """Compare a found field against the spec map."""
         spec = self.spec_map.get(field_name)
         if spec is None:
@@ -637,7 +635,11 @@ class _FieldVisitor(ast.NodeVisitor):
             right = _FieldVisitor._expr_to_type_string(node.right)
             return f"{left} | {right}"
         if isinstance(node, ast.Attribute):
-            return f"{node.value.id}.{node.attr}" if isinstance(node.value, ast.Name) else node.attr
+            return (
+                f"{node.value.id}.{node.attr}"
+                if isinstance(node.value, ast.Name)
+                else node.attr
+            )
         return "Any"
 
     @staticmethod

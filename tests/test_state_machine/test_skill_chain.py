@@ -9,11 +9,8 @@ and _gate_hook_skill_chain_review.
 from __future__ import annotations
 
 import json
-import time
-from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
 
 from harness_governance.models.schemas import (
     InvocationTreeNode,
@@ -135,14 +132,22 @@ class TestStartInvocation:
 
     def test_multiple_starts_produce_unique_ids(self, tmp_path: Path) -> None:
         tracer = _make_tracer(tmp_path)
-        id1 = tracer.start_invocation(parent_call_id=None, child_skill="a", session_id=SESSION_ID)
-        id2 = tracer.start_invocation(parent_call_id=None, child_skill="b", session_id=SESSION_ID)
+        id1 = tracer.start_invocation(
+            parent_call_id=None, child_skill="a", session_id=SESSION_ID
+        )
+        id2 = tracer.start_invocation(
+            parent_call_id=None, child_skill="b", session_id=SESSION_ID
+        )
         assert id1 != id2
 
     def test_records_parent_call_id(self, tmp_path: Path) -> None:
         tracer = _make_tracer(tmp_path)
-        parent_id = tracer.start_invocation(parent_call_id=None, child_skill="root", session_id=SESSION_ID)
-        child_id = tracer.start_invocation(parent_call_id=parent_id, child_skill="child", session_id=SESSION_ID)
+        parent_id = tracer.start_invocation(
+            parent_call_id=None, child_skill="root", session_id=SESSION_ID
+        )
+        child_id = tracer.start_invocation(
+            parent_call_id=parent_id, child_skill="child", session_id=SESSION_ID
+        )
         inv = tracer._active_calls[child_id]
         assert inv.parent_call_id == parent_id
 
@@ -245,9 +250,7 @@ class TestEndInvocation:
         call_id = tracer.start_invocation(
             parent_call_id=None, child_skill="planner", session_id=SESSION_ID
         )
-        result = tracer.end_invocation(
-            call_id, files_returned=["output.py"]
-        )
+        result = tracer.end_invocation(call_id, files_returned=["output.py"])
         assert result is not None
         assert result.files_returned == ("output.py",)
 
@@ -560,7 +563,7 @@ class TestReadInvocations:
         assert records == []
 
     def test_round_trip(self, tmp_path: Path) -> None:
-        tracer = _seed_chain(tmp_path)
+        _tracer = _seed_chain(tmp_path)
         records = SkillChainTracer._read_invocations(SESSION_ID, tmp_path)
         assert len(records) == 3
         assert all(isinstance(r, SkillInvocation) for r in records)
@@ -571,7 +574,7 @@ class TestReadInvocations:
         ndjson_path = chains_dir / f"{SESSION_ID}.ndjson"
         ndjson_path.write_text(
             '{"call_id": "good", "child_skill": "ok", "session_id": "test"}\n'
-            'THIS IS NOT JSON\n'
+            "THIS IS NOT JSON\n"
             '{"call_id": "good2", "child_skill": "ok2", "session_id": "test"}\n',
             encoding="utf-8",
         )
@@ -594,6 +597,7 @@ class TestGateHookSkillChainVerification:
     def test_passes_with_empty_session_id_attr(self, tmp_path: Path) -> None:
         class FakeSession:
             session_id = ""
+
         failures = _gate_hook_skill_chain_verification(
             session=FakeSession(), project_root=tmp_path
         )
@@ -604,6 +608,7 @@ class TestGateHookSkillChainVerification:
 
         class FakeSession:
             session_id = SESSION_ID
+
         failures = _gate_hook_skill_chain_verification(
             session=FakeSession(), project_root=tmp_path
         )
@@ -623,6 +628,7 @@ class TestGateHookSkillChainVerification:
 
         class FakeSession:
             session_id = SESSION_ID
+
         failures = _gate_hook_skill_chain_verification(
             session=FakeSession(), project_root=tmp_path
         )
@@ -630,8 +636,10 @@ class TestGateHookSkillChainVerification:
 
     def test_no_records_is_non_blocking(self, tmp_path: Path) -> None:
         """'No records' message should be skipped (non-blocking)."""
+
         class FakeSession:
             session_id = "empty-sess"
+
         failures = _gate_hook_skill_chain_verification(
             session=FakeSession(), project_root=tmp_path
         )
@@ -640,14 +648,13 @@ class TestGateHookSkillChainVerification:
 
 class TestGateHookSkillChainReview:
     def test_passes_with_no_session_id(self, tmp_path: Path) -> None:
-        failures = _gate_hook_skill_chain_review(
-            session=None, project_root=tmp_path
-        )
+        failures = _gate_hook_skill_chain_review(session=None, project_root=tmp_path)
         assert failures == []
 
     def test_fails_when_no_invocations(self, tmp_path: Path) -> None:
         class FakeSession:
             session_id = "empty-review"
+
         failures = _gate_hook_skill_chain_review(
             session=FakeSession(), project_root=tmp_path
         )
@@ -667,6 +674,7 @@ class TestGateHookSkillChainReview:
 
         class FakeSession:
             session_id = SESSION_ID
+
         failures = _gate_hook_skill_chain_review(
             session=FakeSession(), project_root=tmp_path
         )
@@ -677,12 +685,15 @@ class TestGateHookSkillChainReview:
 
         class FakeSession:
             session_id = SESSION_ID
+
         failures = _gate_hook_skill_chain_review(
             session=FakeSession(), project_root=tmp_path
         )
         assert failures == []
 
-    def test_fails_on_flat_chain_with_multiple_invocations(self, tmp_path: Path) -> None:
+    def test_fails_on_flat_chain_with_multiple_invocations(
+        self, tmp_path: Path
+    ) -> None:
         """Multiple invocations all at depth=0 should be flagged."""
         tracer = _make_tracer(tmp_path)
         _start_and_end(tracer, child_skill="flat-a")
@@ -690,6 +701,7 @@ class TestGateHookSkillChainReview:
 
         class FakeSession:
             session_id = SESSION_ID
+
         failures = _gate_hook_skill_chain_review(
             session=FakeSession(), project_root=tmp_path
         )
@@ -710,7 +722,9 @@ class TestComputeDepths:
 
     def test_child_has_depth_one(self) -> None:
         root = SkillInvocation(call_id="root", parent_call_id=None, child_skill="root")
-        child = SkillInvocation(call_id="child", parent_call_id="root", child_skill="child")
+        child = SkillInvocation(
+            call_id="child", parent_call_id="root", child_skill="child"
+        )
         by_id = {"root": root, "child": child}
         SkillChainTracer._compute_depths(by_id)
         assert child.trace_depth == 1

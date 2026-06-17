@@ -136,10 +136,7 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
             "Make the change directly, run the verification command. "
             "No need to add to the queue for trivial changes."
         ),
-        "zh-CN": (
-            "直接修改代码并运行验证命令。"
-            "琐碎修改无需加入队列。"
-        ),
+        "zh-CN": ("直接修改代码并运行验证命令。琐碎修改无需加入队列。"),
     },
     "governed_start.recommendation.governed": {
         "en": (
@@ -244,9 +241,7 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     },
     "packet.label_missing_contract_artifact": {
         "en": "{label}/contracts.md must declare a contract artifact or an explicit blocked reason.",
-        "zh-CN": (
-            "{label}/contracts.md 必须声明契约产物或显式的 blocked 原因。"
-        ),
+        "zh-CN": ("{label}/contracts.md 必须声明契约产物或显式的 blocked 原因。"),
     },
     "packet.label_missing_verification": {
         "en": (
@@ -417,8 +412,8 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "{path} 引用了 harness v{old_version}；当前版本为 v{current_version}",
     },
     "check.docs_empty_section": {
-        "en": "{path}: section \"{section}\" is empty or missing",
-        "zh-CN": "{path}: \"{section}\" 段落为空或缺失",
+        "en": '{path}: section "{section}" is empty or missing',
+        "zh-CN": '{path}: "{section}" 段落为空或缺失',
     },
     # priority --------------------------------------------------------------
     "priority.no_competing": {

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Iterable
 
 import click
 
@@ -44,6 +43,7 @@ def _get_check_frequency(repo_root: Path) -> str:
     """Load check_frequency from project config, defaulting to 'targeted'."""
     try:
         from ..config import load_config
+
         cfg = load_config(repo_root)
         return cfg.check_frequency
     except Exception:
@@ -90,7 +90,9 @@ def check_routing(repo_root: Path) -> CheckResult:
                         check="routing",
                         target=rel,
                         level="warning",
-                        message=bilingual("check.missing_layer_term", path=rel, term=term),
+                        message=bilingual(
+                            "check.missing_layer_term", path=rel, term=term
+                        ),
                     )
                 )
         if _OLD_CHAIN.search(text) and "简化视图" not in text:
@@ -132,7 +134,9 @@ def check_packets(repo_root: Path) -> CheckResult:
     """Run the change-packet structure check."""
     errors, _summaries = packet_ops.check_all_packets(repo_root)
     findings = tuple(
-        CheckFinding(check="packets", target="docs/changes/", level="error", message=err)
+        CheckFinding(
+            check="packets", target="docs/changes/", level="error", message=err
+        )
         for err in errors
     )
     return CheckResult(
@@ -153,7 +157,9 @@ def check_entry(repo_root: Path) -> CheckResult:
         all_errors.extend(file_errors)
         for err in file_errors:
             findings.append(
-                CheckFinding(check="entry", target=str(file), level="error", message=err)
+                CheckFinding(
+                    check="entry", target=str(file), level="error", message=err
+                )
             )
     return CheckResult(
         check="entry",
@@ -182,10 +188,7 @@ def check_inventory(repo_root: Path) -> CheckResult:
         )
 
     text = readme.read_text(encoding="utf-8")
-    enabled = sorted(
-        path.parent.name
-        for path in _find_enabled_skills(repo_root)
-    )
+    enabled = sorted(path.parent.name for path in _find_enabled_skills(repo_root))
 
     # Look for the line ``启用的非 system skills：N 个``.
     count_match = re.search(r"启用的非 system skills[：:]\s*(\d+)\s*个", text)
@@ -197,7 +200,11 @@ def check_inventory(repo_root: Path) -> CheckResult:
                     check="inventory",
                     target="README.md",
                     level="error",
-                    message=bilingual("check.inventory_count_drift", declared=declared, actual=len(enabled)),
+                    message=bilingual(
+                        "check.inventory_count_drift",
+                        declared=declared,
+                        actual=len(enabled),
+                    ),
                 )
             )
 
@@ -252,8 +259,6 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
     Checks that CHANGELOG, README, CLAUDE.md, i18n, and skill versions
     are in sync with the codebase.
     """
-    import ast
-    from pathlib import Path as _Path
 
     findings: list[CheckFinding] = []
 
@@ -287,7 +292,9 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
             for line in cli_path.read_text(encoding="utf-8").splitlines():
                 m_add = re.match(r"\s*cli\.add_command\((\w+)", line)
                 if m_add:
-                    registered.add(m_add.group(1).replace("_group", "").replace("_cmd", ""))
+                    registered.add(
+                        m_add.group(1).replace("_group", "").replace("_cmd", "")
+                    )
         for cmd_name in sorted(registered):
             # Look for the command name in README code blocks
             if cmd_name not in readme_text:
@@ -317,7 +324,10 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
                     if py_file.name.startswith("_"):
                         continue
                     stem = py_file.stem
-                    if stem not in claude_text and stem.replace("_", "") not in claude_text:
+                    if (
+                        stem not in claude_text
+                        and stem.replace("_", "") not in claude_text
+                    ):
                         findings.append(
                             CheckFinding(
                                 check="docs-self",
@@ -331,9 +341,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
                         )
 
     # 4. i18n coverage — bilingual() calls vs messages.py catalog  ------
-    messages_path = (
-        repo_root / "src" / "harness_governance" / "messages.py"
-    )
+    messages_path = repo_root / "src" / "harness_governance" / "messages.py"
     if messages_path.is_file():
         msg_text = messages_path.read_text(encoding="utf-8")
         # Collect all message keys from _MESSAGES dict
@@ -365,9 +373,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
                     )
 
     # 5. Skill version sentinel vs __version__  -------------------------
-    skills_root = (
-        repo_root / "src" / "harness_governance" / "data" / "skills"
-    )
+    skills_root = repo_root / "src" / "harness_governance" / "data" / "skills"
     if skills_root.is_dir():
         major_minor = ".".join(current_version.split(".")[:2])
         for skill_file in sorted(skills_root.glob("*/*")):
@@ -398,9 +404,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
                     )
 
     # 6. Model docs — schemas.py classes vs CLAUDE.md  ------------------
-    schemas_path = (
-        repo_root / "src" / "harness_governance" / "models" / "schemas.py"
-    )
+    schemas_path = repo_root / "src" / "harness_governance" / "models" / "schemas.py"
     if schemas_path.is_file() and claude_md.is_file():
         schema_text = schemas_path.read_text(encoding="utf-8")
         claude_text = claude_md.read_text(encoding="utf-8")
@@ -453,8 +457,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
     # 8. Obsolete skill names in user-facing text  ------------------------
     _obsolete_names: dict[str, str] = {
         "skill-use-transparency": (
-            "Obsolete skill name; replace with CLI commands "
-            "(`harness governed-start`)"
+            "Obsolete skill name; replace with CLI commands (`harness governed-start`)"
         ),
         "harness-engineering": (
             "Obsolete skill name; replace with CLI commands "
@@ -465,8 +468,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
         ),
     }
     for md_path in sorted(
-        list(repo_root.glob("*.md"))
-        + list((repo_root / "src").rglob("*.md"))
+        list(repo_root.glob("*.md")) + list((repo_root / "src").rglob("*.md"))
     ):
         try:
             text = md_path.read_text(encoding="utf-8")
@@ -503,8 +505,7 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
         ),
     ]
     for md_path in sorted(
-        list(repo_root.glob("*.md"))
-        + list((repo_root / "src").rglob("*.md"))
+        list(repo_root.glob("*.md")) + list((repo_root / "src").rglob("*.md"))
     ):
         try:
             text = md_path.read_text(encoding="utf-8")
@@ -526,12 +527,9 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
                 )
 
     # 10. Platform count in docs  -------------------------------------------
-    _platform_count_re = re.compile(
-        r"(\d)\s*(?:个\s*)?platform|(\d)\s*(?:个\s*)?平台"
-    )
+    _platform_count_re = re.compile(r"(\d)\s*(?:个\s*)?platform|(\d)\s*(?:个\s*)?平台")
     for md_path in sorted(
-        list(repo_root.glob("*.md"))
-        + list((repo_root / "src").rglob("*.md"))
+        list(repo_root.glob("*.md")) + list((repo_root / "src").rglob("*.md"))
     ):
         try:
             text = md_path.read_text(encoding="utf-8")
@@ -558,23 +556,18 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
     if pyproject.is_file():
         pptext = pyproject.read_text(encoding="utf-8")
         # Extract URL from pyproject.toml
-        url_match = re.search(
-            r'["\']?(https://github\.com/[^"\')\s]+)["\']?', pptext
-        )
+        url_match = re.search(r'["\']?(https://github\.com/[^"\')\s]+)["\']?', pptext)
         if url_match:
             expected_url = url_match.group(1)
             for md_path in sorted(
-                list(repo_root.glob("*.md"))
-                + list(repo_root.glob("CONTRIBUTING.md"))
+                list(repo_root.glob("*.md")) + list(repo_root.glob("CONTRIBUTING.md"))
             ):
                 try:
                     text = md_path.read_text(encoding="utf-8")
                 except OSError:
                     continue
                 # Find all github URLs and compare
-                for url_m in re.finditer(
-                    r"https://github\.com/[^\s)>]+", text
-                ):
+                for url_m in re.finditer(r"https://github\.com/[^\s)>]+", text):
                     found_url = url_m.group(0).rstrip(".")
                     if (
                         "fanwuit" in found_url
@@ -597,7 +590,9 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
     return findings
 
 
-def check_docs(repo_root: Path, stale_days: int = 90, self_check: bool = False) -> CheckResult:
+def check_docs(
+    repo_root: Path, stale_days: int = 90, self_check: bool = False
+) -> CheckResult:
     """Document gardener check: stale ADRs, broken links, version drift.
 
     Four project-agnostic checks (always):
@@ -611,7 +606,6 @@ def check_docs(repo_root: Path, stale_days: int = 90, self_check: bool = False) 
     architecture, i18n coverage, skill version sentinels, and model docs.
     """
     from .. import __version__ as current_version
-    from ..state_machine.gates import GATE_CATALOG
 
     findings: list[CheckFinding] = []
     inspected = 0
@@ -687,9 +681,7 @@ def check_docs(repo_root: Path, stale_days: int = 90, self_check: bool = False) 
                     )
 
     # 3. Version references — documents mentioning old harness versions.
-    _version_ref = re.compile(
-        r"harness(?:-governance)?\s+v?([0-9]+\.[0-9]+\.[0-9]+)"
-    )
+    _version_ref = re.compile(r"harness(?:-governance)?\s+v?([0-9]+\.[0-9]+\.[0-9]+)")
     # Scan skill files and docs for stale version references.
     for glob_pat in ("*/SKILL.md", "*.md", "docs/**/*.md"):
         for path in sorted(repo_root.glob(glob_pat)):
@@ -779,7 +771,11 @@ def _emit(ctx: click.Context, result: CheckResult) -> None:
         return
     if result.passed:
         if result.inspected:
-            click.echo(bilingual("check.passed_with_count", check=result.check, n=result.inspected))
+            click.echo(
+                bilingual(
+                    "check.passed_with_count", check=result.check, n=result.inspected
+                )
+            )
         else:
             click.echo(bilingual("check.passed", check=result.check))
         return
@@ -829,7 +825,10 @@ def check_inventory_cmd(ctx: click.Context) -> None:
     help="Age threshold in days for stale ADR warnings.",
 )
 @click.option(
-    "--self", "self_check", is_flag=True, default=False,
+    "--self",
+    "self_check",
+    is_flag=True,
+    default=False,
     help=(
         "Run harness-governance self-documentation consistency checks "
         "(CHANGELOG, README, CLAUDE.md, i18n, skill versions, model docs)."
@@ -847,7 +846,10 @@ def check_docs_cmd(ctx: click.Context, stale_days: int, self_check: bool) -> Non
 
 @check_group.command("priority")
 @click.option(
-    "--fix", "fix_mode", is_flag=True, default=False,
+    "--fix",
+    "fix_mode",
+    is_flag=True,
+    default=False,
     help="Apply fixes to neutralise competing skills.",
 )
 @click.pass_context
@@ -865,11 +867,20 @@ def check_priority_cmd(ctx: click.Context, fix_mode: bool) -> None:
         results = apply_all_fixes(project_root, competing)
         for r in results:
             if r.success:
-                click.echo(bilingual("priority.fix_applied", action=r.action, path=str(r.path), new_path=str(r.new_path or "")))
+                click.echo(
+                    bilingual(
+                        "priority.fix_applied",
+                        action=r.action,
+                        path=str(r.path),
+                        new_path=str(r.new_path or ""),
+                    )
+                )
                 if r.detail:
                     click.echo(f"  {r.detail}")
             else:
-                click.echo(bilingual("priority.fix_failed", path=str(r.path), detail=r.detail))
+                click.echo(
+                    bilingual("priority.fix_failed", path=str(r.path), detail=r.detail)
+                )
         click.echo("")
         # Re-run check after fix to show current state.
         from ..priority import check_priority as _cp

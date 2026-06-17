@@ -14,7 +14,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ..file_ops.ndjson_writer import NDJSONWriter
 from ..models.schemas import (
     DocStyleGap,
     LintGap,
@@ -54,78 +53,264 @@ _LANGUAGE_EXTS: dict[str, list[str]] = {
 
 LINT_TOOL_CATALOG: dict[str, list[dict[str, Any]]] = {
     "Python": [
-        {"name": "ruff", "config_files": ["pyproject.toml", "ruff.toml", ".ruff.toml"], "description": "Fast Python linter & formatter"},
-        {"name": "flake8", "config_files": [".flake8", "setup.cfg", "tox.ini"], "description": "Python style checker (pyflakes + pycodestyle + mccabe)"},
-        {"name": "pylint", "config_files": [".pylintrc", "pyproject.toml"], "description": "Comprehensive Python static analysis"},
-        {"name": "black", "config_files": ["pyproject.toml"], "description": "Uncompromising Python formatter"},
-        {"name": "mypy", "config_files": ["pyproject.toml", "mypy.ini", ".mypy.ini"], "description": "Optional static type checker"},
+        {
+            "name": "ruff",
+            "config_files": ["pyproject.toml", "ruff.toml", ".ruff.toml"],
+            "description": "Fast Python linter & formatter",
+        },
+        {
+            "name": "flake8",
+            "config_files": [".flake8", "setup.cfg", "tox.ini"],
+            "description": "Python style checker (pyflakes + pycodestyle + mccabe)",
+        },
+        {
+            "name": "pylint",
+            "config_files": [".pylintrc", "pyproject.toml"],
+            "description": "Comprehensive Python static analysis",
+        },
+        {
+            "name": "black",
+            "config_files": ["pyproject.toml"],
+            "description": "Uncompromising Python formatter",
+        },
+        {
+            "name": "mypy",
+            "config_files": ["pyproject.toml", "mypy.ini", ".mypy.ini"],
+            "description": "Optional static type checker",
+        },
     ],
     "JavaScript": [
-        {"name": "eslint", "config_files": [".eslintrc.js", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc", "eslint.config.js", "eslint.config.mjs"], "description": "Pluggable JS linter"},
-        {"name": "prettier", "config_files": [".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.js", "prettier.config.js"], "description": "Opinionated code formatter"},
-        {"name": "biome", "config_files": ["biome.json", "biome.jsonc"], "description": "Fast formatter & linter (Rust-based)"},
-        {"name": "oxlint", "config_files": ["oxlintrc.json", ".oxlintrc.json"], "description": "Fast JS/TS linter (Rust-based)"},
+        {
+            "name": "eslint",
+            "config_files": [
+                ".eslintrc.js",
+                ".eslintrc.json",
+                ".eslintrc.yaml",
+                ".eslintrc",
+                "eslint.config.js",
+                "eslint.config.mjs",
+            ],
+            "description": "Pluggable JS linter",
+        },
+        {
+            "name": "prettier",
+            "config_files": [
+                ".prettierrc",
+                ".prettierrc.json",
+                ".prettierrc.yaml",
+                ".prettierrc.js",
+                "prettier.config.js",
+            ],
+            "description": "Opinionated code formatter",
+        },
+        {
+            "name": "biome",
+            "config_files": ["biome.json", "biome.jsonc"],
+            "description": "Fast formatter & linter (Rust-based)",
+        },
+        {
+            "name": "oxlint",
+            "config_files": ["oxlintrc.json", ".oxlintrc.json"],
+            "description": "Fast JS/TS linter (Rust-based)",
+        },
     ],
     "TypeScript": [
-        {"name": "eslint", "config_files": [".eslintrc.js", ".eslintrc.json", ".eslintrc.yaml", ".eslintrc", "eslint.config.js", "eslint.config.mjs"], "description": "Pluggable TS linter (via @typescript-eslint)"},
-        {"name": "prettier", "config_files": [".prettierrc", ".prettierrc.json", ".prettierrc.yaml", ".prettierrc.js", "prettier.config.js"], "description": "Opinionated code formatter"},
-        {"name": "biome", "config_files": ["biome.json", "biome.jsonc"], "description": "Fast formatter & linter (Rust-based)"},
-        {"name": "oxlint", "config_files": ["oxlintrc.json", ".oxlintrc.json"], "description": "Fast JS/TS linter (Rust-based)"},
+        {
+            "name": "eslint",
+            "config_files": [
+                ".eslintrc.js",
+                ".eslintrc.json",
+                ".eslintrc.yaml",
+                ".eslintrc",
+                "eslint.config.js",
+                "eslint.config.mjs",
+            ],
+            "description": "Pluggable TS linter (via @typescript-eslint)",
+        },
+        {
+            "name": "prettier",
+            "config_files": [
+                ".prettierrc",
+                ".prettierrc.json",
+                ".prettierrc.yaml",
+                ".prettierrc.js",
+                "prettier.config.js",
+            ],
+            "description": "Opinionated code formatter",
+        },
+        {
+            "name": "biome",
+            "config_files": ["biome.json", "biome.jsonc"],
+            "description": "Fast formatter & linter (Rust-based)",
+        },
+        {
+            "name": "oxlint",
+            "config_files": ["oxlintrc.json", ".oxlintrc.json"],
+            "description": "Fast JS/TS linter (Rust-based)",
+        },
     ],
     "Java": [
-        {"name": "checkstyle", "config_files": ["checkstyle.xml", "checkstyle-suppressions.xml"], "description": "Style checker for Java"},
-        {"name": "spotbugs", "config_files": ["spotbugs-exclude.xml"], "description": "Bug pattern detector"},
-        {"name": "pmd", "config_files": ["pmd-ruleset.xml"], "description": "Static analysis for Java"},
-        {"name": "sonarlint", "config_files": ["sonarlint.json"], "description": "IDE-integrated lint (SonarSource)"},
+        {
+            "name": "checkstyle",
+            "config_files": ["checkstyle.xml", "checkstyle-suppressions.xml"],
+            "description": "Style checker for Java",
+        },
+        {
+            "name": "spotbugs",
+            "config_files": ["spotbugs-exclude.xml"],
+            "description": "Bug pattern detector",
+        },
+        {
+            "name": "pmd",
+            "config_files": ["pmd-ruleset.xml"],
+            "description": "Static analysis for Java",
+        },
+        {
+            "name": "sonarlint",
+            "config_files": ["sonarlint.json"],
+            "description": "IDE-integrated lint (SonarSource)",
+        },
     ],
     "Kotlin": [
-        {"name": "detekt", "config_files": ["detekt.yml", "detekt.yaml"], "description": "Static analysis for Kotlin"},
-        {"name": "ktlint", "config_files": [".editorconfig"], "description": "Kotlin linter & formatter"},
+        {
+            "name": "detekt",
+            "config_files": ["detekt.yml", "detekt.yaml"],
+            "description": "Static analysis for Kotlin",
+        },
+        {
+            "name": "ktlint",
+            "config_files": [".editorconfig"],
+            "description": "Kotlin linter & formatter",
+        },
     ],
     "C#": [
-        {"name": "StyleCop", "config_files": [".stylecop.json", ".stylecop"], "description": "Style enforcement for C#"},
-        {"name": "Roslyn analyzers", "config_files": [".editorconfig", "Directory.Build.props"], "description": "Built-in .NET compiler analyzers"},
-        {"name": "dotnet-format", "config_files": [".editorconfig"], "description": "Official .NET formatter"},
+        {
+            "name": "StyleCop",
+            "config_files": [".stylecop.json", ".stylecop"],
+            "description": "Style enforcement for C#",
+        },
+        {
+            "name": "Roslyn analyzers",
+            "config_files": [".editorconfig", "Directory.Build.props"],
+            "description": "Built-in .NET compiler analyzers",
+        },
+        {
+            "name": "dotnet-format",
+            "config_files": [".editorconfig"],
+            "description": "Official .NET formatter",
+        },
     ],
     "Go": [
-        {"name": "golangci-lint", "config_files": [".golangci.yml", ".golangci.yaml", ".golangci.toml"], "description": "Fast Go linter aggregator"},
-        {"name": "staticcheck", "config_files": ["staticcheck.conf"], "description": "Advanced Go static analysis"},
-        {"name": "gofmt", "config_files": [], "description": "Standard Go formatter (built-in)"},
+        {
+            "name": "golangci-lint",
+            "config_files": [".golangci.yml", ".golangci.yaml", ".golangci.toml"],
+            "description": "Fast Go linter aggregator",
+        },
+        {
+            "name": "staticcheck",
+            "config_files": ["staticcheck.conf"],
+            "description": "Advanced Go static analysis",
+        },
+        {
+            "name": "gofmt",
+            "config_files": [],
+            "description": "Standard Go formatter (built-in)",
+        },
     ],
     "Rust": [
-        {"name": "clippy", "config_files": ["Cargo.toml", "clippy.toml"], "description": "Official Rust linter"},
-        {"name": "rustfmt", "config_files": ["rustfmt.toml", ".rustfmt.toml"], "description": "Official Rust formatter"},
+        {
+            "name": "clippy",
+            "config_files": ["Cargo.toml", "clippy.toml"],
+            "description": "Official Rust linter",
+        },
+        {
+            "name": "rustfmt",
+            "config_files": ["rustfmt.toml", ".rustfmt.toml"],
+            "description": "Official Rust formatter",
+        },
     ],
     "Ruby": [
-        {"name": "rubocop", "config_files": [".rubocop.yml", ".rubocop.yaml", ".rubocop.yml"], "description": "Ruby linter & formatter"},
-        {"name": "standard", "config_files": [".standard.yml"], "description": "Ruby style guide, formatter, and linter"},
+        {
+            "name": "rubocop",
+            "config_files": [".rubocop.yml", ".rubocop.yaml", ".rubocop.yml"],
+            "description": "Ruby linter & formatter",
+        },
+        {
+            "name": "standard",
+            "config_files": [".standard.yml"],
+            "description": "Ruby style guide, formatter, and linter",
+        },
     ],
     "Swift": [
-        {"name": "swiftlint", "config_files": [".swiftlint.yml"], "description": "Linter for Swift"},
+        {
+            "name": "swiftlint",
+            "config_files": [".swiftlint.yml"],
+            "description": "Linter for Swift",
+        },
     ],
     "C": [
-        {"name": "clang-tidy", "config_files": [".clang-tidy"], "description": "Clang-based C/C++ linter"},
-        {"name": "cppcheck", "config_files": ["cppcheck.cfg"], "description": "Static analysis for C/C++"},
-        {"name": "clang-format", "config_files": [".clang-format"], "description": "Clang-based formatter"},
+        {
+            "name": "clang-tidy",
+            "config_files": [".clang-tidy"],
+            "description": "Clang-based C/C++ linter",
+        },
+        {
+            "name": "cppcheck",
+            "config_files": ["cppcheck.cfg"],
+            "description": "Static analysis for C/C++",
+        },
+        {
+            "name": "clang-format",
+            "config_files": [".clang-format"],
+            "description": "Clang-based formatter",
+        },
     ],
     "C++": [
-        {"name": "clang-tidy", "config_files": [".clang-tidy"], "description": "Clang-based C/C++ linter"},
-        {"name": "cppcheck", "config_files": ["cppcheck.cfg"], "description": "Static analysis for C/C++"},
-        {"name": "clang-format", "config_files": [".clang-format"], "description": "Clang-based formatter"},
+        {
+            "name": "clang-tidy",
+            "config_files": [".clang-tidy"],
+            "description": "Clang-based C/C++ linter",
+        },
+        {
+            "name": "cppcheck",
+            "config_files": ["cppcheck.cfg"],
+            "description": "Static analysis for C/C++",
+        },
+        {
+            "name": "clang-format",
+            "config_files": [".clang-format"],
+            "description": "Clang-based formatter",
+        },
     ],
     "Shell": [
-        {"name": "shellcheck", "config_files": [".shellcheckrc"], "description": "Shell script analysis"},
+        {
+            "name": "shellcheck",
+            "config_files": [".shellcheckrc"],
+            "description": "Shell script analysis",
+        },
         {"name": "shfmt", "config_files": [], "description": "Shell script formatter"},
     ],
     "Docker": [
-        {"name": "hadolint", "config_files": [".hadolint.yaml", ".hadolint.yml"], "description": "Dockerfile linter"},
+        {
+            "name": "hadolint",
+            "config_files": [".hadolint.yaml", ".hadolint.yml"],
+            "description": "Dockerfile linter",
+        },
     ],
 }
 
 #: Universal tools that apply across languages.
 _UNIVERSAL_LINT_TOOLS: list[dict[str, Any]] = [
-    {"name": "editorconfig", "config_files": [".editorconfig"], "description": "Cross-editor code style"},
-    {"name": "pre-commit", "config_files": [".pre-commit-config.yaml"], "description": "Git hook framework"},
+    {
+        "name": "editorconfig",
+        "config_files": [".editorconfig"],
+        "description": "Cross-editor code style",
+    },
+    {
+        "name": "pre-commit",
+        "config_files": [".pre-commit-config.yaml"],
+        "description": "Git hook framework",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -134,69 +319,174 @@ _UNIVERSAL_LINT_TOOLS: list[dict[str, Any]] = [
 
 DOC_STYLE_CATALOG: dict[str, list[dict[str, Any]]] = {
     "Python": [
-        {"name": "Google docstring", "format": '"""Summary.\n\nArgs:\n    name: description\nReturns:\n    type: description\n"""', "tools": ["pydocstyle", "interrogate", "sphinx"], "lint_rule": "pydocstyle (ruff D rules)"},
-        {"name": "NumPy docstring", "format": '"""Summary.\n\nParameters\n----------\nname : type\n    description\n"""', "tools": ["pydocstyle", "numpydoc"], "lint_rule": "pydocstyle + numpydoc validation"},
-        {"name": "Sphinx reST", "format": '"""Summary.\n\n:param name: description\n:type name: type\n:returns: description\n"""', "tools": ["sphinx", "pydocstyle"], "lint_rule": "pydocstyle (ruff D rules)"},
-        {"name": "PEP 257 (plain)", "format": '"""Summary line.\n\nExtended description.\n"""', "tools": ["pydocstyle"], "lint_rule": "pydocstyle (basic D rules)"},
+        {
+            "name": "Google docstring",
+            "format": '"""Summary.\n\nArgs:\n    name: description\nReturns:\n    type: description\n"""',
+            "tools": ["pydocstyle", "interrogate", "sphinx"],
+            "lint_rule": "pydocstyle (ruff D rules)",
+        },
+        {
+            "name": "NumPy docstring",
+            "format": '"""Summary.\n\nParameters\n----------\nname : type\n    description\n"""',
+            "tools": ["pydocstyle", "numpydoc"],
+            "lint_rule": "pydocstyle + numpydoc validation",
+        },
+        {
+            "name": "Sphinx reST",
+            "format": '"""Summary.\n\n:param name: description\n:type name: type\n:returns: description\n"""',
+            "tools": ["sphinx", "pydocstyle"],
+            "lint_rule": "pydocstyle (ruff D rules)",
+        },
+        {
+            "name": "PEP 257 (plain)",
+            "format": '"""Summary line.\n\nExtended description.\n"""',
+            "tools": ["pydocstyle"],
+            "lint_rule": "pydocstyle (basic D rules)",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Java": [
-        {"name": "Javadoc", "format": "/**\n * Summary.\n *\n * @param name description\n * @return description\n */", "tools": ["checkstyle (javadoc rules)", "spotbugs"], "lint_rule": "checkstyle JavadocMethod/JavadocType"},
+        {
+            "name": "Javadoc",
+            "format": "/**\n * Summary.\n *\n * @param name description\n * @return description\n */",
+            "tools": ["checkstyle (javadoc rules)", "spotbugs"],
+            "lint_rule": "checkstyle JavadocMethod/JavadocType",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "JavaScript": [
-        {"name": "JSDoc", "format": "/**\n * Summary.\n * @param {string} name - description\n * @returns {string} description\n */", "tools": ["eslint-plugin-jsdoc", "jsdoc"], "lint_rule": "eslint jsdoc rules"},
-        {"name": "TSDoc", "format": "/**\n * Summary.\n * @param name - description\n * @returns description\n */", "tools": ["typedoc", "eslint-plugin-tsdoc"], "lint_rule": "eslint tsdoc rules"},
+        {
+            "name": "JSDoc",
+            "format": "/**\n * Summary.\n * @param {string} name - description\n * @returns {string} description\n */",
+            "tools": ["eslint-plugin-jsdoc", "jsdoc"],
+            "lint_rule": "eslint jsdoc rules",
+        },
+        {
+            "name": "TSDoc",
+            "format": "/**\n * Summary.\n * @param name - description\n * @returns description\n */",
+            "tools": ["typedoc", "eslint-plugin-tsdoc"],
+            "lint_rule": "eslint tsdoc rules",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "TypeScript": [
-        {"name": "JSDoc", "format": "/**\n * Summary.\n * @param {string} name - description\n * @returns {string} description\n */", "tools": ["eslint-plugin-jsdoc", "typedoc"], "lint_rule": "eslint jsdoc rules"},
-        {"name": "TSDoc", "format": "/**\n * Summary.\n * @param name - description\n * @returns description\n */", "tools": ["typedoc", "eslint-plugin-tsdoc"], "lint_rule": "eslint tsdoc rules"},
+        {
+            "name": "JSDoc",
+            "format": "/**\n * Summary.\n * @param {string} name - description\n * @returns {string} description\n */",
+            "tools": ["eslint-plugin-jsdoc", "typedoc"],
+            "lint_rule": "eslint jsdoc rules",
+        },
+        {
+            "name": "TSDoc",
+            "format": "/**\n * Summary.\n * @param name - description\n * @returns description\n */",
+            "tools": ["typedoc", "eslint-plugin-tsdoc"],
+            "lint_rule": "eslint tsdoc rules",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "C#": [
-        {"name": "XML doc comments", "format": "/// <summary>\n/// Description.\n/// </summary>\n/// <param name=\"x\">description</param>", "tools": ["StyleCop (SA16xx)", "DocFX"], "lint_rule": "StyleCop SA16xx rules"},
+        {
+            "name": "XML doc comments",
+            "format": '/// <summary>\n/// Description.\n/// </summary>\n/// <param name="x">description</param>',
+            "tools": ["StyleCop (SA16xx)", "DocFX"],
+            "lint_rule": "StyleCop SA16xx rules",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Go": [
-        {"name": "godoc", "format": "// Package x provides ...\n//\n// FuncName does ...", "tools": ["golangci-lint (revive)", "go doc"], "lint_rule": "revive: exported, comment-format"},
+        {
+            "name": "godoc",
+            "format": "// Package x provides ...\n//\n// FuncName does ...",
+            "tools": ["golangci-lint (revive)", "go doc"],
+            "lint_rule": "revive: exported, comment-format",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Rust": [
-        {"name": "doc comments (///)", "format": "/// Brief summary.\n///\n/// # Panics\n///\n/// # Examples\n///", "tools": ["clippy (missing_docs)", "rustdoc"], "lint_rule": "clippy::missing_docs_in_private_items"},
+        {
+            "name": "doc comments (///)",
+            "format": "/// Brief summary.\n///\n/// # Panics\n///\n/// # Examples\n///",
+            "tools": ["clippy (missing_docs)", "rustdoc"],
+            "lint_rule": "clippy::missing_docs_in_private_items",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Ruby": [
-        {"name": "YARD", "format": "# @param name [String] description\n# @return [String] description", "tools": ["yard", "rubocop (Documentation)"], "lint_rule": "rubocop Style/Documentation"},
-        {"name": "RDoc", "format": "#\n# = Description\n#\n# == Parameters\n#", "tools": ["rdoc", "rubocop"], "lint_rule": "rubocop Style/Documentation"},
+        {
+            "name": "YARD",
+            "format": "# @param name [String] description\n# @return [String] description",
+            "tools": ["yard", "rubocop (Documentation)"],
+            "lint_rule": "rubocop Style/Documentation",
+        },
+        {
+            "name": "RDoc",
+            "format": "#\n# = Description\n#\n# == Parameters\n#",
+            "tools": ["rdoc", "rubocop"],
+            "lint_rule": "rubocop Style/Documentation",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Kotlin": [
-        {"name": "KDoc", "format": "/**\n * Summary.\n *\n * @param name description\n * @return description\n */", "tools": ["detekt (comments rules)", "dokka"], "lint_rule": "detekt comments rules"},
+        {
+            "name": "KDoc",
+            "format": "/**\n * Summary.\n *\n * @param name description\n * @return description\n */",
+            "tools": ["detekt (comments rules)", "dokka"],
+            "lint_rule": "detekt comments rules",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Swift": [
-        {"name": "DocC markup", "format": "/// Brief summary.\n///\n/// - Parameter name: description\n/// - Returns: description", "tools": ["swiftlint (missing_docs)"], "lint_rule": "swiftlint missing_docs"},
+        {
+            "name": "DocC markup",
+            "format": "/// Brief summary.\n///\n/// - Parameter name: description\n/// - Returns: description",
+            "tools": ["swiftlint (missing_docs)"],
+            "lint_rule": "swiftlint missing_docs",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "C": [
-        {"name": "Doxygen", "format": "/**\n * Brief summary.\n *\n * @param name description\n * @return description\n */", "tools": ["doxygen", "clang-tidy"], "lint_rule": "clang-tidy documentation checks"},
+        {
+            "name": "Doxygen",
+            "format": "/**\n * Brief summary.\n *\n * @param name description\n * @return description\n */",
+            "tools": ["doxygen", "clang-tidy"],
+            "lint_rule": "clang-tidy documentation checks",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "C++": [
-        {"name": "Doxygen", "format": "/**\n * Brief summary.\n *\n * @param name description\n * @return description\n */", "tools": ["doxygen", "clang-tidy"], "lint_rule": "clang-tidy documentation checks"},
+        {
+            "name": "Doxygen",
+            "format": "/**\n * Brief summary.\n *\n * @param name description\n * @return description\n */",
+            "tools": ["doxygen", "clang-tidy"],
+            "lint_rule": "clang-tidy documentation checks",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Shell": [
-        {"name": "header-comment", "format": "# Usage: script.sh <arg>\n# Description: ...\n#", "tools": [], "lint_rule": "none (manual review)"},
+        {
+            "name": "header-comment",
+            "format": "# Usage: script.sh <arg>\n# Description: ...\n#",
+            "tools": [],
+            "lint_rule": "none (manual review)",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "SQL": [
-        {"name": "header-comment", "format": "-- Purpose: ...\n-- Author: ...\n--", "tools": [], "lint_rule": "none (manual review)"},
+        {
+            "name": "header-comment",
+            "format": "-- Purpose: ...\n-- Author: ...\n--",
+            "tools": [],
+            "lint_rule": "none (manual review)",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
     "Docker": [
-        {"name": "header-comment", "format": "# Purpose: ...\n#", "tools": [], "lint_rule": "none (manual review)"},
+        {
+            "name": "header-comment",
+            "format": "# Purpose: ...\n#",
+            "tools": [],
+            "lint_rule": "none (manual review)",
+        },
         {"name": "no-doc-required", "format": "", "tools": [], "lint_rule": "none"},
     ],
 }
@@ -288,7 +578,9 @@ class TechStackManager:
         if not path.is_file():
             return None
         try:
-            return TechStackManifest.model_validate_json(path.read_text(encoding="utf-8"))
+            return TechStackManifest.model_validate_json(
+                path.read_text(encoding="utf-8")
+            )
         except Exception:
             logger.warning("Failed to parse tech-stack manifest", exc_info=True)
             return None
@@ -299,7 +591,9 @@ class TechStackManager:
         if manifest is None:
             return TechStackCheckResult(
                 passed=False,
-                violations=("No tech-stack manifest found — run 'harness tech-stack capture' first.",),
+                violations=(
+                    "No tech-stack manifest found — run 'harness tech-stack capture' first.",
+                ),
             )
 
         violations: list[str] = []
@@ -320,15 +614,15 @@ class TechStackManager:
 
         # Check for doc-style gaps.
         doc_gaps = self.require_docstyle_confirmation(manifest)
-        for gap in doc_gaps:
+        for gap in doc_gaps:  # type: ignore[assignment]
             violations.append(
                 f"Doc comment style not confirmed for {gap.language}: "
-                f"suggested {', '.join(gap.suggested_styles)}"
+                f"suggested {', '.join(gap.suggested_styles)}"  # type: ignore[attr-defined]
             )
 
         # Check for unconfirmed introduced tools.
-        pending = tuple(
-            t for t in manifest.introduced_tools if not t.confirmed
+        pending: tuple[ToolIntroduction, ...] = tuple(
+            t for t in manifest.introduced_tools if not t.confirmed  # type: ignore[union-attr]
         )
 
         return TechStackCheckResult(
@@ -351,7 +645,9 @@ class TechStackManager:
         """Record a new tool as unconfirmed and persist the manifest."""
         manifest = self.load()
         if manifest is None:
-            manifest = TechStackManifest(captured_at=datetime.now(timezone.utc).isoformat())
+            manifest = TechStackManifest(
+                captured_at=datetime.now(timezone.utc).isoformat()
+            )
 
         intro = ToolIntroduction(
             tool_name=tool_name,
@@ -378,7 +674,9 @@ class TechStackManager:
                 version=t.version,
                 introduced_by=t.introduced_by,
                 confirmed=True if t.tool_name == tool_name else t.confirmed,
-                confirmation_method="cli" if t.tool_name == tool_name else t.confirmation_method,
+                confirmation_method="cli"
+                if t.tool_name == tool_name
+                else t.confirmation_method,
                 tool_category=t.tool_category,
             )
             for t in manifest.introduced_tools
@@ -408,8 +706,9 @@ class TechStackManager:
                 known_tool_names.add(t.tool_name)
             for t in manifest.formatters:
                 known_tool_names.add(t.tool_name)
-            for t in manifest.introduced_tools:
-                known_tool_names.add(t.tool_name)
+            for t in manifest.introduced_tools:  # type: ignore[assignment]
+                t_intro: ToolIntroduction = t  # type: ignore[assignment]
+                known_tool_names.add(t_intro.tool_name)
 
         unexpected: list[str] = []
         root = self._project_root
@@ -462,7 +761,7 @@ class TechStackManager:
         # pyproject.toml: look for [tool.<name>]
         if config_path.name == "pyproject.toml":
             section = re.search(
-                rf'\[tool\.{re.escape(tool_name)}\]',
+                rf"\[tool\.{re.escape(tool_name)}\]",
                 content,
             )
             if section:
@@ -473,7 +772,7 @@ class TechStackManager:
 
         # Cargo.toml: look for [lints] section for clippy
         if config_path.name == "Cargo.toml" and tool_name in ("clippy", "rustfmt"):
-            return bool(re.search(r'\[lints', content)) or tool_name in content
+            return bool(re.search(r"\[lints", content)) or tool_name in content
 
         return True
 
@@ -504,7 +803,9 @@ class TechStackManager:
         # Docker detection by file presence.
         if (root / "Dockerfile").exists() or list(root.glob("**/Dockerfile*")):
             found.add("Docker")
-        if (root / "docker-compose.yml").exists() or (root / "docker-compose.yaml").exists():
+        if (root / "docker-compose.yml").exists() or (
+            root / "docker-compose.yaml"
+        ).exists():
             found.add("Docker")
 
         # Shell detection — always add if .sh files exist, plus common CI scripts.
@@ -557,9 +858,7 @@ class TechStackManager:
 
         return result
 
-    def require_lint_confirmation(
-        self, manifest: TechStackManifest
-    ) -> list[LintGap]:
+    def require_lint_confirmation(self, manifest: TechStackManifest) -> list[LintGap]:
         """Return lint gaps for each language that lacks a confirmed tool.
 
         A language is considered "covered" when either:
@@ -575,11 +874,11 @@ class TechStackManager:
         # Pre-compute, per language, the set of tool names that count as
         # lint coverage for that language (so a Python lint tool does
         # NOT cover Java, etc.).
-        confirmed_by_lang: dict[str, set[str]] = {lang: set() for lang in manifest.languages}
+        confirmed_by_lang: dict[str, set[str]] = {
+            lang: set() for lang in manifest.languages
+        }
         for lang in manifest.languages:
-            catalog_names = {
-                entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])
-            }
+            catalog_names = {entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])}
             for t in manifest.lint_tools:
                 if t.tool_category == "lint" and t.tool_name in catalog_names:
                     confirmed_by_lang[lang].add(t.tool_name)
@@ -686,16 +985,26 @@ class TechStackManager:
 
         if not scores:
             return None
-        return max(scores, key=scores.get)
+        return max(scores, key=lambda k: scores.get(k, 0))
 
     @staticmethod
     def _extract_signature(format_example: str) -> list[str]:
         """Extract distinctive keywords from a doc-comment format example."""
         keywords: list[str] = []
         # Look for @param, :param, Args:, etc.
-        for pattern in [r"@param\b", r":param\b", r"Args:", r"Parameters",
-                        r"@return\b", r":returns?", r"Returns:", r"<param\b",
-                        r"<summary>", r"/// ", r"@throws\b"]:
+        for pattern in [
+            r"@param\b",
+            r":param\b",
+            r"Args:",
+            r"Parameters",
+            r"@return\b",
+            r":returns?",
+            r"Returns:",
+            r"<param\b",
+            r"<summary>",
+            r"/// ",
+            r"@throws\b",
+        ]:
             if re.search(pattern, format_example):
                 keywords.append(pattern.replace(r"\b", ""))
         return keywords if keywords else [format_example[:20].strip()]
@@ -746,8 +1055,17 @@ class TechStackManager:
     def _capture_formatters(self, languages: list[str]) -> list[VersionConstraint]:
         """Detect formatter tools (subset of lint tools that format)."""
         # v0.8.0: formatters are a subset of lint tools with formatting capability.
-        formatter_names = {"black", "prettier", "biome", "rustfmt", "gofmt",
-                           "shfmt", "clang-format", "dotnet-format", "ktlint"}
+        formatter_names = {
+            "black",
+            "prettier",
+            "biome",
+            "rustfmt",
+            "gofmt",
+            "shfmt",
+            "clang-format",
+            "dotnet-format",
+            "ktlint",
+        }
         constraints: list[VersionConstraint] = []
         configured = self.detect_configured_lints()
 
@@ -779,9 +1097,13 @@ class TechStackManager:
         """Infer the tool name from a language + config file path."""
         if language == "universal":
             for u in _UNIVERSAL_LINT_TOOLS:
-                if any(config_path.endswith(cf.replace(".", "").replace("/", "").replace("\\", ""))
-                       or cf in config_path
-                       for cf in u["config_files"]):
+                if any(
+                    config_path.endswith(
+                        cf.replace(".", "").replace("/", "").replace("\\", "")
+                    )
+                    or cf in config_path
+                    for cf in u["config_files"]
+                ):
                     return u["name"]
             return "unknown"
 
@@ -809,7 +1131,7 @@ class TechStackManager:
         # pyproject.toml: [tool.ruff], [tool.black], [tool.mypy]
         if config_path.name in ("pyproject.toml", "ruff.toml", ".ruff.toml"):
             match = re.search(
-                rf'(?:ruff|black|mypy).*?version\s*=\s*"([^"]+)"',
+                r'(?:ruff|black|mypy).*?version\s*=\s*"([^"]+)"',
                 content,
                 re.DOTALL,
             )
@@ -820,7 +1142,10 @@ class TechStackManager:
         if config_path.name == "package.json":
             try:
                 data = json.loads(content)
-                deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
+                deps = {
+                    **data.get("dependencies", {}),
+                    **data.get("devDependencies", {}),
+                }
                 search_names = {
                     "eslint": ["eslint"],
                     "prettier": ["prettier"],
@@ -835,7 +1160,7 @@ class TechStackManager:
 
         # .pre-commit-config.yaml: rev
         if config_path.name == ".pre-commit-config.yaml":
-            match = re.search(rf'{re.escape(tool_name)}.*?\n\s+rev:\s*(\S+)', content)
+            match = re.search(rf"{re.escape(tool_name)}.*?\n\s+rev:\s*(\S+)", content)
             if match:
                 return match.group(1)
 
@@ -868,11 +1193,11 @@ def _gate_hook_tech_stack(
     # lint coverage for that language (so a Python lint tool does NOT
     # cover Java, etc.). Mirrors require_lint_confirmation.
     configured = mgr.detect_configured_lints()
-    confirmed_by_lang: dict[str, set[str]] = {lang: set() for lang in manifest.languages}
+    confirmed_by_lang: dict[str, set[str]] = {
+        lang: set() for lang in manifest.languages
+    }
     for lang in manifest.languages:
-        catalog_names = {
-            entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])
-        }
+        catalog_names = {entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])}
         for t in manifest.lint_tools:
             if t.tool_category == "lint" and t.tool_name in catalog_names:
                 confirmed_by_lang[lang].add(t.tool_name)
@@ -893,11 +1218,12 @@ def _gate_hook_tech_stack(
             )
 
     # Check for unconfirmed introduced tools.
-    for t in manifest.introduced_tools:
-        if not t.confirmed:
+    for t in manifest.introduced_tools:  # type: ignore[assignment]
+        t_typed: ToolIntroduction = t  # type: ignore[assignment]
+        if not t_typed.confirmed:
             failures.append(
-                f"Tool '{t.tool_name}' @ {t.version} is pending confirmation. "
-                f"Run 'harness tech-stack add {t.tool_name} --version {t.version}' to confirm."
+                f"Tool '{t_typed.tool_name}' @ {t_typed.version} is pending confirmation. "
+                f"Run 'harness tech-stack add {t_typed.tool_name} --version {t_typed.version}' to confirm."
             )
 
     return failures

@@ -186,10 +186,16 @@ def classify(
     # This guards against agents that omit --files/--external.
     mentions_strict = _mentions_strict_keyword(description_lc)
     if mentions_strict:
-        if not has_file_changes or not is_public_contract or not has_external_side_effect:
+        if (
+            not has_file_changes
+            or not is_public_contract
+            or not has_external_side_effect
+        ):
             logger.info(
                 "STRICT keyword overrides missing flags: file_changes=%s public=%s external=%s",
-                has_file_changes, is_public_contract, has_external_side_effect,
+                has_file_changes,
+                is_public_contract,
+                has_external_side_effect,
             )
         has_file_changes = True
         is_public_contract = True
@@ -199,7 +205,11 @@ def classify(
             logger.info("classified as fast-path")
             logger.debug(
                 "fast-path flags: file_changes=%s public=%s external=%s unclear=%s work_kw=%s",
-                has_file_changes, is_public_contract, has_external_side_effect, is_unclear_or_high_risk, mentions_work,
+                has_file_changes,
+                is_public_contract,
+                has_external_side_effect,
+                is_unclear_or_high_risk,
+                mentions_work,
             )
             return RoutingDecision(
                 path=RoutingPath.FAST_PATH,
@@ -232,8 +242,12 @@ def classify(
     logger.info("classified as governed-path")
     logger.debug(
         "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s work_kw=%s",
-        has_file_changes, is_public_contract, has_external_side_effect,
-        is_unclear_or_high_risk, _mentions_public_contract_keyword(description_lc), mentions_work,
+        has_file_changes,
+        is_public_contract,
+        has_external_side_effect,
+        is_unclear_or_high_risk,
+        _mentions_public_contract_keyword(description_lc),
+        mentions_work,
     )
     return RoutingDecision(
         path=RoutingPath.GOVERNED_PATH,
@@ -262,7 +276,10 @@ def _mentions_work_action_keyword(description_lc: str) -> bool:
 def _mentions_strict_keyword(description_lc: str) -> bool:
     """Return True if the description contains any STRICT_DETECTION_KEYWORDS."""
     from .rigor import STRICT_DETECTION_KEYWORDS
-    return any(keyword.lower() in description_lc for keyword in STRICT_DETECTION_KEYWORDS)
+
+    return any(
+        keyword.lower() in description_lc for keyword in STRICT_DETECTION_KEYWORDS
+    )
 
 
 def _governed_rationale(

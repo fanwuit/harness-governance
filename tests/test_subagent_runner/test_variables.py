@@ -8,7 +8,6 @@ import pytest
 
 from harness_governance.file_ops.queue import extract_ready_block_fields
 from harness_governance.file_ops.packet import extract_task_packet_sections
-from harness_governance.models.schemas import QueueItem
 from harness_governance.runner.variables import (
     RoleVariables,
     VariableExtractor,
@@ -22,6 +21,7 @@ from harness_governance.runner.variables import (
 # ---------------------------------------------------------------------------
 # extract_ready_block_fields
 # ---------------------------------------------------------------------------
+
 
 class TestExtractReadyBlockFields:
     def test_extracts_role(self):
@@ -84,6 +84,7 @@ class TestExtractReadyBlockFields:
 # extract_task_packet_sections
 # ---------------------------------------------------------------------------
 
+
 class TestExtractTaskPacketSections:
     def test_basic_sections(self):
         text = (
@@ -115,13 +116,7 @@ class TestExtractTaskPacketSections:
         assert sections["failure behavior"] == "return error"
 
     def test_h1_closes_section(self):
-        text = (
-            "## Scope\n\n"
-            "some scope\n\n"
-            "# New Top Heading\n\n"
-            "## Another\n\n"
-            "text\n"
-        )
+        text = "## Scope\n\nsome scope\n\n# New Top Heading\n\n## Another\n\ntext\n"
         sections = extract_task_packet_sections(text)
         assert sections["scope"] == "some scope"
         assert "another" in sections
@@ -137,6 +132,7 @@ class TestExtractTaskPacketSections:
 # ---------------------------------------------------------------------------
 # RoleVariables / fill_missing / is_not_found
 # ---------------------------------------------------------------------------
+
 
 class TestRoleVariables:
     def test_default_empty(self):
@@ -177,6 +173,7 @@ class TestRoleVariables:
 # ---------------------------------------------------------------------------
 # VariableExtractor
 # ---------------------------------------------------------------------------
+
 
 class TestVariableExtractor:
     @pytest.fixture
@@ -299,7 +296,10 @@ class TestVariableExtractor:
         extractor = VariableExtractor()
         variables = extractor.extract_for_role(project, items[0], "planner")
 
-        assert "Checkpoint" in variables.project_context or "Queue" in variables.project_context
+        assert (
+            "Checkpoint" in variables.project_context
+            or "Queue" in variables.project_context
+        )
 
 
 class TestRoleVariablesNewFields:
@@ -364,7 +364,8 @@ class TestVariableExtractorGovernance:
         assert variables.allowed_scope == "docs/adr/ only"
 
     def test_extract_for_role_fact_finder_gets_git_diff(
-        self, project_with_scope: Path,
+        self,
+        project_with_scope: Path,
     ) -> None:
         from harness_governance.file_ops.queue import read_queue
 
@@ -409,10 +410,13 @@ class TestVariableExtractorGovernance:
 # _build_project_context
 # ---------------------------------------------------------------------------
 
+
 class TestBuildProjectContext:
     def test_with_checkpoint_and_queue(self, tmp_path: Path) -> None:
         (tmp_path / ".harness").mkdir()
-        (tmp_path / ".harness" / "run-checkpoint.md").write_text("checkpoint data", encoding="utf-8")
+        (tmp_path / ".harness" / "run-checkpoint.md").write_text(
+            "checkpoint data", encoding="utf-8"
+        )
         (tmp_path / "NEXT.md").write_text("[ready] Task\n", encoding="utf-8")
 
         ctx = _build_project_context(tmp_path)

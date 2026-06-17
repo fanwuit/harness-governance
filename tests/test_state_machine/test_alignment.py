@@ -9,7 +9,6 @@ gate hook integration.
 from __future__ import annotations
 
 import ast
-import json
 import textwrap
 from pathlib import Path
 
@@ -22,8 +21,6 @@ from harness_governance.state_machine.alignment import (
     _gate_hook_alignment_impl,
 )
 from harness_governance.models.schemas import (
-    AlignmentFinding,
-    AlignmentReport,
     FieldAlignmentSpec,
     TraceabilityMatrix,
 )
@@ -345,7 +342,9 @@ class TestParseMarkdownTable:
         assert names == {"alpha", "beta"}
 
     def test_name_header_alias(self) -> None:
-        specs = FieldAlignmentEngine._parse_markdown_table(TABLE_NAME_HEADER_MD, "test.md")
+        specs = FieldAlignmentEngine._parse_markdown_table(
+            TABLE_NAME_HEADER_MD, "test.md"
+        )
         assert len(specs) == 2
         spec_map = {s.field_name: s for s in specs}
         assert "widget_id" in spec_map
@@ -377,7 +376,9 @@ class TestParseMarkdownTable:
         assert "b" in names
 
     def test_source_contract_attached(self) -> None:
-        specs = FieldAlignmentEngine._parse_markdown_table(SIMPLE_TABLE_MD, "my_contract.md")
+        specs = FieldAlignmentEngine._parse_markdown_table(
+            SIMPLE_TABLE_MD, "my_contract.md"
+        )
         for spec in specs:
             assert spec.source_contract == "my_contract.md"
 
@@ -404,9 +405,10 @@ class TestParseMarkdownTable:
 
 
 class TestParseJsonSchemaBlocks:
-
     def test_basic_schema(self) -> None:
-        specs = FieldAlignmentEngine._parse_json_schema_blocks(JSON_SCHEMA_MD, "test.md")
+        specs = FieldAlignmentEngine._parse_json_schema_blocks(
+            JSON_SCHEMA_MD, "test.md"
+        )
         assert len(specs) == 4
 
     def test_nested_json_schema(self) -> None:
@@ -532,7 +534,6 @@ class TestParseJsonSchemaBlocks:
 
 
 class TestScanImplementation:
-
     def test_all_fields_matched(self, tmp_path: Path) -> None:
         contract = _write_contract(tmp_path, "user.md", SIMPLE_TABLE_MD)
         src = _write_source(tmp_path, "src/models/user.py", MATCHING_IMPL)
@@ -665,12 +666,14 @@ class TestScanImplementation:
     def test_multiple_source_files(self, tmp_path: Path) -> None:
         contract = _write_contract(tmp_path, "user.md", SIMPLE_TABLE_MD)
         src1 = _write_source(
-            tmp_path, "src/models/user.py",
-            "class User:\n    user_id: str\n    name: str\n"
+            tmp_path,
+            "src/models/user.py",
+            "class User:\n    user_id: str\n    name: str\n",
         )
         src2 = _write_source(
-            tmp_path, "src/models/user_extra.py",
-            "class UserExtra:\n    email: str\n    age: int\n"
+            tmp_path,
+            "src/models/user_extra.py",
+            "class UserExtra:\n    email: str\n    age: int\n",
         )
         engine = FieldAlignmentEngine(tmp_path)
         specs = engine.extract_specs(contract)
@@ -689,9 +692,7 @@ class TestScanImplementation:
 
         engine = FieldAlignmentEngine(tmp_path)
         specs = engine.extract_specs(contract)
-        findings, unsupported = engine.scan_implementation(
-            [py_src, ts_file], specs
-        )
+        findings, unsupported = engine.scan_implementation([py_src, ts_file], specs)
         assert "TypeScript" in unsupported
         missing = [f for f in findings if f.issue == "missing"]
         assert len(missing) == 0  # Python source covers all fields
@@ -703,7 +704,6 @@ class TestScanImplementation:
 
 
 class TestComputeAlignment:
-
     def test_no_contracts_dir_passes(self, tmp_path: Path) -> None:
         engine = FieldAlignmentEngine(tmp_path)
         report = engine.compute_alignment()
@@ -737,7 +737,9 @@ class TestComputeAlignment:
         errors = [f for f in report.findings if f.severity == "error"]
         assert len(errors) > 0
 
-    def test_compute_alignment_detects_unsupported_languages(self, tmp_path: Path) -> None:
+    def test_compute_alignment_detects_unsupported_languages(
+        self, tmp_path: Path
+    ) -> None:
         """compute_alignment() now scans all known source file types;
         non-Python files are reported in unsupported_languages.
         """
@@ -768,8 +770,9 @@ class TestComputeAlignment:
         _write_contract(tmp_path, "order.md", JSON_SCHEMA_MD)
         _write_source(tmp_path, "src/models/user.py", MATCHING_IMPL)
         _write_source(
-            tmp_path, "src/models/order.py",
-            "class Order:\n    order_id: str\n    quantity: int\n    tags: list\n    price: float\n"
+            tmp_path,
+            "src/models/order.py",
+            "class Order:\n    order_id: str\n    quantity: int\n    tags: list\n    price: float\n",
         )
         engine = FieldAlignmentEngine(tmp_path)
         report = engine.compute_alignment()
@@ -791,7 +794,6 @@ class TestComputeAlignment:
 
 
 class TestBuildTraceabilityMatrix:
-
     def test_empty_project(self, tmp_path: Path) -> None:
         engine = FieldAlignmentEngine(tmp_path)
         matrix = engine.build_traceability_matrix()
@@ -834,8 +836,7 @@ class TestBuildTraceabilityMatrix:
         _write_contract(tmp_path, "user.md", SIMPLE_TABLE_MD)
         _write_source(tmp_path, "src/models/user.py", MATCHING_IMPL)
         _write_test_file(
-            tmp_path, "tests/test_user.py",
-            "# test that user_id and name are correct\n"
+            tmp_path, "tests/test_user.py", "# test that user_id and name are correct\n"
         )
         engine = FieldAlignmentEngine(tmp_path)
         matrix = engine.build_traceability_matrix()
@@ -851,8 +852,7 @@ class TestBuildTraceabilityMatrix:
 
         # fields_traced counts entries with both contract_ref and implementation_ref
         expected_traced = sum(
-            1 for e in matrix.entries
-            if e.contract_ref and e.implementation_ref
+            1 for e in matrix.entries if e.contract_ref and e.implementation_ref
         )
         assert matrix.fields_traced == expected_traced
 
@@ -942,7 +942,6 @@ class TestNormalizeType:
 
 
 class TestTypesCompatible:
-
     def test_same_types(self) -> None:
         assert _FieldVisitor._types_compatible("str", "str") is True
 
@@ -986,7 +985,6 @@ class TestTypesCompatible:
 
 
 class TestDetectLanguage:
-
     def test_python(self) -> None:
         assert FieldAlignmentEngine._detect_language(Path("foo.py")) == "Python"
 
@@ -1045,19 +1043,27 @@ class TestDetectLanguage:
 
 
 class TestFieldInSource:
-
     def test_field_present(self) -> None:
-        assert FieldAlignmentEngine._field_in_source("user_id", "self.user_id = 1") is True
+        assert (
+            FieldAlignmentEngine._field_in_source("user_id", "self.user_id = 1") is True
+        )
 
     def test_field_absent(self) -> None:
-        assert FieldAlignmentEngine._field_in_source("user_id", "self.name = ''") is False
+        assert (
+            FieldAlignmentEngine._field_in_source("user_id", "self.name = ''") is False
+        )
 
     def test_word_boundary(self) -> None:
         # "name" should NOT match inside "username"
-        assert FieldAlignmentEngine._field_in_source("name", "username = 'foo'") is False
+        assert (
+            FieldAlignmentEngine._field_in_source("name", "username = 'foo'") is False
+        )
 
     def test_field_in_comment(self) -> None:
-        assert FieldAlignmentEngine._field_in_source("email", "# check email field") is True
+        assert (
+            FieldAlignmentEngine._field_in_source("email", "# check email field")
+            is True
+        )
 
 
 # ===================================================================
@@ -1066,7 +1072,6 @@ class TestFieldInSource:
 
 
 class TestGateHookAlignmentContract:
-
     def test_no_contracts_dir_passes(self, tmp_path: Path) -> None:
         failures = _gate_hook_alignment_contract(None, tmp_path)
         assert failures == []
@@ -1103,7 +1108,6 @@ class TestGateHookAlignmentContract:
 
 
 class TestGateHookAlignmentImpl:
-
     def test_passing_alignment(self, tmp_path: Path) -> None:
         _write_contract(tmp_path, "user.md", SIMPLE_TABLE_MD)
         _write_source(tmp_path, "src/models/user.py", MATCHING_IMPL)

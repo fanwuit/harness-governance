@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
@@ -63,7 +62,9 @@ def test_review_close_writes_checkpoint(tmp_repo: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    checkpoint = (tmp_repo / ".harness" / "run-checkpoint.md").read_text(encoding="utf-8")
+    checkpoint = (tmp_repo / ".harness" / "run-checkpoint.md").read_text(
+        encoding="utf-8"
+    )
     assert "task-1" in checkpoint
     assert "pytest -q" in checkpoint
     assert "scope creep" in checkpoint

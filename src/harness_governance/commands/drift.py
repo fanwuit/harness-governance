@@ -14,7 +14,6 @@ from ..models.schemas import (
     ScopeDeclaration,
 )
 from ..state_machine.drift import DriftDetectionEngine, resolve_diff_base
-from ..state_machine.rigor import RigorTier
 from ._util import resolve_root
 
 
@@ -30,8 +29,14 @@ def drift_group() -> None:
 
 @drift_group.command("check")
 @click.option("--change-id", required=True, help="Change/packet identifier.")
-@click.option("--base-ref", default=None, help="Git ref to diff against (auto-detected if omitted).")
-@click.option("--default-branch", default="main", help="Default branch name for merge-base.")
+@click.option(
+    "--base-ref",
+    default=None,
+    help="Git ref to diff against (auto-detected if omitted).",
+)
+@click.option(
+    "--default-branch", default="main", help="Default branch name for merge-base."
+)
 @click.pass_context
 def drift_check(
     ctx: click.Context,
@@ -94,11 +99,27 @@ def drift_check(
 @click.option("--change-id", required=True, help="Change/packet identifier.")
 @click.option("--session-id", default="", help="Governance session ID.")
 @click.option("--file", "files", multiple=True, help="File path in scope (repeatable).")
-@click.option("--forbidden", "forbidden_paths", multiple=True, help="Forbidden glob pattern (repeatable).")
-@click.option("--max-files", type=int, default=0, help="Max files before decomposition trigger.")
-@click.option("--max-lines", type=int, default=0, help="Max total added lines before decomposition trigger.")
-@click.option("--tier", default="standard", type=click.Choice(["strict", "standard", "light"]),
-              help="Use preset thresholds for this rigor tier.")
+@click.option(
+    "--forbidden",
+    "forbidden_paths",
+    multiple=True,
+    help="Forbidden glob pattern (repeatable).",
+)
+@click.option(
+    "--max-files", type=int, default=0, help="Max files before decomposition trigger."
+)
+@click.option(
+    "--max-lines",
+    type=int,
+    default=0,
+    help="Max total added lines before decomposition trigger.",
+)
+@click.option(
+    "--tier",
+    default="standard",
+    type=click.Choice(["strict", "standard", "light"]),
+    help="Use preset thresholds for this rigor tier.",
+)
 @click.pass_context
 def drift_scope(
     ctx: click.Context,
@@ -182,12 +203,11 @@ def drift_boundary(ctx: click.Context, change_id: str) -> None:
             click.echo(f"    {f}")
 
     if scope.boundary.allowed_paths:
-        click.echo(f"  Allowed paths:")
+        click.echo("  Allowed paths:")
         for p in scope.boundary.allowed_paths:
             click.echo(f"    {p}")
 
     if scope.boundary.forbidden_paths:
-        click.echo(f"  Forbidden paths:")
+        click.echo("  Forbidden paths:")
         for p in scope.boundary.forbidden_paths:
             click.echo(f"    {p}")
-

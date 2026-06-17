@@ -8,9 +8,7 @@ Phase 6 hardening check: every skill file (8 platforms × 3 tiers) must contain:
 
 from __future__ import annotations
 
-import re
 from importlib import resources
-from pathlib import Path
 
 import pytest
 
@@ -54,9 +52,7 @@ def _list_skill_files() -> list[tuple[str, str, str]]:
 _ALL_SKILLS = _list_skill_files()
 
 # Governance tiers only — monitor is read-only, no gate/subagent content.
-_GOVERNANCE_SKILLS = [
-    (t, p, c) for t, p, c in _ALL_SKILLS if t != "monitor"
-]
+_GOVERNANCE_SKILLS = [(t, p, c) for t, p, c in _ALL_SKILLS if t != "monitor"]
 
 
 def test_all_skill_files_exist() -> None:
@@ -77,9 +73,7 @@ class TestSkillVersionSentinels:
     def test_has_version_sentinel(self, tier: str, platform: str, content: str) -> None:
         ver = extract_skill_version(content)
         assert ver is not None, f"{tier}/{platform} missing version sentinel"
-        assert ver == "0.8.0", (
-            f"{tier}/{platform} version is {ver!r}, expected '0.8.0'"
-        )
+        assert ver == "0.8.0", f"{tier}/{platform} version is {ver!r}, expected '0.8.0'"
 
 
 class TestGateCheckInstruction:
@@ -87,7 +81,9 @@ class TestGateCheckInstruction:
     hard gate check instruction. Monitor tier is read-only and does not gate."""
 
     @pytest.mark.parametrize("tier,platform,content", _GOVERNANCE_SKILLS)
-    def test_has_gate_check_instruction(self, tier: str, platform: str, content: str) -> None:
+    def test_has_gate_check_instruction(
+        self, tier: str, platform: str, content: str
+    ) -> None:
         assert "harness gate check implementation" in content, (
             f"{tier}/{platform} missing 'harness gate check implementation'"
         )
@@ -131,27 +127,31 @@ class TestTierSpecificContent:
     def test_strict_mentions_all_12_layers(self, platform: str) -> None:
         content = _get_skill_content("strict", platform)
         assert content is not None, f"strict/{platform} not found"
-        assert ("12 层" in content or "12 layers" in content.lower() or
-                "All 12 layers" in content or "全部 12 层" in content or
-                "STRICT MODE" in content), (
-            f"strict/{platform} should mention strict enforcement"
-        )
+        assert (
+            "12 层" in content
+            or "12 layers" in content.lower()
+            or "All 12 layers" in content
+            or "全部 12 层" in content
+            or "STRICT MODE" in content
+        ), f"strict/{platform} should mention strict enforcement"
 
     @pytest.mark.parametrize("platform", list(_PLATFORM_EXTS))
     def test_light_mentions_6_layers(self, platform: str) -> None:
         content = _get_skill_content("light", platform)
         assert content is not None, f"light/{platform} not found"
-        assert ("6 层" in content or "6 layers" in content.lower() or
-                "LIGHT MODE" in content or "快速通道" in content or
-                "轻量" in content), (
-            f"light/{platform} should mention light/six-layer scope"
-        )
+        assert (
+            "6 层" in content
+            or "6 layers" in content.lower()
+            or "LIGHT MODE" in content
+            or "快速通道" in content
+            or "轻量" in content
+        ), f"light/{platform} should mention light/six-layer scope"
 
     @pytest.mark.parametrize("platform", list(_PLATFORM_EXTS))
     def test_standard_mentions_standard_mode(self, platform: str) -> None:
         content = _get_skill_content("standard", platform)
         assert content is not None, f"standard/{platform} not found"
-        assert ("standard" in content.lower() or "标准" in content), (
+        assert "standard" in content.lower() or "标准" in content, (
             f"standard/{platform} should mention standard governance"
         )
 
@@ -195,7 +195,9 @@ class TestSubagentDispatch:
 def _get_skill_content(tier: str, platform: str) -> str | None:
     """Read one skill file by tier+platform; return None if missing."""
     ext = _PLATFORM_EXTS.get(platform, ".md")
-    resource = resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath(f"{platform}{ext}")
+    resource = (
+        resources.files(_SKILLS_PACKAGE).joinpath(tier).joinpath(f"{platform}{ext}")
+    )
     if resource.is_file():
         return resource.read_text(encoding="utf-8")
     return None

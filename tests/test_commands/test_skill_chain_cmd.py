@@ -14,7 +14,6 @@ from click.testing import CliRunner, Result
 from harness_governance.cli import cli
 from harness_governance.models.schemas import SkillInvocation
 from harness_governance.state_machine.skill_chain import SkillChainTracer
-from tests.conftest import seed_session, write_permissive_config
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +77,9 @@ def _seed_flat_chain(tmp_path: Path, session_id: str = SESSION_ID) -> SkillChain
     return tracer
 
 
-def _seed_orphan_chain(tmp_path: Path, session_id: str = SESSION_ID) -> SkillChainTracer:
+def _seed_orphan_chain(
+    tmp_path: Path, session_id: str = SESSION_ID
+) -> SkillChainTracer:
     """Create a tracer with an orphan invocation (parent does not exist)."""
     tracer = SkillChainTracer(tmp_path)
     inv = SkillInvocation(
@@ -102,8 +103,11 @@ class TestSkillChainTraceCLI:
     def test_trace_ascii_format(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         assert "orchestrator" in result.output
@@ -114,8 +118,13 @@ class TestSkillChainTraceCLI:
         """Default format is ascii."""
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID, "--format", "ascii",
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
+            "--format",
+            "ascii",
         )
         assert result.exit_code == 0, result.output
         assert "orchestrator" in result.output
@@ -123,16 +132,24 @@ class TestSkillChainTraceCLI:
     def test_trace_mermaid_format(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID, "--format", "mermaid",
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
+            "--format",
+            "mermaid",
         )
         assert result.exit_code == 0, result.output
         assert "graph TD" in result.output
 
     def test_trace_empty_session(self, tmp_path: Path) -> None:
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", "no-such-session",
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            "no-such-session",
         )
         assert result.exit_code == 0, result.output
         assert "(no invocations)" in result.output
@@ -140,8 +157,11 @@ class TestSkillChainTraceCLI:
     def test_trace_shows_summary(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         # Summary line should contain total count and skill names
@@ -150,8 +170,11 @@ class TestSkillChainTraceCLI:
     def test_trace_with_flat_chain(self, tmp_path: Path) -> None:
         _seed_flat_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         assert "skill-a" in result.output
@@ -171,8 +194,11 @@ class TestSkillChainVisualizeCLI:
     def test_visualize_mermaid_default(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "visualize",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "visualize",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         assert "```mermaid" in result.output
@@ -182,8 +208,13 @@ class TestSkillChainVisualizeCLI:
     def test_visualize_mermaid_explicit(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "visualize",
-            "--session-id", SESSION_ID, "--format", "mermaid",
+            tmp_path,
+            "skill-chain",
+            "visualize",
+            "--session-id",
+            SESSION_ID,
+            "--format",
+            "mermaid",
         )
         assert result.exit_code == 0, result.output
         assert "```mermaid" in result.output
@@ -191,16 +222,24 @@ class TestSkillChainVisualizeCLI:
     def test_visualize_ascii_format(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "visualize",
-            "--session-id", SESSION_ID, "--format", "ascii",
+            tmp_path,
+            "skill-chain",
+            "visualize",
+            "--session-id",
+            SESSION_ID,
+            "--format",
+            "ascii",
         )
         assert result.exit_code == 0, result.output
         assert "orchestrator" in result.output
 
     def test_visualize_empty_session(self, tmp_path: Path) -> None:
         result = _invoke(
-            tmp_path, "skill-chain", "visualize",
-            "--session-id", "empty",
+            tmp_path,
+            "skill-chain",
+            "visualize",
+            "--session-id",
+            "empty",
         )
         assert result.exit_code == 0, result.output
         # Should show some placeholder (mermaid empty or ascii empty)
@@ -210,8 +249,11 @@ class TestSkillChainVisualizeCLI:
     def test_visualize_mermaid_contains_edges(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "visualize",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "visualize",
+            "--session-id",
+            SESSION_ID,
         )
         assert "-->" in result.output  # mermaid edge syntax
 
@@ -229,16 +271,22 @@ class TestSkillChainInspectCLI:
     def test_inspect_clean_chain(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
 
     def test_inspect_shows_report_header(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         # Should contain invocation count
@@ -247,8 +295,12 @@ class TestSkillChainInspectCLI:
     def test_inspect_json_output(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
@@ -261,8 +313,12 @@ class TestSkillChainInspectCLI:
     def test_inspect_json_contains_generated_at(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         data = json.loads(result.output)
         assert "generated_at" in data
@@ -271,8 +327,12 @@ class TestSkillChainInspectCLI:
     def test_inspect_json_longest_chain(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         data = json.loads(result.output)
         assert len(data["longest_chain"]) == 3
@@ -280,8 +340,11 @@ class TestSkillChainInspectCLI:
     def test_inspect_fails_with_orphans(self, tmp_path: Path) -> None:
         _seed_orphan_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         # Orphans cause a non-zero exit
         assert result.exit_code == 1
@@ -289,8 +352,12 @@ class TestSkillChainInspectCLI:
     def test_inspect_json_fails_with_orphans(self, tmp_path: Path) -> None:
         _seed_orphan_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         assert result.exit_code == 1
         data = json.loads(result.output)
@@ -298,8 +365,11 @@ class TestSkillChainInspectCLI:
 
     def test_inspect_empty_session(self, tmp_path: Path) -> None:
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", "no-such-session",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            "no-such-session",
         )
         # validate_chain_integrity returns issue about no records
         assert result.exit_code == 1
@@ -307,8 +377,11 @@ class TestSkillChainInspectCLI:
     def test_inspect_shows_unique_skills(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
         assert "orchestrator" in result.output
@@ -318,8 +391,11 @@ class TestSkillChainInspectCLI:
     def test_inspect_shows_longest_chain(self, tmp_path: Path) -> None:
         _seed_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         assert result.exit_code == 0, result.output
 
@@ -330,16 +406,23 @@ class TestSkillChainInspectCLI:
     def test_inspect_flat_chain(self, tmp_path: Path) -> None:
         _seed_flat_chain(tmp_path)
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID,
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
         )
         # Flat chain with 2 invocations should pass integrity
         assert result.exit_code == 0, result.output
 
     def test_inspect_json_empty_session(self, tmp_path: Path) -> None:
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", "absent", "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            "absent",
+            "--json",
         )
         # "No records" issue causes exit code 1
         assert result.exit_code == 1
@@ -355,14 +438,19 @@ class TestSkillChainEdgeCases:
         tracer = SkillChainTracer(tmp_path)
         for _ in range(5):
             cid = tracer.start_invocation(
-                parent_call_id=None, child_skill="repeat-skill",
+                parent_call_id=None,
+                child_skill="repeat-skill",
                 session_id=SESSION_ID,
             )
             tracer.end_invocation(cid, exit_code=0, verdict="success")
 
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         data = json.loads(result.output)
         assert data["total_invocations"] == 5
@@ -381,8 +469,12 @@ class TestSkillChainEdgeCases:
             parent_id = cid
 
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         data = json.loads(result.output)
         assert data["total_invocations"] == 10
@@ -391,20 +483,26 @@ class TestSkillChainEdgeCases:
     def test_failed_invocations_in_chain(self, tmp_path: Path) -> None:
         tracer = SkillChainTracer(tmp_path)
         root_id = tracer.start_invocation(
-            parent_call_id=None, child_skill="root",
+            parent_call_id=None,
+            child_skill="root",
             session_id=SESSION_ID,
         )
         tracer.end_invocation(root_id, exit_code=0, verdict="success")
 
         child_id = tracer.start_invocation(
-            parent_call_id=root_id, child_skill="failing-skill",
+            parent_call_id=root_id,
+            child_skill="failing-skill",
             session_id=SESSION_ID,
         )
         tracer.end_invocation(child_id, exit_code=1, verdict="failure")
 
         result = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", SESSION_ID, "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            SESSION_ID,
+            "--json",
         )
         data = json.loads(result.output)
         assert data["total_invocations"] == 2
@@ -412,14 +510,20 @@ class TestSkillChainEdgeCases:
     def test_trace_mermaid_shows_failure_mark(self, tmp_path: Path) -> None:
         tracer = SkillChainTracer(tmp_path)
         cid = tracer.start_invocation(
-            parent_call_id=None, child_skill="broken",
+            parent_call_id=None,
+            child_skill="broken",
             session_id=SESSION_ID,
         )
         tracer.end_invocation(cid, exit_code=1, verdict="failure")
 
         result = _invoke(
-            tmp_path, "skill-chain", "trace",
-            "--session-id", SESSION_ID, "--format", "mermaid",
+            tmp_path,
+            "skill-chain",
+            "trace",
+            "--session-id",
+            SESSION_ID,
+            "--format",
+            "mermaid",
         )
         assert result.exit_code == 0, result.output
         assert "broken" in result.output
@@ -429,28 +533,38 @@ class TestSkillChainEdgeCases:
         tracer = SkillChainTracer(tmp_path)
 
         cid1 = tracer.start_invocation(
-            parent_call_id=None, child_skill="sess1-skill",
+            parent_call_id=None,
+            child_skill="sess1-skill",
             session_id="session-A",
         )
         tracer.end_invocation(cid1, exit_code=0, verdict="success")
 
         cid2 = tracer.start_invocation(
-            parent_call_id=None, child_skill="sess2-skill",
+            parent_call_id=None,
+            child_skill="sess2-skill",
             session_id="session-B",
         )
         tracer.end_invocation(cid2, exit_code=0, verdict="success")
 
         result_a = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", "session-A", "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            "session-A",
+            "--json",
         )
         data_a = json.loads(result_a.output)
         assert data_a["total_invocations"] == 1
         assert "sess1-skill" in data_a["unique_skills"]
 
         result_b = _invoke(
-            tmp_path, "skill-chain", "inspect",
-            "--session-id", "session-B", "--json",
+            tmp_path,
+            "skill-chain",
+            "inspect",
+            "--session-id",
+            "session-B",
+            "--json",
         )
         data_b = json.loads(result_b.output)
         assert data_b["total_invocations"] == 1

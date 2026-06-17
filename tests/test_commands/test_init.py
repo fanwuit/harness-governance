@@ -65,7 +65,12 @@ def test_write_skill_file_strips_bom(tmp_repo: Path, monkeypatch) -> None:
 def test_extract_skill_version() -> None:
     from harness_governance.commands.init import extract_skill_version
 
-    assert extract_skill_version("---\nname: x\n---\n\n<!-- harness-skill-version: 0.6.1 -->\nbody") == "0.6.1"
+    assert (
+        extract_skill_version(
+            "---\nname: x\n---\n\n<!-- harness-skill-version: 0.6.1 -->\nbody"
+        )
+        == "0.6.1"
+    )
     assert extract_skill_version("---\nname: x\n---\nbody") is None
     # Defensive: BOM must not break parsing
     assert extract_skill_version("﻿<!-- harness-skill-version: 0.7.0 -->") == "0.7.0"
@@ -86,7 +91,9 @@ def test_init_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:
         "<!-- harness-skill-version: 9.9.9 -->\nbody"
     )
 
-    monkeypatch.setattr(init_mod, "load_skill_template", lambda p, tier="standard": new_template)
+    monkeypatch.setattr(
+        init_mod, "load_skill_template", lambda p, tier="standard": new_template
+    )
 
     # Simulate an old skill file already on disk (no version sentinel).
     skill_path = tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]
@@ -192,7 +199,9 @@ def test_init_no_detect_with_platform(tmp_repo: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert (tmp_repo / ".agents" / "skills" / "harness-governance-standard" / "SKILL.md").is_file()
+    assert (
+        tmp_repo / ".agents" / "skills" / "harness-governance-standard" / "SKILL.md"
+    ).is_file()
 
 
 def test_init_json_output(tmp_repo: Path) -> None:
@@ -216,6 +225,7 @@ def test_init_skip_skill(tmp_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 # Phase 1: scaffolding + cursor bug fix
 # ---------------------------------------------------------------------------
+
 
 def test_init_creates_next_md(tmp_repo: Path) -> None:
     runner = CliRunner()
@@ -252,10 +262,13 @@ def test_init_cursor_config_valid(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "init", "--platform", "cursor"],
     )
     assert result.exit_code == 0, result.output
-    assert (tmp_repo / ".cursor" / "rules" / "harness-governance-standard.mdc").is_file()
+    assert (
+        tmp_repo / ".cursor" / "rules" / "harness-governance-standard.mdc"
+    ).is_file()
 
     # Config must be parseable — this was the bug: cursor was not in Literal
     from harness_governance.config.settings import load_config
+
     config = load_config(tmp_repo)
     assert config.agent_platform == "cursor"
 
@@ -276,6 +289,7 @@ def test_init_cursor_skill_has_cursor_content(tmp_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 # Phase 2: qoderwork platform
 # ---------------------------------------------------------------------------
+
 
 def test_init_detects_qoderwork(tmp_repo: Path) -> None:
     (tmp_repo / ".qoderwork").mkdir()
@@ -305,6 +319,7 @@ def test_init_qoderwork_config_valid(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     from harness_governance.config.settings import load_config
+
     config = load_config(tmp_repo)
     assert config.agent_platform == "qoderwork"
 
@@ -312,6 +327,7 @@ def test_init_qoderwork_config_valid(tmp_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 # Phase 3: opencode platform
 # ---------------------------------------------------------------------------
+
 
 def test_init_detects_opencode(tmp_repo: Path) -> None:
     (tmp_repo / ".opencode").mkdir()
@@ -340,6 +356,7 @@ def test_init_opencode_config_valid(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     from harness_governance.config.settings import load_config
+
     config = load_config(tmp_repo)
     assert config.agent_platform == "opencode"
 
@@ -374,6 +391,7 @@ def test_init_minimal_json_output(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     import json
+
     data = json.loads(result.output)
     assert data["config_path"] is not None
     assert data["skill_path"] is None
@@ -388,7 +406,9 @@ def test_init_minimal_with_platform(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert (tmp_repo / ".harness" / "config.toml").is_file()
-    assert not (tmp_repo / ".cursor" / "rules" / "harness-governance-standard.mdc").exists()
+    assert not (
+        tmp_repo / ".cursor" / "rules" / "harness-governance-standard.mdc"
+    ).exists()
 
 
 # ---------------------------------------------------------------------------
@@ -462,6 +482,7 @@ def test_init_all_platforms_config_is_multi(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     from harness_governance.config.settings import load_config
+
     config = load_config(tmp_repo)
     assert config.agent_platform == "multi"
 
@@ -486,6 +507,7 @@ def test_init_all_platforms_json_output(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     import json
+
     data = json.loads(result.output)
     assert data["detected_platform"] == "multi"
     assert "skill_paths" in data
@@ -654,7 +676,9 @@ def test_init_windsurf_writes_skill(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "init", "--platform", "windsurf"],
     )
     assert result.exit_code == 0, result.output
-    skill = tmp_repo / ".windsurf" / "skills" / "harness-governance-standard" / "SKILL.md"
+    skill = (
+        tmp_repo / ".windsurf" / "skills" / "harness-governance-standard" / "SKILL.md"
+    )
     assert skill.is_file()
     content = skill.read_text(encoding="utf-8")
     assert "Windsurf" in content
@@ -669,6 +693,7 @@ def test_init_windsurf_config_valid(tmp_repo: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     from harness_governance.config.settings import load_config
+
     config = load_config(tmp_repo)
     assert config.agent_platform == "windsurf"
 
@@ -751,7 +776,7 @@ def test_init_cline_skill_has_frontmatter(tmp_repo: Path) -> None:
     assert content.startswith("---")
     assert "name: harness-governance-standard" in content
     assert "description:" in content
-    assert 'paths:' in content
+    assert "paths:" in content
     assert '"**/*"' in content
 
 

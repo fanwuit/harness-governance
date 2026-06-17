@@ -39,20 +39,29 @@ def _normalize_path(project_path: str) -> str:
 
 def _claude_project_dir(project_path: str) -> Path:
     normalized = _normalize_path(project_path)
-    sanitized = normalized.replace("\\", "-").replace("/", "-").replace(":", "-").replace("_", "-")
+    sanitized = (
+        normalized.replace("\\", "-")
+        .replace("/", "-")
+        .replace(":", "-")
+        .replace("_", "-")
+    )
     if sanitized.startswith("-"):
         sanitized = sanitized[1:]
     return Path.home() / ".claude" / "projects" / sanitized
 
 
 def _codex_sessions_dir() -> Path:
-    return Path(os.path.expanduser(os.environ.get("CODEX_SESSIONS_DIR", "~/.codex/sessions")))
+    return Path(
+        os.path.expanduser(os.environ.get("CODEX_SESSIONS_DIR", "~/.codex/sessions"))
+    )
 
 
 def _list_claude_sessions(project_dir: Path) -> list[Path]:
     if not project_dir.is_dir():
         return []
-    sessions = [s for s in project_dir.glob("*.jsonl") if not s.name.startswith("agent-")]
+    sessions = [
+        s for s in project_dir.glob("*.jsonl") if not s.name.startswith("agent-")
+    ]
     sessions.sort(key=_safe_mtime, reverse=True)
     return [s for s in sessions if _is_substantial(s)]
 
@@ -63,7 +72,9 @@ def _list_codex_sessions(project_path: str) -> list[Path]:
         return []
     project_cmp = _normalize_path(project_path)
     thread = os.environ.get("CODEX_THREAD_ID", "").strip()
-    candidates = sorted(sessions_dir.rglob("rollout-*.jsonl"), key=_safe_mtime, reverse=True)
+    candidates = sorted(
+        sessions_dir.rglob("rollout-*.jsonl"), key=_safe_mtime, reverse=True
+    )
     matched: list[Path] = []
     for s in candidates:
         if thread and thread not in s.name:
@@ -207,9 +218,7 @@ def _find_last_claude_planning_update(messages: list[dict]) -> tuple[int, str | 
     return last_line, last_file
 
 
-def _extract_claude_after(
-    messages: list[dict], after_line: int
-) -> list[dict]:
+def _extract_claude_after(messages: list[dict], after_line: int) -> list[dict]:
     """Surface user/assistant messages with line numbers after ``after_line``."""
     out: list[dict] = []
     for msg in messages:
@@ -226,10 +235,14 @@ def _extract_claude_after(
                 out.append({"role": "user", "text": text, "line": line_num})
         elif msg_type == "assistant":
             content = msg.get("message", {}).get("content", "")
-            text = content if isinstance(content, str) else "\n".join(
-                item.get("text", "")
-                for item in content
-                if isinstance(item, dict) and isinstance(item.get("text"), str)
+            text = (
+                content
+                if isinstance(content, str)
+                else "\n".join(
+                    item.get("text", "")
+                    for item in content
+                    if isinstance(item, dict) and isinstance(item.get("text"), str)
+                )
             )
             tools: list[str] = []
             if isinstance(content, list):
@@ -243,9 +256,18 @@ def _extract_claude_after(
                         elif item.get("name") == "Write":
                             tools.append(f"Write: {tool_input.get('file_path', '')}")
                         elif item.get("name") == "Bash":
-                            tools.append(f"Bash: {(tool_input.get('command', '') or '')[:80]}")
+                            tools.append(
+                                f"Bash: {(tool_input.get('command', '') or '')[:80]}"
+                            )
             if text or tools:
-                out.append({"role": "assistant", "text": text[:600], "tools": tools, "line": line_num})
+                out.append(
+                    {
+                        "role": "assistant",
+                        "text": text[:600],
+                        "tools": tools,
+                        "line": line_num,
+                    }
+                )
     return out
 
 

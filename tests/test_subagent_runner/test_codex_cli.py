@@ -20,6 +20,9 @@ from harness_governance.runner.base import ExecutionResult
 
 PATCH_POPEN = "harness_governance.runner.adapters.codex_cli.subprocess.Popen"
 
+# Capture the real Popen class before any @patch replaces it.
+_REAL_POPEN = subprocess.Popen
+
 
 def _make_mock_popen(
     stdout: str = "",
@@ -28,7 +31,7 @@ def _make_mock_popen(
     raise_fn: Exception | None = None,
 ) -> MagicMock:
     """Create a MagicMock that behaves like a completed Popen."""
-    mock = MagicMock(spec=subprocess.Popen)
+    mock = MagicMock(spec=_REAL_POPEN)
     if raise_fn is not None:
         mock.side_effect = raise_fn
         return mock
@@ -54,7 +57,9 @@ class TestNameProperty:
 
 class TestExecuteSuccess:
     @patch(PATCH_POPEN)
-    def test_basic_success(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_basic_success(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
             stdout="AUTONOMOUS_READY_DONE\nAll tasks completed.",
         )
@@ -69,7 +74,9 @@ class TestExecuteSuccess:
         assert result.duration_seconds >= 0.0
 
     @patch(PATCH_POPEN)
-    def test_metadata_contains_round_and_command(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_metadata_contains_round_and_command(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="done")
 
         result = executor.execute("do stuff", round_label="R3")
@@ -120,7 +127,9 @@ class TestExecuteWithExtraArgs:
     @patch(PATCH_POPEN)
     def test_extra_args_before_prompt(self, mock_popen_cls: MagicMock) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
-        executor = CodexCliExecutor(extra_args=("--flag",), heartbeat_interval_seconds=0)
+        executor = CodexCliExecutor(
+            extra_args=("--flag",), heartbeat_interval_seconds=0
+        )
 
         executor.execute("my prompt")
 
@@ -143,7 +152,9 @@ class TestExecuteWithWorkdir:
         assert cwd == str(work_path)
 
     @patch(PATCH_POPEN)
-    def test_no_workdir_cwd_is_none(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_no_workdir_cwd_is_none(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
 
         executor.execute("build")
@@ -154,7 +165,9 @@ class TestExecuteWithWorkdir:
 
 class TestExecuteFileNotFoundError:
     @patch(PATCH_POPEN)
-    def test_file_not_found_returns_127(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_file_not_found_returns_127(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.side_effect = FileNotFoundError("codex not found")
 
         result = executor.execute("anything")
@@ -166,7 +179,9 @@ class TestExecuteFileNotFoundError:
         assert result.duration_seconds >= 0.0
 
     @patch(PATCH_POPEN)
-    def test_file_not_found_not_succeeded(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_file_not_found_not_succeeded(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.side_effect = FileNotFoundError()
 
         result = executor.execute("anything")
@@ -176,11 +191,15 @@ class TestExecuteFileNotFoundError:
 
 class TestExecuteTimeoutExpired:
     @patch(PATCH_POPEN)
-    def test_timeout_returns_124(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_timeout_returns_124(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_proc = _make_mock_popen(stdout="partial", stderr="")
-        mock_proc.wait.side_effect = subprocess.TimeoutExpired(
-            cmd=["codex", "exec"], timeout=1800,
-        )
+        # First wait(timeout=...) raises TimeoutExpired; second wait() (after kill) returns normally.
+        mock_proc.wait.side_effect = [
+            subprocess.TimeoutExpired(cmd=["codex", "exec"], timeout=1800),
+            0,
+        ]
         mock_popen_cls.return_value = mock_proc
 
         result = executor.execute("long task")
@@ -190,11 +209,14 @@ class TestExecuteTimeoutExpired:
         assert result.duration_seconds >= 0.0
 
     @patch(PATCH_POPEN)
-    def test_timeout_stderr_includes_harness_message(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_timeout_stderr_includes_harness_message(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_proc = _make_mock_popen(stdout="", stderr="")
-        mock_proc.wait.side_effect = subprocess.TimeoutExpired(
-            cmd=["codex", "exec"], timeout=60,
-        )
+        mock_proc.wait.side_effect = [
+            subprocess.TimeoutExpired(cmd=["codex", "exec"], timeout=60),
+            0,
+        ]
         mock_popen_cls.return_value = mock_proc
 
         result = executor.execute("long task", timeout_seconds=60)
@@ -204,14 +226,18 @@ class TestExecuteTimeoutExpired:
 
 class TestExecuteMarkerDetection:
     @patch(PATCH_POPEN)
-    def test_autonomous_ready_done_marker(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_autonomous_ready_done_marker(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="AUTONOMOUS_READY_DONE")
 
         result = executor.execute("do it")
         assert result.marker == "AUTONOMOUS_READY_DONE"
 
     @patch(PATCH_POPEN)
-    def test_autonomous_blocked_marker(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_autonomous_blocked_marker(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
             stdout="some output\nAUTONOMOUS_BLOCKED\nmore output",
         )
@@ -220,18 +246,25 @@ class TestExecuteMarkerDetection:
         assert result.marker == "AUTONOMOUS_BLOCKED"
 
     @patch(PATCH_POPEN)
-    def test_autonomous_failed_marker(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_autonomous_failed_marker(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
-            stdout="", stderr="AUTONOMOUS_FAILED: something broke", returncode=1,
+            stdout="",
+            stderr="AUTONOMOUS_FAILED: something broke",
+            returncode=1,
         )
 
         result = executor.execute("do it")
         assert result.marker == "AUTONOMOUS_FAILED"
 
     @patch(PATCH_POPEN)
-    def test_no_marker_returns_none(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_no_marker_returns_none(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
-            stdout="just regular output", stderr="no markers here",
+            stdout="just regular output",
+            stderr="no markers here",
         )
 
         result = executor.execute("do it")
@@ -240,7 +273,9 @@ class TestExecuteMarkerDetection:
 
 class TestExecuteVerificationSummary:
     @patch(PATCH_POPEN)
-    def test_pytest_verification_summary(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_pytest_verification_summary(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
             stdout="- pytest: 42 passed, 0 failed\nAUTONOMOUS_READY_DONE",
         )
@@ -250,7 +285,9 @@ class TestExecuteVerificationSummary:
         assert "pytest" in result.verification_summary
 
     @patch(PATCH_POPEN)
-    def test_no_verification_summary(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_no_verification_summary(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
             stdout="just some output without test results",
         )
@@ -261,7 +298,9 @@ class TestExecuteVerificationSummary:
 
 class TestExecuteDefaultModelMetadata:
     @patch(PATCH_POPEN)
-    def test_default_model_in_command(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_default_model_in_command(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
 
         result = executor.execute("task")
@@ -271,7 +310,9 @@ class TestExecuteDefaultModelMetadata:
 
 class TestExecutePopenCallArgs:
     @patch(PATCH_POPEN)
-    def test_popen_called_with_text_and_pipes(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_popen_called_with_text_and_pipes(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
 
         executor.execute("task")
@@ -282,7 +323,9 @@ class TestExecutePopenCallArgs:
         assert kwargs["stderr"] == subprocess.PIPE
 
     @patch(PATCH_POPEN)
-    def test_prompt_is_last_arg(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_prompt_is_last_arg(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
 
         executor.execute("my specific prompt")
@@ -293,7 +336,9 @@ class TestExecutePopenCallArgs:
         assert cmd[1] == "exec"
 
     @patch(PATCH_POPEN)
-    def test_env_is_passed(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_env_is_passed(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="ok")
 
         executor.execute("task")
@@ -305,9 +350,13 @@ class TestExecutePopenCallArgs:
 
 class TestExecuteNonZeroExit:
     @patch(PATCH_POPEN)
-    def test_nonzero_exit_not_succeeded(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_nonzero_exit_not_succeeded(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(
-            stdout="error output", stderr="something failed", returncode=1,
+            stdout="error output",
+            stderr="something failed",
+            returncode=1,
         )
 
         result = executor.execute("task")
@@ -316,7 +365,9 @@ class TestExecuteNonZeroExit:
         assert result.succeeded is False
 
     @patch(PATCH_POPEN)
-    def test_empty_stdout_stderr(self, mock_popen_cls: MagicMock, executor: CodexCliExecutor) -> None:
+    def test_empty_stdout_stderr(
+        self, mock_popen_cls: MagicMock, executor: CodexCliExecutor
+    ) -> None:
         mock_popen_cls.return_value = _make_mock_popen(stdout="", stderr="")
 
         result = executor.execute("task")
@@ -336,7 +387,6 @@ class TestHeartbeat:
         # No heartbeat file should be created; no crash either.
         # Just verify the executor completed successfully.
 
-    @patch(PATCH_POPEN)
     def test_heartbeat_interval_default(self) -> None:
         executor = CodexCliExecutor()
         assert executor.heartbeat_interval_seconds == 30

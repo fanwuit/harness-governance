@@ -5,16 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
 from harness_governance.commands.init import _build_agents_triggers_block
-from harness_governance.config.defaults import PLATFORM_SKILL_PATHS
 from harness_governance.priority import (
     CompetingSkill,
-    FixResult,
-    SkillInfo,
     apply_all_fixes,
     apply_fix,
     check_priority,
@@ -52,7 +48,7 @@ def test_parse_always_apply_true():
 
 
 def test_parse_with_quoted_values():
-    text = '---\nname: "my-skill"\ndescription: \'Does things.\'\n---\n\nbody'
+    text = "---\nname: \"my-skill\"\ndescription: 'Does things.'\n---\n\nbody"
     fm, _body = parse_frontmatter(text)
     assert fm["name"] == "my-skill"
     assert fm["description"] == "Does things."
@@ -277,7 +273,9 @@ def test_fix_rename_directory(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     sf = skill_dir / "SKILL.md"
-    sf.write_text("---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8")
+    sf.write_text(
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8"
+    )
 
     competing = CompetingSkill(
         platform="claude-code",
@@ -335,7 +333,9 @@ def test_fix_idempotent(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     sf = skill_dir / "SKILL.md"
-    sf.write_text("---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8")
+    sf.write_text(
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8"
+    )
 
     competing = CompetingSkill(
         platform="claude-code",
@@ -383,14 +383,16 @@ def test_apply_all_fixes_multi_platform(tmp_path: Path):
     cc = tmp_path / ".claude" / "skills" / "hijacker"
     cc.mkdir(parents=True)
     (cc / "SKILL.md").write_text(
-        "---\nname: hijacker\nalwaysApply: true\n---\n\n# CC\n", encoding="utf-8",
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# CC\n",
+        encoding="utf-8",
     )
 
     # Cursor competing rule
     cr = tmp_path / ".cursor" / "rules"
     cr.mkdir(parents=True)
     (cr / "bad-rule.mdc").write_text(
-        "---\nalwaysApply: true\n---\n\n# Cursor\n", encoding="utf-8",
+        "---\nalwaysApply: true\n---\n\n# Cursor\n",
+        encoding="utf-8",
     )
 
     competing = detect_competing_skills(tmp_path)
@@ -404,7 +406,9 @@ def test_apply_all_fixes_multi_platform(tmp_path: Path):
 def test_apply_all_fixes_dedup_agents_md(tmp_path: Path):
     """Multiple qoderwork/generic findings only strengthen AGENTS.md once."""
     # Write AGENTS.md first (simulate existing project)
-    (tmp_path / "AGENTS.md").write_text("# My Project\n\nSome content.\n", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text(
+        "# My Project\n\nSome content.\n", encoding="utf-8"
+    )
 
     c1 = CompetingSkill(
         platform="qoderwork",
@@ -443,7 +447,8 @@ def test_check_priority_cmd_finds_competing(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8",
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n",
+        encoding="utf-8",
     )
     runner = CliRunner()
     result = runner.invoke(cli, ["--project-root", str(tmp_path), "check", "priority"])
@@ -455,10 +460,13 @@ def test_check_priority_fix_cmd(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8",
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n",
+        encoding="utf-8",
     )
     runner = CliRunner()
-    result = runner.invoke(cli, ["--project-root", str(tmp_path), "check", "priority", "--fix"])
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_path), "check", "priority", "--fix"]
+    )
     # After fix, check should pass (competing skill neutralised).
     assert "_hijacker" in result.output or "rename_dir" in result.output
 
@@ -471,6 +479,7 @@ def test_check_all_includes_priority(tmp_path: Path):
         encoding="utf-8",
     )
     from tests.conftest import write_permissive_config
+
     write_permissive_config(tmp_path)
 
     runner = CliRunner()
@@ -481,7 +490,8 @@ def test_check_all_includes_priority(tmp_path: Path):
 
     # JSON output should include priority check
     json_result = runner.invoke(
-        cli, ["--project-root", str(tmp_path), "--json", "check", "all"],
+        cli,
+        ["--project-root", str(tmp_path), "--json", "check", "all"],
     )
     data = json.loads(json_result.output)
     assert data["passed"]
@@ -493,7 +503,8 @@ def test_check_priority_json_output(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8",
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n",
+        encoding="utf-8",
     )
     runner = CliRunner()
     result = runner.invoke(
@@ -518,7 +529,8 @@ def test_governed_start_warns_when_competing(tmp_path: Path):
     skill_dir = tmp_path / ".claude" / "skills" / "hijacker"
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text(
-        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n", encoding="utf-8",
+        "---\nname: hijacker\nalwaysApply: true\n---\n\n# Body\n",
+        encoding="utf-8",
     )
     # Need a config so governed-start doesn't fail on require_session.
     from tests.conftest import write_permissive_config

@@ -136,7 +136,9 @@ class TestSerializationOptions:
         writer = NDJSONWriter()
         target = tmp_path / "unicode.ndjson"
 
-        writer.append(target, {"greeting": "\u3053\u3093\u306b\u3061\u306f", "emoji": "\u2728"})
+        writer.append(
+            target, {"greeting": "\u3053\u3093\u306b\u3061\u306f", "emoji": "\u2728"}
+        )
 
         raw = target.read_text(encoding="utf-8")
         # Unicode characters must appear literally, not as \\uXXXX escapes.
@@ -159,7 +161,11 @@ class TestSerializationOptions:
         writer = NDJSONWriter()
         target = tmp_path / "roundtrip.ndjson"
 
-        record = {"name": "\u00e9l\u00e8ve", "city": "\u00fc\u00f8\u00e5", "note": "\u4e2d\u6587"}
+        record = {
+            "name": "\u00e9l\u00e8ve",
+            "city": "\u00fc\u00f8\u00e5",
+            "note": "\u4e2d\u6587",
+        }
         writer.append(target, record)
 
         parsed = _parse_ndjson(target)

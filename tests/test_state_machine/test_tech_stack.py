@@ -8,22 +8,14 @@ suggest_doc_styles, and the _gate_hook_tech_stack gate hook.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
 
 from harness_governance.models.schemas import (
-    DocStyleGap,
-    LintGap,
-    TechStackCheckResult,
     TechStackManifest,
     ToolIntroduction,
-    VersionConstraint,
 )
 from harness_governance.state_machine.tech_stack import (
-    DOC_STYLE_CATALOG,
-    LINT_TOOL_CATALOG,
     TechStackManager,
     _gate_hook_tech_stack,
 )
@@ -56,7 +48,9 @@ def _seed_js_project(root: Path) -> None:
 def _seed_ts_project(root: Path) -> None:
     """Create a minimal TypeScript project structure."""
     (root / "index.ts").write_text("const x: number = 1;\n", encoding="utf-8")
-    (root / "component.tsx").write_text("export default () => <div />;\n", encoding="utf-8")
+    (root / "component.tsx").write_text(
+        "export default () => <div />;\n", encoding="utf-8"
+    )
 
 
 def _seed_go_project(root: Path) -> None:
@@ -67,8 +61,10 @@ def _seed_go_project(root: Path) -> None:
 def _seed_rust_project(root: Path) -> None:
     """Create a minimal Rust project structure."""
     (root / "src").mkdir(parents=True, exist_ok=True)
-    (root / "src" / "lib.rs").write_text("pub fn add(a: i32, b: i32) -> i32 { a + b }\n", encoding="utf-8")
-    (root / "Cargo.toml").write_text("[package]\nname = \"demo\"\n", encoding="utf-8")
+    (root / "src" / "lib.rs").write_text(
+        "pub fn add(a: i32, b: i32) -> i32 { a + b }\n", encoding="utf-8"
+    )
+    (root / "Cargo.toml").write_text('[package]\nname = "demo"\n', encoding="utf-8")
 
 
 # ===========================================================================
@@ -108,7 +104,9 @@ class TestDetectProjectLanguages:
         assert "Rust" in langs
 
     def test_detects_shell(self, tmp_path: Path) -> None:
-        (tmp_path / "deploy.sh").write_text("#!/bin/bash\necho deploy\n", encoding="utf-8")
+        (tmp_path / "deploy.sh").write_text(
+            "#!/bin/bash\necho deploy\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         langs = mgr.detect_project_languages()
         assert "Shell" in langs
@@ -177,7 +175,7 @@ class TestDetectProjectLanguages:
         assert "C#" in langs
 
     def test_detects_swift(self, tmp_path: Path) -> None:
-        (tmp_path / "main.swift").write_text("print(\"hi\")\n", encoding="utf-8")
+        (tmp_path / "main.swift").write_text('print("hi")\n', encoding="utf-8")
         mgr = _make_mgr(tmp_path)
         langs = mgr.detect_project_languages()
         assert "Swift" in langs
@@ -189,7 +187,9 @@ class TestDetectProjectLanguages:
         assert "C++" in langs
 
     def test_detects_sql(self, tmp_path: Path) -> None:
-        (tmp_path / "schema.sql").write_text("CREATE TABLE t (id INT);\n", encoding="utf-8")
+        (tmp_path / "schema.sql").write_text(
+            "CREATE TABLE t (id INT);\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         langs = mgr.detect_project_languages()
         assert "SQL" in langs
@@ -204,7 +204,7 @@ class TestDetectConfiguredLints:
     def test_pyproject_toml_with_ruff_section(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 120\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 120\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         configured = mgr.detect_configured_lints()
@@ -234,14 +234,18 @@ class TestDetectConfiguredLints:
 
     def test_rubocop_config(self, tmp_path: Path) -> None:
         (tmp_path / "app.rb").write_text("puts 'hi'\n", encoding="utf-8")
-        (tmp_path / ".rubocop.yml").write_text("AllCops:\n  TargetRubyVersion: 3.2\n", encoding="utf-8")
+        (tmp_path / ".rubocop.yml").write_text(
+            "AllCops:\n  TargetRubyVersion: 3.2\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         configured = mgr.detect_configured_lints()
         assert "Ruby" in configured
 
     def test_detekt_for_kotlin(self, tmp_path: Path) -> None:
         (tmp_path / "Main.kt").write_text("fun main() {}\n", encoding="utf-8")
-        (tmp_path / "detekt.yml").write_text("build:\n  maxIssues: 0\n", encoding="utf-8")
+        (tmp_path / "detekt.yml").write_text(
+            "build:\n  maxIssues: 0\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         configured = mgr.detect_configured_lints()
         assert "Kotlin" in configured
@@ -274,15 +278,19 @@ class TestDetectConfiguredLints:
         assert "universal" in configured
 
     def test_swiftlint_for_swift(self, tmp_path: Path) -> None:
-        (tmp_path / "main.swift").write_text("print(\"hi\")\n", encoding="utf-8")
-        (tmp_path / ".swiftlint.yml").write_text("disabled_rules:\n  - trailing_whitespace\n", encoding="utf-8")
+        (tmp_path / "main.swift").write_text('print("hi")\n', encoding="utf-8")
+        (tmp_path / ".swiftlint.yml").write_text(
+            "disabled_rules:\n  - trailing_whitespace\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         configured = mgr.detect_configured_lints()
         assert "Swift" in configured
 
     def test_biome_for_typescript(self, tmp_path: Path) -> None:
         _seed_ts_project(tmp_path)
-        (tmp_path / "biome.json").write_text('{"linter": {"enabled": true}}\n', encoding="utf-8")
+        (tmp_path / "biome.json").write_text(
+            '{"linter": {"enabled": true}}\n', encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         configured = mgr.detect_configured_lints()
         assert "TypeScript" in configured
@@ -411,7 +419,7 @@ class TestCapture:
     def test_capture_with_lint_config(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 120\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 120\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         manifest = mgr.capture()
@@ -449,7 +457,9 @@ class TestCapture:
 
     def test_capture_detects_gradle(self, tmp_path: Path) -> None:
         (tmp_path / "Main.java").write_text("class Main {}\n", encoding="utf-8")
-        (tmp_path / "build.gradle").write_text("apply plugin: 'java'\n", encoding="utf-8")
+        (tmp_path / "build.gradle").write_text(
+            "apply plugin: 'java'\n", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         manifest = mgr.capture()
         assert "gradle" in manifest.package_managers
@@ -476,14 +486,16 @@ class TestLoad:
     def test_load_returns_none_on_corrupt_json(self, tmp_path: Path) -> None:
         harness_dir = tmp_path / ".harness"
         harness_dir.mkdir(parents=True, exist_ok=True)
-        (harness_dir / "tech-stack.json").write_text("not valid json{{", encoding="utf-8")
+        (harness_dir / "tech-stack.json").write_text(
+            "not valid json{{", encoding="utf-8"
+        )
         mgr = _make_mgr(tmp_path)
         assert mgr.load() is None
 
     def test_load_roundtrip(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         original = mgr.capture()
@@ -556,7 +568,7 @@ class TestCheck:
         mgr.capture()  # no ruff config yet
         # Now add ruff config after capture
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 120\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 120\n", encoding="utf-8"
         )
         result = mgr.check()
         assert any("Unregistered tool" in v for v in result.violations)
@@ -657,7 +669,9 @@ class TestConfirmTool:
         # Second confirm should detect no change
         assert mgr.confirm_tool("ruff") is False
 
-    def test_confirm_only_unconfirmed_tool_returns_true_bug_fix(self, tmp_path: Path) -> None:
+    def test_confirm_only_unconfirmed_tool_returns_true_bug_fix(
+        self, tmp_path: Path
+    ) -> None:
         """BUG FIX: confirming the ONLY unconfirmed tool must return True.
 
         Previously, comparing old_confirmed vs new_confirmed sets could
@@ -714,7 +728,7 @@ class TestDetectUnexpected:
         mgr = _make_mgr(tmp_path)
         mgr.capture()
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         unexpected = mgr.detect_unexpected()
         assert "ruff" in unexpected
@@ -730,7 +744,7 @@ class TestDetectUnexpected:
     def test_no_unexpected_when_tool_already_in_manifest(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         mgr.capture()  # ruff should be detected during capture
@@ -767,7 +781,7 @@ class TestLintAndDocStyleGaps:
     def test_no_lint_gap_when_lint_tool_in_manifest(self, tmp_path: Path) -> None:
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         manifest = mgr.capture()
@@ -830,7 +844,7 @@ class TestGateHookTechStack:
         """A project with lint and doc style confirmed should pass."""
         _seed_python_project(tmp_path)
         (tmp_path / "pyproject.toml").write_text(
-            '[tool.ruff]\nline-length = 88\n', encoding="utf-8"
+            "[tool.ruff]\nline-length = 88\n", encoding="utf-8"
         )
         mgr = _make_mgr(tmp_path)
         manifest = mgr.capture()
@@ -886,24 +900,39 @@ class TestConfigFileConfirmsTool:
     def test_dedicated_config_file_always_confirms(self, tmp_path: Path) -> None:
         cfg = tmp_path / ".eslintrc.json"
         cfg.write_text("{}", encoding="utf-8")
-        assert TechStackManager._config_file_confirms_tool(".eslintrc.json", "eslint", cfg) is True
+        assert (
+            TechStackManager._config_file_confirms_tool(".eslintrc.json", "eslint", cfg)
+            is True
+        )
 
     def test_pyproject_with_ruff_section(self, tmp_path: Path) -> None:
         cfg = tmp_path / "pyproject.toml"
-        cfg.write_text('[tool.ruff]\nline-length = 88\n', encoding="utf-8")
-        assert TechStackManager._config_file_confirms_tool("pyproject.toml", "ruff", cfg) is True
+        cfg.write_text("[tool.ruff]\nline-length = 88\n", encoding="utf-8")
+        assert (
+            TechStackManager._config_file_confirms_tool("pyproject.toml", "ruff", cfg)
+            is True
+        )
 
     def test_pyproject_without_ruff_section(self, tmp_path: Path) -> None:
         cfg = tmp_path / "pyproject.toml"
         cfg.write_text('[project]\nname = "demo"\n', encoding="utf-8")
-        assert TechStackManager._config_file_confirms_tool("pyproject.toml", "ruff", cfg) is False
+        assert (
+            TechStackManager._config_file_confirms_tool("pyproject.toml", "ruff", cfg)
+            is False
+        )
 
     def test_pyproject_with_black_section(self, tmp_path: Path) -> None:
         cfg = tmp_path / "pyproject.toml"
-        cfg.write_text('[tool.black]\nline-length = 88\n', encoding="utf-8")
-        assert TechStackManager._config_file_confirms_tool("pyproject.toml", "black", cfg) is True
+        cfg.write_text("[tool.black]\nline-length = 88\n", encoding="utf-8")
+        assert (
+            TechStackManager._config_file_confirms_tool("pyproject.toml", "black", cfg)
+            is True
+        )
 
     def test_cargo_toml_with_lints_for_clippy(self, tmp_path: Path) -> None:
         cfg = tmp_path / "Cargo.toml"
         cfg.write_text('[package]\nname = "x"\n\n[lints]\n', encoding="utf-8")
-        assert TechStackManager._config_file_confirms_tool("Cargo.toml", "clippy", cfg) is True
+        assert (
+            TechStackManager._config_file_confirms_tool("Cargo.toml", "clippy", cfg)
+            is True
+        )

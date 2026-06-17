@@ -49,7 +49,9 @@ class SessionState(BaseModel):
     transitions: tuple[TransitionRecord, ...] = ()
     # v0.7.0: governance depth controls
     rigor_tier: str = "strict"  # RigorTier value, defaults to STRICT
-    layer_qa: tuple[dict[str, Any], ...] = ()  # Q&A log: {"layer","question","answer","timestamp"}
+    layer_qa: tuple[
+        dict[str, Any], ...
+    ] = ()  # Q&A log: {"layer","question","answer","timestamp"}
 
 
 __all__ = [

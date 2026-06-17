@@ -122,7 +122,9 @@ class SkillChainTracer:
         parsed from a subagent result).
         """
         if not invocation.session_id:
-            logger.warning("Skipping invocation with no session_id: %s", invocation.call_id)
+            logger.warning(
+                "Skipping invocation with no session_id: %s", invocation.call_id
+            )
             return False
 
         log_path = self._ndjson_path(invocation.session_id)
@@ -146,7 +148,8 @@ class SkillChainTracer:
 
         # Find roots (nodes with no parent or whose parent is absent).
         roots = [
-            i for i in invocations
+            i
+            for i in invocations
             if i.parent_call_id is None or i.parent_call_id not in by_id
         ]
 
@@ -181,11 +184,14 @@ class SkillChainTracer:
         self._compute_depths(by_id)
 
         max_depth = max((i.trace_depth for i in invocations), default=0)
-        unique_skills = tuple(sorted({i.child_skill for i in invocations if i.child_skill}))
+        unique_skills = tuple(
+            sorted({i.child_skill for i in invocations if i.child_skill})
+        )
 
         # Find orphans.
         orphans = tuple(
-            i.call_id for i in invocations
+            i.call_id
+            for i in invocations
             if i.parent_call_id is not None and i.parent_call_id not in by_id
         )
 
@@ -195,7 +201,9 @@ class SkillChainTracer:
         current: SkillInvocation | None = deepest
         while current is not None:
             longest.insert(0, current.call_id)
-            current = by_id.get(current.parent_call_id) if current.parent_call_id else None
+            current = (
+                by_id.get(current.parent_call_id) if current.parent_call_id else None
+            )
 
         tree = self.build_tree(session_id)
 
@@ -252,7 +260,9 @@ class SkillChainTracer:
         for cid in call_ids:
             if cid not in visited:
                 if _dfs(cid):
-                    issues.append(f"Cycle detected in invocation chain starting at {cid}")
+                    issues.append(
+                        f"Cycle detected in invocation chain starting at {cid}"
+                    )
                     break
 
         # 3. Incomplete invocations (started but never finished).
@@ -275,7 +285,7 @@ class SkillChainTracer:
             return "graph TD\n  empty[No invocations recorded]"
 
         lines = ["graph TD"]
-        by_id = {i.call_id: i for i in invocations}
+        _by_id = {i.call_id: i for i in invocations}
 
         for i in invocations:
             node_id = i.call_id[:8]
@@ -312,9 +322,7 @@ class SkillChainTracer:
         return chains_dir / f"{session_id}.ndjson"
 
     @staticmethod
-    def _read_invocations(
-        session_id: str, project_root: Path
-    ) -> list[SkillInvocation]:
+    def _read_invocations(session_id: str, project_root: Path) -> list[SkillInvocation]:
         """Parse all NDJSON invocation records for a session."""
         records: list[SkillInvocation] = []
         log_path = project_root / SkillChainTracer.CHAINS_DIR / f"{session_id}.ndjson"
@@ -338,6 +346,7 @@ class SkillChainTracer:
     @staticmethod
     def _compute_depths(by_id: dict[str, SkillInvocation]) -> None:
         """Set ``trace_depth`` on every invocation in *by_id* (mutates)."""
+
         def _depth(call_id: str, visited: set[str] | None = None) -> int:
             if visited is None:
                 visited = set()
@@ -359,12 +368,10 @@ class SkillChainTracer:
     ) -> InvocationTreeNode:
         """Recursively build an ``InvocationTreeNode``."""
         child_invocations = [
-            child for child in by_id.values()
-            if child.parent_call_id == inv.call_id
+            child for child in by_id.values() if child.parent_call_id == inv.call_id
         ]
         children = tuple(
-            SkillChainTracer._build_subtree(child, by_id)
-            for child in child_invocations
+            SkillChainTracer._build_subtree(child, by_id) for child in child_invocations
         )
         return InvocationTreeNode(
             call_id=inv.call_id,

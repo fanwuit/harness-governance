@@ -11,12 +11,11 @@ import re
 from datetime import date
 from importlib import resources
 from pathlib import Path
-from typing import Iterable
 
 from ..config.defaults import ALLOWED_PACKET_STATUSES, REQUIRED_PACKET_FILES
 from ..messages import bilingual
 from ..models.schemas import ChangePacketInitResult, ChangePacketSummary
-from ._cache import PACKET_CACHE, file_cache
+from ._cache import file_cache
 from ._util import assert_inside, validate_change_id
 
 _TEMPLATES_PACKAGE = "harness_governance.data.templates.change-packet"
@@ -207,7 +206,9 @@ def check_packet(
     for filename in REQUIRED_PACKET_FILES:
         file_path = packet_dir_path / filename
         if not file_path.exists():
-            errors.append(bilingual("packet.label_missing_file", label=label, filename=filename))
+            errors.append(
+                bilingual("packet.label_missing_file", label=label, filename=filename)
+            )
             continue
         texts[filename] = file_path.read_text(encoding="utf-8")
 
@@ -232,7 +233,11 @@ def check_packet(
                 status_value = value
 
     contracts_text = texts.get("contracts.md", "")
-    if contracts_text and not _has_contract_artifact(contracts_text) and not _has_blocked_reason(contracts_text):
+    if (
+        contracts_text
+        and not _has_contract_artifact(contracts_text)
+        and not _has_blocked_reason(contracts_text)
+    ):
         errors.append(bilingual("packet.label_missing_contract_artifact", label=label))
 
     verification_text = texts.get("verification.md", "")
@@ -240,7 +245,9 @@ def check_packet(
         errors.append(bilingual("packet.label_missing_verification", label=label))
 
     combined = "\n".join(texts.values())
-    if _is_archived(packet_dir_path, combined, project_root) and not _has_archive_backlink(combined):
+    if _is_archived(
+        packet_dir_path, combined, project_root
+    ) and not _has_archive_backlink(combined):
         errors.append(bilingual("packet.label_archived_no_backlink", label=label))
 
     summary = ChangePacketSummary(
@@ -251,7 +258,9 @@ def check_packet(
     return errors, summary
 
 
-def check_all_packets(project_root: Path) -> tuple[list[str], list[ChangePacketSummary]]:
+def check_all_packets(
+    project_root: Path,
+) -> tuple[list[str], list[ChangePacketSummary]]:
     """Check every packet under ``docs/changes/``."""
     all_errors: list[str] = []
     summaries: list[ChangePacketSummary] = []
@@ -304,7 +313,9 @@ def _has_verification_evidence(text: str) -> bool:
     return False
 
 
-def _is_archived(packet_dir_path: Path, combined: str, project_root: Path | None) -> bool:
+def _is_archived(
+    packet_dir_path: Path, combined: str, project_root: Path | None
+) -> bool:
     if project_root is not None:
         try:
             rel = packet_dir_path.resolve().relative_to(project_root.resolve())
@@ -312,7 +323,9 @@ def _is_archived(packet_dir_path: Path, combined: str, project_root: Path | None
                 return True
         except ValueError:
             pass
-    return bool(re.search(r"^Status\s*:\s*archived\s*$", combined, re.IGNORECASE | re.MULTILINE))
+    return bool(
+        re.search(r"^Status\s*:\s*archived\s*$", combined, re.IGNORECASE | re.MULTILINE)
+    )
 
 
 def _has_archive_backlink(text: str) -> bool:

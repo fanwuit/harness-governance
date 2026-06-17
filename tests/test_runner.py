@@ -27,7 +27,10 @@ def runner_repo(tmp_path: Path) -> Path:
 
 
 def test_detect_marker_finds_boundary() -> None:
-    assert detect_marker("worker output\nAUTONOMOUS_BOUNDARY_REACHED\n") == AUTONOMOUS_BOUNDARY_REACHED
+    assert (
+        detect_marker("worker output\nAUTONOMOUS_BOUNDARY_REACHED\n")
+        == AUTONOMOUS_BOUNDARY_REACHED
+    )
 
 
 def test_detect_marker_finds_ready_done() -> None:
@@ -45,7 +48,7 @@ def test_detect_verification_summary_picks_pytest_line() -> None:
 
 def test_subprocess_executor_runs_command(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template=f'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+        command_template='python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
         prompt_as_arg=False,
         workdir=runner_repo,
         heartbeat_interval_seconds=0,
@@ -85,7 +88,11 @@ def test_loop_runs_one_round_and_writes_checkpoint(runner_repo: Path) -> None:
     assert result.rounds == 1
     assert result.stopped_for == "max_rounds"
     assert (runner_repo / ".harness" / "run-checkpoint.md").is_file()
-    log_lines = (runner_repo / ".harness" / "codex-exec-invocations.ndjson").read_text(encoding="utf-8").splitlines()
+    log_lines = (
+        (runner_repo / ".harness" / "codex-exec-invocations.ndjson")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
     assert len(log_lines) == 1
     record = json.loads(log_lines[0])
     assert record["marker"] == AUTONOMOUS_READY_DONE
@@ -176,12 +183,18 @@ def test_loop_retries_on_failure_and_succeeds(runner_repo: Path) -> None:
 
             if call_count == 1:
                 return ExecutionResult(
-                    exit_code=1, stdout="fail", stderr="", marker=None,
+                    exit_code=1,
+                    stdout="fail",
+                    stderr="",
+                    marker=None,
                     duration_seconds=0.01,
                 )
             return ExecutionResult(
-                exit_code=0, stdout=AUTONOMOUS_READY_DONE, stderr="",
-                marker=AUTONOMOUS_READY_DONE, duration_seconds=0.01,
+                exit_code=0,
+                stdout=AUTONOMOUS_READY_DONE,
+                stderr="",
+                marker=AUTONOMOUS_READY_DONE,
+                duration_seconds=0.01,
             )
 
     loop = AutonomousReadyLoop(
@@ -207,7 +220,10 @@ def test_loop_retries_exhausted_marks_failed(runner_repo: Path) -> None:
 
         def execute(self, prompt, *, timeout_seconds, round_label):
             return ExecutionResult(
-                exit_code=1, stdout="error", stderr="", marker=None,
+                exit_code=1,
+                stdout="error",
+                stderr="",
+                marker=None,
                 duration_seconds=0.01,
             )
 
@@ -239,8 +255,11 @@ def test_loop_respects_total_timeout(runner_repo: Path) -> None:
 
         def execute(self, prompt, *, timeout_seconds, round_label):
             return ExecutionResult(
-                exit_code=0, stdout=AUTONOMOUS_READY_DONE, stderr="",
-                marker=AUTONOMOUS_READY_DONE, duration_seconds=0.1,
+                exit_code=0,
+                stdout=AUTONOMOUS_READY_DONE,
+                stderr="",
+                marker=AUTONOMOUS_READY_DONE,
+                duration_seconds=0.1,
             )
 
     loop = AutonomousReadyLoop(

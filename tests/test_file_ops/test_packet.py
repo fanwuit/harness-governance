@@ -40,7 +40,13 @@ def test_validate_change_id_rejects_unsafe_chars() -> None:
 
 def test_init_packet_creates_all_files(tmp_repo: Path) -> None:
     result = init_packet(tmp_repo, "demo")
-    for filename in ("proposal.md", "design.md", "tasks.md", "contracts.md", "verification.md"):
+    for filename in (
+        "proposal.md",
+        "design.md",
+        "tasks.md",
+        "contracts.md",
+        "verification.md",
+    ):
         assert (result.packet_dir / filename).is_file()
     assert result.change_id == "demo"
     assert set(result.created_files) == {
@@ -61,7 +67,7 @@ def test_init_packet_replaces_change_id_placeholder(tmp_repo: Path) -> None:
 
 def test_init_packet_force_does_not_overwrite_existing(tmp_repo: Path) -> None:
     init_packet(tmp_repo, "demo")
-    marker = (tmp_repo / "docs" / "changes" / "demo" / "tasks.md")
+    marker = tmp_repo / "docs" / "changes" / "demo" / "tasks.md"
     marker.write_text("Custom content", encoding="utf-8")
     init_packet(tmp_repo, "demo", force=True)
     assert marker.read_text(encoding="utf-8") == "Custom content"
@@ -91,7 +97,9 @@ def test_check_packet_rejects_fresh_packet(tmp_repo: Path) -> None:
     Matches legacy ``change-packet.test.mjs`` behavior.
     """
     init_packet(tmp_repo, "minimal")
-    errors, _summary = check_packet(packet_dir(tmp_repo, "minimal"), project_root=tmp_repo)
+    errors, _summary = check_packet(
+        packet_dir(tmp_repo, "minimal"), project_root=tmp_repo
+    )
     assert errors  # at least one error
     assert any("contracts.md" in err or "verification.md" in err for err in errors)
 
@@ -99,7 +107,9 @@ def test_check_packet_rejects_fresh_packet(tmp_repo: Path) -> None:
 def test_check_packet_passes_when_filled(tmp_repo: Path) -> None:
     init_packet(tmp_repo, "minimal")
     _fill_valid_packet(packet_dir(tmp_repo, "minimal"))
-    errors, _summary = check_packet(packet_dir(tmp_repo, "minimal"), project_root=tmp_repo)
+    errors, _summary = check_packet(
+        packet_dir(tmp_repo, "minimal"), project_root=tmp_repo
+    )
     assert errors == []
 
 
@@ -109,7 +119,9 @@ def test_check_packet_flags_missing_checkbox(tmp_repo: Path) -> None:
     (tmp_repo / "docs" / "changes" / "no-checkbox" / "tasks.md").write_text(
         "# Tasks\nNo checklist items here.\n", encoding="utf-8"
     )
-    errors, _summary = check_packet(packet_dir(tmp_repo, "no-checkbox"), project_root=tmp_repo)
+    errors, _summary = check_packet(
+        packet_dir(tmp_repo, "no-checkbox"), project_root=tmp_repo
+    )
     assert any("checkbox" in err for err in errors)
 
 
@@ -119,7 +131,9 @@ def test_check_packet_flags_invalid_status(tmp_repo: Path) -> None:
     (tmp_repo / "docs" / "changes" / "bad-status" / "proposal.md").write_text(
         "# Proposal\n\nStatus: bogus\n", encoding="utf-8"
     )
-    errors, _summary = check_packet(packet_dir(tmp_repo, "bad-status"), project_root=tmp_repo)
+    errors, _summary = check_packet(
+        packet_dir(tmp_repo, "bad-status"), project_root=tmp_repo
+    )
     assert any("invalid status" in err for err in errors)
 
 
@@ -167,7 +181,9 @@ def test_check_packet_allows_unable_to_verify(tmp_repo: Path) -> None:
         "# Verification\n\n## Unable To Verify\n\n- Reason: env offline\n",
         encoding="utf-8",
     )
-    errors, _ = check_packet(packet_dir(tmp_repo, "no-verify-ok"), project_root=tmp_repo)
+    errors, _ = check_packet(
+        packet_dir(tmp_repo, "no-verify-ok"), project_root=tmp_repo
+    )
     assert not any("verification" in err for err in errors)
 
 
