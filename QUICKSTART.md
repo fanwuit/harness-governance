@@ -20,11 +20,12 @@ Created: .harness/config.toml
 Created: .claude/skills/harness-governance-strict/SKILL.md
 Created: .claude/skills/harness-governance-standard/SKILL.md
 Created: .claude/skills/harness-governance-light/SKILL.md
+Created: .claude/skills/harness-governance-monitor/SKILL.md
 Note: AGENTS.md triggers: AGENTS.md
 Done. Your agent will now use harness governance for engineering work.
 ```
 
-Each platform gets 3 skill tiers (strict/standard/light) / 每个平台 3 个 tier:
+Each platform gets 4 skill tiers (strict/standard/light/monitor) / 每个平台 4 个 tier:
 
 ```bash
 harness init --platform codex      # writes .agents/skills/

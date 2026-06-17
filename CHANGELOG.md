@@ -34,7 +34,7 @@ All notable changes to `harness-governance` are documented in this file.
 
 ### Docs / 文档
 
-- 24→32 skill files, 3→4 tiers, 9→10 rules, 14→19 command groups, ~1390 tests
+- 24→32 skill files, 3→4 tiers, 9→10 rules, 14→19 command groups, ~1570 tests
 
 ---
 
@@ -200,6 +200,8 @@ All notable changes to `harness-governance` are documented in this file.
 
 ---
 
+[0.8.1]: https://github.com/fanwuit/harness-governance/releases/tag/v0.8.1
+[0.8.0]: https://github.com/fanwuit/harness-governance/releases/tag/v0.8.0
 [0.7.1]: https://github.com/fanwuit/harness-governance/releases/tag/v0.7.1
 [0.7.0]: https://github.com/fanwuit/harness-governance/releases/tag/v0.7.0
 [0.6.2]: https://github.com/fanwuit/harness-governance/releases/tag/v0.6.2

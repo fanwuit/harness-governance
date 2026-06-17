@@ -41,7 +41,7 @@
 | 我想了解... | 去读 |
 |-------------|------|
 | status.json 契约格式 | `references/status-contract.md` |
-| harness 和其他 skill（如 superpowers）谁优先？ | `references/skill-priority.md` |
+| harness 和第三方 skill 谁优先？ | `references/skill-priority.md` |
 
 ## 技术栈门禁 / Tech Stack Gates
 

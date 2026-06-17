@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/python-≥3.10-blue)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.8.1-blue)](./CHANGELOG.md)
 
 AI engineering governance CLI. Encodes a 12-layer state machine, 5-layer defense system, and programmable gate enforcement. Any agent with shell access can load a per-platform skill adapter and gain access to the same governance commands.
 
@@ -12,9 +12,9 @@ AI 工程治理 CLI。内置 12 层状态机、五层防御体系、程序化门
 
 ## Why this exists / 为什么需要
 
-The legacy Codex skill set exposed 25 separate `SKILL.md` files plus 20 shell/Node scripts. `harness-governance` consolidates that into one `harness` command, then adds **hard enforcement** — 5 layers of defense that prevent agents from skipping governance steps.
+The project provides a unified `harness` command that replaces per-platform ad-hoc scripts with **hard enforcement** — 5 layers of defense that prevent agents from skipping governance steps. 8 agent platforms are supported out of the box.
 
-旧版 Codex skill 体系需要 25 个 `SKILL.md` + 20 个 shell/Node 脚本。本项目合并为单个 `harness` 命令，并增加了**硬性强制执行**——五层防御防止 agent 跳过治理步骤。
+本项目提供统一的 `harness` 命令，替代各平台临时脚本，并增加**硬性强制执行**——五层防御防止 agent 跳过治理步骤。开箱支持 8 个 agent 平台。
 
 ### 5-Layer Defense / 五层防御
 
@@ -42,16 +42,17 @@ Created: .harness/config.toml
 Created: .claude/skills/harness-governance-strict/SKILL.md
 Created: .claude/skills/harness-governance-standard/SKILL.md
 Created: .claude/skills/harness-governance-light/SKILL.md
+Created: .claude/skills/harness-governance-monitor/SKILL.md
 Note: AGENTS.md triggers: AGENTS.md
 Done. Your agent will now use harness governance for engineering work.
 ```
 
 See [`QUICKSTART.md`](./QUICKSTART.md) for 5-minute guided setup / 五分钟引导配置见 QUICKSTART.md。
 
-## Commands / 命令総览 (v0.8.0)
+## Commands / 命令総览 (v0.8.1)
 
 ```
-harness init                        # 初始化项目 (3 个 skill + config + AGENTS.md)
+harness init                        # 初始化项目 (4 个 skill + config + AGENTS.md)
 harness governed-start "<desc>"     # 入口分类器 (--rigor light|standard|strict)
 harness gate check <layer>          # 门控验证 (exit 0=通过)
 harness gate status [layer]         # 查看锁文件状态
@@ -81,12 +82,12 @@ src/harness_governance/
   cli.py                     ← click entry point, 14 command groups
   state_machine/
     layers.py                ← HarnessLayer enum (12 values)
-    engine.py                ← StateMachineEngine, 9 transition rules (T1-T9)
+    engine.py                ← StateMachineEngine, 10 transition rules (T1-T10)
     classification.py        ← 3-way classifier (Fast/Trivial/Governed)
     rigor.py                 ← RigorTier detection (LIGHT/STANDARD/STRICT)
     gates.py                 ← GATE_CATALOG, LayerGateEngine, LockFileManager
   commands/
-    init.py                  ← 3-tier skill injection (24 files generated)
+    init.py                  ← 4-tier skill injection (32 files generated)
     gate.py                  ← gate check/status/reset/timing
     layer.py                 ← layer advance/show/guide (gate-enforced)
     check.py                 ← check routing/packets/entry/inventory/docs/all
@@ -119,7 +120,7 @@ Each platform gets 4 tiers / 每个平台 4 个 tier: `strict`, `standard`, `lig
 
 ```bash
 pip install -e .
-pytest tests/ -x --tb=short     # ~1390 tests
+pytest tests/ -x --tb=short     # ~1570 tests
 harness check all                # governance self-check
 ```
 

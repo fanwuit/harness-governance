@@ -1,8 +1,8 @@
 # Brainstorming Template / 头脑风暴模板
 
-Localizes useful techniques from `superpowers:brainstorming` into `brainstorm-to-brief`, but output still belongs to the harness Brainstorming / Brief layer.
+Localizes brainstorming techniques into `brainstorm-to-brief`, but output still belongs to the harness Brainstorming / Brief layer.
 
-用于把 `superpowers:brainstorming` 的有用技巧本地化到 `brainstorm-to-brief`，但输出仍归 harness 的 Brainstorming / Brief 层所有。
+用于把头脑风暴技巧本地化到 `brainstorm-to-brief`，但输出仍归 harness 的 Brainstorming / Brief 层所有。
 
 ## Local Owner / 本地所有者
 
@@ -26,12 +26,12 @@ Localizes useful techniques from `superpowers:brainstorming` into `brainstorm-to
 
 ## Forbidden Import / 禁止导入
 
-- Do not write to `docs/superpowers/*`.
+- Do not write to third-party skill output directories (e.g. `docs/superpowers/*`).
 - Do not treat brainstorming output directly as an implementation plan.
 - Do not skip Brief, Architecture, ADR, Contract, or Readiness just because a solution looks clear.
 - Do not automatically create commits, branches, worktrees, or external workflow artifacts.
 
-- 不写 `docs/superpowers/*`。
+- 不写第三方 skill 的输出目录（如 `docs/superpowers/*`）。
 - 不把 brainstorming 输出直接当 implementation plan。
 - 不因为方案看起来清楚就跳过 Brief、Architecture、ADR、Contract 或 Readiness。
 - 不自动创建 commit、branch、worktree 或外部 workflow artifact。

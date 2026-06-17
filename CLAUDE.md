@@ -46,7 +46,7 @@ src/harness_governance/
 ## Testing
 
 ```bash
-pytest tests/ -x --tb=short          # full suite (~1390 tests)
+pytest tests/ -x --tb=short          # full suite (~1570 tests)
 pytest tests/test_skill_versions.py  # 32 skill file validation
 pytest tests/test_commands/          # CLI integration tests
 ```

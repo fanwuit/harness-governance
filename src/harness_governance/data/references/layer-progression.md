@@ -103,9 +103,9 @@ Execution modes do not create new harness layers. They decide how work at the cu
 | `subagent-driven` | Inside one implementation session or autonomous worker | Current layer is `implementation`, readiness has passed, and implementation task packets are complete. | Do not consume raw NEXT, TODO, backlog, or checkpoint ready items directly. |
 | `prompt-pack-authoring` | Approved work that needs self-contained execution prompts | A plan, gate list, queue item, change packet, or role-isolated workflow needs controller, worker, auditor, or integrator prompts before execution. | Do not treat prompt packs as scope approval, readiness evidence, or final verification. |
 
-`autonomous-ready-loop` is an execution mode for selecting and running ready layer work. `superpowers:subagent-driven-development` is an implementation execution mode used only after readiness and packetization. `execution-prompt-authoring` prepares the prompts and execution matrix for workers, subagent audits, controllers, and integrators; it does not create a new harness layer.
+`autonomous-ready-loop` is an execution mode for selecting and running ready layer work. `subagent-driven` is an implementation execution mode used only after readiness and packetization. `execution-prompt-authoring` prepares the prompts and execution matrix for workers, subagent audits, controllers, and integrators; it does not create a new harness layer.
 
-`autonomous-ready-loop` 是用于选择和运行就绪层工作的执行模式。`superpowers:subagent-driven-development` 是仅在 readiness 和 packetization 之后使用的实现执行模式。`execution-prompt-authoring` 为 worker、subagent 审计、controller 和 integrator 准备提示词和执行矩阵；它不创建新的 harness 层。
+`autonomous-ready-loop` 是用于选择和运行就绪层工作的执行模式。`subagent-driven` 是仅在 readiness 和 packetization 之后使用的实现执行模式。`execution-prompt-authoring` 为 worker、subagent 审计、controller 和 integrator 准备提示词和执行矩阵；它不创建新的 harness 层。
 
 Implementation Entry Record is the mechanical credential for entering product implementation. A readiness pass alone is not sufficient; the record must name target, scope, contract evidence, readiness state, packetization, verification, Review / Next state, and stop conditions before implementation changes begin.
 
