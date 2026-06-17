@@ -179,6 +179,21 @@ def classify(
 
     mentions_work = _mentions_work_action_keyword(description_lc)
 
+    # --- STRICT keyword gate: prevents fast-path / trivial misroute ---
+    # When the description contains STRICT_DETECTION_KEYWORDS (platform,
+    # saas, from scratch, microservice, …), the task is inherently not
+    # fast-path or trivial regardless of what flags the caller passed.
+    # This guards against agents that omit --files/--external.
+    mentions_strict = _mentions_strict_keyword(description_lc)
+    if mentions_strict:
+        if not has_file_changes or not is_public_contract or not has_external_side_effect:
+            logger.info(
+                "STRICT keyword overrides missing flags: file_changes=%s public=%s external=%s",
+                has_file_changes, is_public_contract, has_external_side_effect,
+            )
+        has_file_changes = True
+        is_public_contract = True
+
     if not has_file_changes and not is_public_contract and not has_external_side_effect:
         if not is_unclear_or_high_risk and not mentions_work:
             logger.info("classified as fast-path")
@@ -242,6 +257,12 @@ def _mentions_public_contract_keyword(description_lc: str) -> bool:
 
 def _mentions_work_action_keyword(description_lc: str) -> bool:
     return any(keyword in description_lc for keyword in WORK_ACTION_KEYWORDS)
+
+
+def _mentions_strict_keyword(description_lc: str) -> bool:
+    """Return True if the description contains any STRICT_DETECTION_KEYWORDS."""
+    from .rigor import STRICT_DETECTION_KEYWORDS
+    return any(keyword.lower() in description_lc for keyword in STRICT_DETECTION_KEYWORDS)
 
 
 def _governed_rationale(

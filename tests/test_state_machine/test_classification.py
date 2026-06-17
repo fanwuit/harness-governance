@@ -268,3 +268,110 @@ class TestRigorTierIntegration:
         r = repr(decision)
         assert "rigor" in r
         assert "strict" in r
+
+
+# ---------------------------------------------------------------------------
+# STRICT keyword gate (prevents fast-path misroute when agent omits flags)
+# ---------------------------------------------------------------------------
+
+
+class TestStrictKeywordGate:
+    """STRICT_DETECTION_KEYWORDS in description force governed-path
+    regardless of missing --files/--external flags.
+
+    This guards against agents that call ``harness governed-start``
+    without the necessary flags, causing large tasks to be misrouted
+    as fast-path.
+    """
+
+    def test_saas_platform_no_flags_is_governed(self) -> None:
+        """Exact bug scenario: 'SaaS 平台' without --files/--external."""
+        decision = classify(
+            "SaaS 平台 - 用户与认证系统",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.GOVERNED_PATH
+        assert decision.rigor_tier is RigorTier.STRICT
+
+    def test_platform_keyword_no_flags_is_governed(self) -> None:
+        decision = classify(
+            "Build a platform for user management",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.GOVERNED_PATH
+
+    def test_from_scratch_no_flags_is_governed(self) -> None:
+        decision = classify(
+            "从零构建一个新项目",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.GOVERNED_PATH
+
+    def test_microservice_no_flags_is_governed(self) -> None:
+        decision = classify(
+            "Design a microservice for order processing",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.GOVERNED_PATH
+
+    def test_strict_keyword_with_flags_still_governed(self) -> None:
+        """STRICT keyword + correct flags → still governed (no regression)."""
+        decision = classify(
+            "SaaS 平台 - 用户与认证系统",
+            has_file_changes=True,
+            is_public_contract=True,
+            has_external_side_effect=True,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.GOVERNED_PATH
+
+    def test_no_strict_keyword_pure_qa_still_fast(self) -> None:
+        """Pure Q&A without STRICT keywords still gets fast-path."""
+        decision = classify(
+            "What does the harness-engineering skill do?",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.FAST_PATH
+
+    def test_no_strict_keyword_trivial_still_trivial(self) -> None:
+        """Trivial change without STRICT keywords still gets trivial-safe-change."""
+        decision = classify(
+            "Rename local variable foo to bar in src/foo.py",
+            has_file_changes=True,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+        )
+        assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+    def test_rigor_light_overrides_strict_keyword_gate(self) -> None:
+        """When user explicitly passes --rigor light, respect it for routing.
+        The STRICT keyword gate still forces governed-path (because the
+        description implies real work), but the rigor tier is LIGHT."""
+        decision = classify(
+            "SaaS 平台 - 用户与认证系统",
+            has_file_changes=False,
+            is_public_contract=False,
+            has_external_side_effect=False,
+            is_unclear_or_high_risk=False,
+            rigor="light",
+        )
+        # Keyword gate still forces governed-path
+        assert decision.path is RoutingPath.GOVERNED_PATH
+        # But rigor is overridden to LIGHT
+        assert decision.rigor_tier is RigorTier.LIGHT
