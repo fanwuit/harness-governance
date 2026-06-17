@@ -77,8 +77,8 @@ class TestSkillVersionSentinels:
     def test_has_version_sentinel(self, tier: str, platform: str, content: str) -> None:
         ver = extract_skill_version(content)
         assert ver is not None, f"{tier}/{platform} missing version sentinel"
-        assert ver == "0.7.1", (
-            f"{tier}/{platform} version is {ver!r}, expected '0.7.1'"
+        assert ver == "0.8.0", (
+            f"{tier}/{platform} version is {ver!r}, expected '0.8.0'"
         )
 
 

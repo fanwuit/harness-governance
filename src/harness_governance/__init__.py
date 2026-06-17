@@ -5,7 +5,7 @@ and the :class:`harness_governance.state_machine.engine.StateMachineEngine`.
 
 The package is organized into the following submodules:
 
-* :mod:`harness_governance.state_machine` — 12-layer enum, 9 transition rules,
+* :mod:`harness_governance.state_machine` — 12-layer enum, 10 transition rules,
   state engine, Fast/Trivial/Governed classification.
 * :mod:`harness_governance.models` — Pydantic schemas for all CLI I/O.
 * :mod:`harness_governance.commands` — one module per CLI subcommand.
@@ -17,4 +17,4 @@ The package is organized into the following submodules:
 * :mod:`harness_governance.data` — packaged templates, references, fixtures.
 """
 
-__version__ = "0.7.1"
+__version__ = "0.8.0"

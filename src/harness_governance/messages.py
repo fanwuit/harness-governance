@@ -815,6 +815,235 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Total: {total}s across {count} transitions (avg: {avg}s)",
         "zh-CN": "总计: {total}s，共 {count} 次转换（平均: {avg}s）",
     },
+    # -- v0.8.0 Gap 4: Tech stack -----------------------------------------
+    "tech_stack.captured": {
+        "en": "Technology stack captured: {languages}",
+        "zh-CN": "技术栈已捕获：{languages}",
+    },
+    "tech_stack.lint_tools_found": {
+        "en": "Lint tools detected: {count}",
+        "zh-CN": "检测到 {count} 个 lint 工具",
+    },
+    "tech_stack.pkg_managers": {
+        "en": "Package managers: {pkgs}",
+        "zh-CN": "包管理器：{pkgs}",
+    },
+    "tech_stack.saved": {
+        "en": "Manifest saved to {path}",
+        "zh-CN": "清单已保存到 {path}",
+    },
+    "tech_stack.check_passed": {
+        "en": "Tech stack check passed — no issues found.",
+        "zh-CN": "技术栈检查通过 — 未发现问题。",
+    },
+    "tech_stack.lint_gaps_header": {
+        "en": "Languages with unconfirmed lint tools:",
+        "zh-CN": "以下语言未确认 lint 工具：",
+    },
+    "tech_stack.doc_gaps_header": {
+        "en": "Languages with unconfirmed doc comment styles:",
+        "zh-CN": "以下语言未确认文档注释风格：",
+    },
+    "tech_stack.pending_tools_header": {
+        "en": "Tools pending confirmation:",
+        "zh-CN": "以下工具待确认：",
+    },
+    "tech_stack.tool_added": {
+        "en": "Tool registered: {tool} @ {version}",
+        "zh-CN": "工具已注册：{tool} @ {version}",
+    },
+    "tech_stack.tool_pending_confirmation": {
+        "en": "⚠  This tool must be confirmed before the gate will pass.",
+        "zh-CN": "⚠  该工具需确认后门禁才能通过。",
+    },
+    "tech_stack.no_manifest": {
+        "en": "No tech stack manifest found. Run 'harness tech-stack capture' first.",
+        "zh-CN": "未找到技术栈清单。请先运行 'harness tech-stack capture'。",
+    },
+    "tech_stack.languages": {
+        "en": "Languages: {langs}",
+        "zh-CN": "语言：{langs}",
+    },
+    "tech_stack.lint_header": {
+        "en": "Lint tools:",
+        "zh-CN": "Lint 工具：",
+    },
+    "tech_stack.formatter_header": {
+        "en": "Formatters:",
+        "zh-CN": "格式化工具：",
+    },
+    "tech_stack.doc_header": {
+        "en": "Doc comment styles:",
+        "zh-CN": "文档注释风格：",
+    },
+    "tech_stack.introduced_header": {
+        "en": "Introduced tools:",
+        "zh-CN": "已引入的工具：",
+    },
+    "tech_stack.not_configured": {
+        "en": "not configured",
+        "zh-CN": "未配置",
+    },
+    "tech_stack.suggestions": {
+        "en": "suggested",
+        "zh-CN": "建议",
+    },
+    "tech_stack.no_languages_detected": {
+        "en": "No programming languages detected in this project.",
+        "zh-CN": "未在此项目中检测到编程语言。",
+    },
+    "tech_stack.unknown_language": {
+        "en": "Unknown or undetected language: {lang}",
+        "zh-CN": "未知或未检测到的语言：{lang}",
+    },
+    "tech_stack.lint_confirmed": {
+        "en": "Lint tool confirmed: {language} → {tool} @ {version}",
+        "zh-CN": "Lint 工具已确认：{language} → {tool} @ {version}",
+    },
+    "tech_stack.detected": {
+        "en": "detected",
+        "zh-CN": "检测到",
+    },
+    "tech_stack.docstyle_confirmed": {
+        "en": "Doc comment style confirmed: {language} → {style}",
+        "zh-CN": "文档注释风格已确认：{language} → {style}",
+    },
+    # -- v0.8.0 Gap 1: Isolation ------------------------------------------
+    "isolation.workspace_created": {
+        "en": "  {role}: {path}",
+        "zh-CN": "  {role}: {path}",
+    },
+    "isolation.init_done": {
+        "en": "Created {count} isolation workspace(s) for session {session}.",
+        "zh-CN": "已为会话 {session} 创建 {count} 个隔离工作区。",
+    },
+    "isolation.roles_found": {
+        "en": "Roles isolated: {roles}",
+        "zh-CN": "已隔离的角色：{roles}",
+    },
+    "isolation.workspaces_valid": {
+        "en": "Workspaces valid: {valid}",
+        "zh-CN": "工作区状态：{valid}",
+    },
+    "isolation.violations_header": {
+        "en": "Cross-role violations:",
+        "zh-CN": "跨角色违规：",
+    },
+    "isolation.out_of_scope_header": {
+        "en": "Files outside declared scope:",
+        "zh-CN": "超出声明范围的文件：",
+    },
+    "isolation.not_created": {
+        "en": "not created",
+        "zh-CN": "未创建",
+    },
+    "isolation.paths_label": {
+        "en": "allowed paths",
+        "zh-CN": "允许路径",
+    },
+    "isolation.roles_label": {
+        "en": "allowed roles",
+        "zh-CN": "允许角色",
+    },
+    # -- v0.8.0 Gap 3: Drift ---------------------------------------------
+    "drift.base_ref": {
+        "en": "Diff base: {ref}",
+        "zh-CN": "差异基准：{ref}",
+    },
+    "drift.files_changed": {
+        "en": "Files changed: {count}",
+        "zh-CN": "变更文件：{count} 个",
+    },
+    "drift.line_stats": {
+        "en": "Lines: +{added} / -{deleted}",
+        "zh-CN": "行数：+{added} / -{deleted}",
+    },
+    "drift.out_of_scope": {
+        "en": "Files outside declared scope:",
+        "zh-CN": "超出声明范围的文件：",
+    },
+    "drift.forbidden_paths": {
+        "en": "Files in forbidden paths:",
+        "zh-CN": "禁止路径中的文件：",
+    },
+    "drift.decomposition_triggered": {
+        "en": "Decomposition triggers:",
+        "zh-CN": "分解触发：",
+    },
+    "drift.detected": {
+        "en": "✗ Scope drift detected — return to contract to expand scope.",
+        "zh-CN": "✗ 检测到范围漂移 — 请回到契约层扩展范围。",
+    },
+    "drift.clean": {
+        "en": "✓ No scope drift detected.",
+        "zh-CN": "✓ 未检测到范围漂移。",
+    },
+    "drift.scope_saved": {
+        "en": "Scope saved for {change_id}: {files} file(s), max_files={max_files}, max_lines={max_lines} → {path}",
+        "zh-CN": "范围已保存 {change_id}：{files} 个文件，max_files={max_files}，max_lines={max_lines} → {path}",
+    },
+    "drift.no_scope": {
+        "en": "No scope declaration found for this change.",
+        "zh-CN": "未找到此变更的范围声明。",
+    },
+    "drift.boundary_header": {
+        "en": "Scope boundary for {change_id}:",
+        "zh-CN": "{change_id} 的范围边界：",
+    },
+    # -- v0.8.0 Gap 2: Alignment -----------------------------------------
+    "alignment.summary": {
+        "en": "Fields: {expected} expected, {matched} matched",
+        "zh-CN": "字段：预期 {expected}，匹配 {matched}",
+    },
+    "alignment.unsupported": {
+        "en": "Note: alignment skipped for unsupported languages: {langs} (Python only in v0.8.0)",
+        "zh-CN": "注意：以下语言不支持对齐检查：{langs}（v0.8.0 仅支持 Python）",
+    },
+    "alignment.no_findings": {
+        "en": "No alignment findings — all fields match.",
+        "zh-CN": "未发现对齐问题 — 所有字段均匹配。",
+    },
+    "alignment.failed": {
+        "en": "✗ Field alignment failed — review findings above.",
+        "zh-CN": "✗ 字段对齐未通过 — 请查看上述发现。",
+    },
+    "alignment.passed": {
+        "en": "✓ Field alignment passed.",
+        "zh-CN": "✓ 字段对齐已通过。",
+    },
+    "alignment.trace_summary": {
+        "en": "Traceability: {total} fields, {traced} traced across all layers",
+        "zh-CN": "可追溯性：{total} 个字段，{traced} 个跨层追溯",
+    },
+    # -- v0.8.0 Gap 5: Skill chain ---------------------------------------
+    "skill_chain.summary_line": {
+        "en": "Total: {total} invocations, max depth: {depth}, skills: {skills}",
+        "zh-CN": "总计：{total} 次调用，最大深度：{depth}，技能：{skills}",
+    },
+    "skill_chain.report_header": {
+        "en": "Skill chain: {total} invocations, max depth: {depth}",
+        "zh-CN": "技能调用链：{total} 次调用，最大深度：{depth}",
+    },
+    "skill_chain.skills_list": {
+        "en": "Skills invoked: {skills}",
+        "zh-CN": "已调用技能：{skills}",
+    },
+    "skill_chain.orphans": {
+        "en": "Orphan invocations: {count} (no parent record found)",
+        "zh-CN": "孤儿调用：{count} 个（未找到父记录）",
+    },
+    "skill_chain.longest_chain": {
+        "en": "Longest chain: {length} call(s)",
+        "zh-CN": "最长调用链：{length} 次",
+    },
+    "skill_chain.issues_header": {
+        "en": "Chain integrity issues:",
+        "zh-CN": "调用链完整性问题：",
+    },
+    "skill_chain.clean": {
+        "en": "✓ Skill chain integrity verified.",
+        "zh-CN": "✓ 技能调用链完整性已验证。",
+    },
 }
 
 

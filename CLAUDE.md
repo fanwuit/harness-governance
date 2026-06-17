@@ -12,14 +12,14 @@ harness governed-start "<task description>" --rigor standard
 
 This classifies the request (Fast / Trivial / Governed) and creates a session with auto-detected rigor tier.
 
-## Key architecture (v0.7.1)
+## Key architecture (v0.8.0)
 
 ```
 src/harness_governance/
   cli.py                  — click entry point, 14 command groups
   state_machine/
     layers.py             — HarnessLayer enum (12 values)
-    engine.py             — StateMachineEngine, 9 transition rules
+    engine.py             — StateMachineEngine, 10 transition rules
     classification.py     — 3-way classifier + RigorTier integration
     rigor.py              — STRICT/STANDARD/LIGHT detection
     gates.py              — GATE_CATALOG (12), LayerGateEngine, LockFileManager

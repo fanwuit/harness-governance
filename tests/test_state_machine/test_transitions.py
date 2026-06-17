@@ -15,12 +15,12 @@ from harness_governance.state_machine.transitions import (
 )
 
 
-def test_nine_rules_registered() -> None:
-    assert len(TRANSITION_RULES) == 9
+def test_ten_rules_registered() -> None:
+    assert len(TRANSITION_RULES) == 10  # 9 original + T10 v0.8.0
     codes = [rule.code for rule in TRANSITION_RULES]
-    # Codes start with T1..T9.
+    # Codes start with T1..T10.
     assert codes[0].startswith("T1-")
-    assert codes[-1].startswith("T9-")
+    assert codes[-1].startswith("T10-")
 
 
 def test_rules_for_target_filters_by_layer() -> None:
@@ -178,6 +178,6 @@ def test_review_next_required_on_finish(engine: StateMachineEngine) -> None:
     assert any(v.rule_code == "T9-REVIEW-NEXT-ON-FINISH" for v in verdict.violations)
 
 
-def test_engine_lists_nine_rule_codes(engine: StateMachineEngine) -> None:
+def test_engine_lists_ten_rule_codes(engine: StateMachineEngine) -> None:
     codes = list(engine.all_rule_codes())
-    assert len(codes) == 9
+    assert len(codes) == 10  # 9 original + T10 v0.8.0

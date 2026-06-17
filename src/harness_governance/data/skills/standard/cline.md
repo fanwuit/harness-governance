@@ -5,7 +5,7 @@ paths:
   - "**/*"
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## 🟡 STANDARD MODE — 全 12 层标准治理 / All 12 Layers Standard Governance

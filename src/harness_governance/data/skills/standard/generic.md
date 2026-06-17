@@ -3,7 +3,7 @@ name: harness-governance-standard
 description: 标准治理模式 — 日常功能开发、中等复杂度改动。12 层可用，允许适度合并。 / Standard governance for daily feature development, moderate complexity. 12 layers with flexibility.
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## 🟡 STANDARD MODE — 全 12 层标准治理 / All 12 Layers Standard Governance

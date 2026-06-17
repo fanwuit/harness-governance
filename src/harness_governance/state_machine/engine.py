@@ -61,6 +61,9 @@ class TransitionContext:
     contract_work_repeating:
         Whether contract/check/readiness work is repeating without
         implementation progress (triggers rule T6).
+    scope_drift_detected:
+        Whether implementation changes exceed the declared scope boundary
+        (triggers rule T10 — return to contract).
     """
 
     from_layer: HarnessLayer
@@ -74,6 +77,7 @@ class TransitionContext:
     verification_failed: bool = False
     work_finished_or_paused: bool = False
     contract_work_repeating: bool = False
+    scope_drift_detected: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -270,6 +274,23 @@ class StateMachineEngine:
                     message=(
                         "Work is finishing or pausing but the target layer is "
                         f"{context.to_layer.value}; review-next is required."
+                    ),
+                )
+            )
+
+        # Rule T10: scope drift detected -> return to contract.
+        if (
+            context.scope_drift_detected
+            and context.to_layer is HarnessLayer.IMPLEMENTATION
+        ):
+            violations.append(
+                Violation(
+                    rule_code="T10-DRIFT-CONTRACT-BOUNDARY",
+                    rule_title="Scope drift must return to contract before expansion",
+                    message=(
+                        "Implementation changes exceed the declared scope boundary. "
+                        "Return to the contract layer to expand the contract before "
+                        "continuing implementation."
                     ),
                 )
             )

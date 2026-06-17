@@ -5,7 +5,7 @@ paths:
   - "**/*"
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## 🔵 LIGHT MODE — 核心 6 层快速通道 / Core 6-Layer Fast Track

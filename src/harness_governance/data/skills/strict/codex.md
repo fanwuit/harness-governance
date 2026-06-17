@@ -3,7 +3,7 @@ name: harness-governance-strict
 description: 严格治理模式 — 大型平台、系统重构、从零构建。全部 12 层强制执行。 / Strict governance for large platforms, system rewrites, build-from-scratch. All 12 layers enforced.
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## ⛔ STRICT MODE — 全 12 层强制执行 / All 12 Layers Enforced

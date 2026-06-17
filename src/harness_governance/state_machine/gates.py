@@ -36,7 +36,13 @@ class LayerGateDefinition:
     min_questions_answered:
         Minimum number of questions that must be answered per rigor tier.
     required_artifacts:
-        Glob-able file patterns that must exist on disk.
+        Glob-able file patterns that must exist on disk (informational —
+        absence is reported but does not block gate passage).
+    blocking_artifacts:
+        Glob-able file patterns whose **absence blocks gate passage**.
+        Separated from ``required_artifacts`` to avoid deadlocks (some
+        ``required_artifacts`` cannot exist before the gate is checked).
+        Defaults to an empty tuple — no blocking for existing gates.
     confirmation_items:
         Checkbox items from the Confirmation Gate section.
     """
@@ -46,6 +52,7 @@ class LayerGateDefinition:
         "required_questions",
         "min_questions_answered",
         "required_artifacts",
+        "blocking_artifacts",
         "confirmation_items",
     )
 
@@ -56,11 +63,13 @@ class LayerGateDefinition:
         min_questions_answered: dict[RigorTier, int],
         required_artifacts: tuple[str, ...],
         confirmation_items: tuple[str, ...],
+        blocking_artifacts: tuple[str, ...] = (),
     ) -> None:
         self.layer = layer
         self.required_questions = required_questions
         self.min_questions_answered = min_questions_answered
         self.required_artifacts = required_artifacts
+        self.blocking_artifacts = blocking_artifacts
         self.confirmation_items = confirmation_items
 
 
@@ -265,6 +274,7 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Failures documented with evidence and owner layer identified",
             "Author reviewed verification summary",
         ),
+        blocking_artifacts=(".harness/skill-chains/*.ndjson",),
     ),
     HarnessLayer.REVIEW_NEXT: LayerGateDefinition(
         layer=HarnessLayer.REVIEW_NEXT,
@@ -360,6 +370,61 @@ def layer_order_number(layer: HarnessLayer) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Gate hook registry — extensible programmatic confirmation checks
+# ---------------------------------------------------------------------------
+
+#: Per-layer registry of callables.  Gap modules (isolation, alignment,
+#: drift, tech_stack, skill_chain) call :func:`register_gate_hook` at
+#: import time so their hooks are available without circular imports.
+GATE_HOOK_REGISTRY: dict[HarnessLayer, list] = {}
+_hooks_loaded: bool = False
+
+
+def register_gate_hook(
+    layer: HarnessLayer,
+    hook,  # Callable[[SessionState, Path], list[str]]
+) -> None:
+    """Register a gate confirmation hook for *layer*.
+
+    Hooks are called by :meth:`LayerGateEngine.check` after Q&A and
+    artifact checks.  Each hook receives ``(session, project_root)``
+    and returns a list of failure message strings (empty list = all
+    passed).
+    """
+    GATE_HOOK_REGISTRY.setdefault(layer, []).append(hook)
+
+
+def get_gate_hooks(layer: HarnessLayer) -> list:
+    """Return all registered hooks for *layer* (may be empty)."""
+    return GATE_HOOK_REGISTRY.get(layer, [])
+
+
+def _ensure_hooks_loaded() -> None:
+    """Import all gap modules so their ``register_gate_hook`` calls fire.
+
+    Idempotent — no-op on subsequent calls.  Import errors are caught
+    so that missing gap modules do not crash the gate engine.
+    """
+    global _hooks_loaded
+    if _hooks_loaded:
+        return
+    _hooks_loaded = True
+
+    _gap_modules = (
+        ".isolation",
+        ".alignment",
+        ".drift",
+        ".tech_stack",
+        ".skill_chain",
+    )
+    for mod_suffix in _gap_modules:
+        try:
+            __import__(__package__ + mod_suffix, fromlist=["__name__"])
+        except ImportError:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # Layer gate engine — programmatic gate verification
 # ---------------------------------------------------------------------------
 
@@ -400,9 +465,14 @@ class LayerGateEngine:
         GateStatus
             Pass/fail result with detailed findings.
         """
+        import logging
         from datetime import datetime, timezone
 
         from ..models.schemas import GateStatus
+
+        _ensure_hooks_loaded()
+
+        logger = logging.getLogger("harness.gate")
 
         gate_def = gate_for_layer(layer)
         if gate_def is None:
@@ -430,10 +500,31 @@ class LayerGateEngine:
             else:
                 artifacts_missing.append(pattern)
 
-        # Gate passes when Q&A threshold is met.  Artifacts are
-        # informational — some (like session files) are auto-created,
-        # and blocking on their absence creates chicken-and-egg problems.
-        passed = qa_count >= required
+        # Check blocking artifacts on disk — their absence blocks the gate.
+        blocking_missing: list[str] = []
+        for pattern in gate_def.blocking_artifacts:
+            if not list(project_root.glob(pattern)):
+                blocking_missing.append(pattern)
+
+        # Q&A threshold must be met and all blocking artifacts must exist.
+        passed = qa_count >= required and len(blocking_missing) == 0
+
+        # Execute registered gate hooks and collect failure messages.
+        confirmation_items_unmet: list[str] = []
+        for hook in get_gate_hooks(layer):
+            try:
+                failures = hook(session, project_root)
+                if failures:
+                    confirmation_items_unmet.extend(failures)
+            except Exception:
+                logger.exception(
+                    "Gate hook for layer %s raised an exception — skipping",
+                    layer.value,
+                )
+
+        # If any hook reported failures, the gate does not pass.
+        if confirmation_items_unmet:
+            passed = False
 
         return GateStatus(
             layer=layer.value,
@@ -443,7 +534,8 @@ class LayerGateEngine:
             artifacts_found=tuple(artifacts_found),
             artifacts_missing=tuple(artifacts_missing),
             confirmation_items_met=gate_def.confirmation_items,
-            confirmation_items_unmet=(),
+            confirmation_items_unmet=tuple(confirmation_items_unmet),
+            blocking_artifacts_missing=tuple(blocking_missing),
             checked_at=datetime.now(timezone.utc).isoformat(),
         )
 
@@ -541,13 +633,17 @@ class LockFileManager:
 
 
 __all__ = [
-    "LayerGateDefinition",
+    "GATE_HOOK_REGISTRY",
     "GATE_CATALOG",
-    "RIGOR_LAYER_PROFILES",
+    "LayerGateDefinition",
     "LayerGateEngine",
     "LockFileManager",
+    "RIGOR_LAYER_PROFILES",
+    "_ensure_hooks_loaded",
     "gate_for_layer",
-    "layers_for_tier",
+    "get_gate_hooks",
     "is_layer_required",
     "layer_order_number",
+    "layers_for_tier",
+    "register_gate_hook",
 ]

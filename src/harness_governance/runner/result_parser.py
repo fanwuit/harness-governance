@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,6 +47,24 @@ class SubagentResult:
     # Contract Writer specific
     contracts_defined: list[str] = field(default_factory=list)
     acceptance_checks: list[str] = field(default_factory=list)
+
+    # v0.8.0 Gap 1 — Role isolation (isolation.py)
+    isolation_workspace: str | None = None
+    isolation_violations: list[str] = field(default_factory=list)
+
+    # v0.8.0 Gap 3 — Scope drift (drift.py)
+    actual_scope: list[str] = field(default_factory=list)
+    scope_violations: list[str] = field(default_factory=list)
+
+    # v0.8.0 Gap 5 — Skill chain tracing (skill_chain.py)
+    parent_skill: str = ""
+    skill_call_id: str = ""
+    parent_call_id: str | None = None
+
+    @staticmethod
+    def generate_call_id() -> str:
+        """Return a new unique skill-call identifier (UUID4 hex)."""
+        return uuid.uuid4().hex
 
     @property
     def verification_passed(self) -> bool:

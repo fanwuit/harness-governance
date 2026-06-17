@@ -119,6 +119,16 @@ TRANSITION_RULES: tuple[TransitionRule, ...] = (
         ),
         target_layer=HarnessLayer.REVIEW_NEXT,
     ),
+    TransitionRule(
+        code="T10-DRIFT-CONTRACT-BOUNDARY",
+        title="Scope drift must return to contract before expansion",
+        rule=(
+            "When implementation touches files or behaviour beyond the "
+            "approved scope boundary, return to `contract` to expand the "
+            "contract before continuing implementation."
+        ),
+        target_layer=HarnessLayer.IMPLEMENTATION,
+    ),
 )
 
 

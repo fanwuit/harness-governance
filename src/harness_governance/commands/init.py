@@ -483,6 +483,20 @@ def init_cmd(
         # --- .gitignore: NEXT.md is personal, not version-controlled ---
         _ensure_gitignore_entry(project_root, "NEXT.md")
 
+    # --- v0.8.0: Tech stack capture (skip in --minimal mode) ---
+    if not minimal:
+        try:
+            from ..state_machine.tech_stack import TechStackManager
+
+            tsm = TechStackManager(project_root)
+            manifest = tsm.capture()
+            notes.append(
+                f"Tech stack captured: {', '.join(manifest.languages)}"
+                f" (lint: {len(manifest.lint_tools)}, doc: {len(manifest.doc_styles)})"
+            )
+        except Exception:
+            pass  # non-fatal: tech stack capture is advisory
+
     result = InitResult(
         project_root=project_root,
         detected_platform=detected,

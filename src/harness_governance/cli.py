@@ -1,6 +1,6 @@
 """harness CLI entry point.
 
-Wires the :mod:`click` groups together. Phase B ships:
+Wires the :mod:`click` groups together.  v0.8.0 ships:
 
 * ``harness init``
 * ``harness governed-start``
@@ -13,6 +13,10 @@ Wires the :mod:`click` groups together. Phase B ships:
 * ``harness review close``
 * ``harness config init``
 * ``harness runner start``
+* ``harness gate {check,status,reset,timing}``
+* ``harness layer {advance,show,guide}``
+* ``harness session {show,list,archive}``
+* ``harness tech-stack {capture,check,add,show,lint,docstyle}``
 """
 
 from __future__ import annotations
@@ -23,19 +27,24 @@ from pathlib import Path
 import click
 
 from . import __version__
+from .commands.alignment import alignment_group
 from .commands.check import check_group
 from .commands.config_cmd import config_group
+from .commands.drift import drift_group
 from .commands.entry import entry_group
 from .commands.gate import gate_group
 from .commands.governed_start import governed_start_cmd
 from .commands.init import init_cmd
+from .commands.isolation import isolation_group
 from .commands.layer import layer_group
 from .commands.packet import packet_group
 from .commands.plan import plan_group
 from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.session_cmd import session_group
+from .commands.skill_chain import skill_chain_group
 from .commands.status import status_cmd
+from .commands.tech_stack import tech_stack_group
 from .commands.verify import verify_cmd
 from .logging_setup import setup_logging
 
@@ -79,6 +88,11 @@ cli.add_command(runner_group)
 cli.add_command(layer_group)
 cli.add_command(gate_group)
 cli.add_command(session_group)
+cli.add_command(tech_stack_group)
+cli.add_command(isolation_group)
+cli.add_command(drift_group)
+cli.add_command(alignment_group)
+cli.add_command(skill_chain_group)
 
 
 def main(argv: list[str] | None = None) -> int:

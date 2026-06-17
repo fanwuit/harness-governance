@@ -5,7 +5,7 @@ paths:
   - "**/*"
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## ⛔ STRICT MODE — 全 12 层强制执行 / All 12 Layers Enforced

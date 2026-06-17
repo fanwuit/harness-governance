@@ -3,7 +3,7 @@ name: harness-governance-monitor
 description: 项目健康监控 / Project health monitor — 文档漂移、耗时分析、状态总览
 ---
 
-<!-- harness-skill-version: 0.7.1 -->
+<!-- harness-skill-version: 0.8.0 -->
 
 
 ## 📊 MONITOR — 项目健康检查 / Project Health Check

@@ -4,6 +4,7 @@ from . import checkpoint, entry, packet, plan, queue
 from ._cache import PacketCache, file_cache, reset_caches
 from .checkpoint import Checkpoint
 from .entry import has_entry_record_header, parse_entry_record, render_entry_record
+from .ndjson_writer import NDJSONWriter
 from .packet import (
     check_all_packets,
     check_packet,
@@ -25,6 +26,7 @@ from .queue import format_queue, parse_queue, read_queue
 
 __all__ = [
     "Checkpoint",
+    "NDJSONWriter",
     "PacketCache",
     "attest_plan",
     "check_all_packets",
