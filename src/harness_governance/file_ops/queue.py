@@ -16,12 +16,18 @@ from ..models.schemas import QueueItem
 from ..state_machine.layers import HarnessLayer
 
 # ``[active]`` / ``[ready]`` / ``[blocked]`` / ``[not-now]`` flags
-# appear at the start of a queue entry line.
-_TAG_RE = re.compile(r"^\s*\[(?P<tag>active|ready|blocked|not-now|done)\]\s+", re.IGNORECASE)
-# ``Key: Value`` field within an entry. The leading ``- `` is
-# optional because both plain and bullet-list forms are accepted.
+# appear at the start of a queue entry line.  An optional list marker
+# (``1. ``, ``- ``, ``* ``) is allowed before the tag so that numbered
+# or bulleted lists like ``1. [ready] Task description`` are accepted.
+_TAG_RE = re.compile(
+    r"^\s*(?:(?:\d+\.|[-*])\s+)?\[(?P<tag>active|ready|blocked|not-now|done)\]\s+",
+    re.IGNORECASE,
+)
+# ``Key: Value`` field within an entry. The leading list marker
+# (``- ``, ``* ``, ``1. ``) is optional so both plain and
+# bullet/numbered-list forms are accepted.
 _FIELD_RE = re.compile(
-    r"^-\s*(?P<key>Layer|Change|Packetization|Evidence)\s*:\s*(?P<value>.+?)\s*$",
+    r"^(?:[-*]|\d+\.)\s*(?P<key>Layer|Change|Packetization|Evidence)\s*:\s*(?P<value>.+?)\s*$",
     re.MULTILINE,
 )
 
@@ -156,7 +162,9 @@ def extract_ready_block_fields(raw: str) -> dict[str, str]:
     buffer: list[str] = []
 
     for line in raw.splitlines():
-        stripped = line.strip().lstrip("-").strip()
+        stripped = line.strip()
+        # Strip optional list marker: "1. ", "- ", "* "
+        stripped = re.sub(r"^(?:\d+\.|[-*])\s+", "", stripped)
         if not stripped:
             continue
 

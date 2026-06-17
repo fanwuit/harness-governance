@@ -64,3 +64,49 @@ def test_format_queue_round_trip() -> None:
     rendered = format_queue(items)
     reparsed = parse_queue(rendered)
     assert [item.raw for item in reparsed] == [item.raw for item in items]
+
+
+NUMBERED_SAMPLE = """\
+1. [ready] Ship CLI scaffolding
+- Layer: implementation
+- Change: scaffold-cli
+
+2. [active] Lock plan attestation
+- Layer: brief
+
+3. [blocked] Draft ADR
+- Layer: adr
+"""
+
+BULLET_SAMPLE = """\
+- [ready] Ship CLI scaffolding
+- Layer: implementation
+
+* [active] Lock plan attestation
+- Layer: brief
+"""
+
+
+def test_parse_queue_numbered_list() -> None:
+    items = parse_queue(NUMBERED_SAMPLE)
+    assert len(items) == 3
+    assert items[0].ready is True
+    assert items[0].layer is HarnessLayer.IMPLEMENTATION
+    assert items[0].change_id == "scaffold-cli"
+    assert items[1].active is True
+    assert items[2].layer is HarnessLayer.ADR
+
+
+def test_parse_queue_bullet_list() -> None:
+    items = parse_queue(BULLET_SAMPLE)
+    assert len(items) == 2
+    assert items[0].ready is True
+    assert items[1].active is True
+
+
+def test_parse_queue_mixed_formats() -> None:
+    mixed = "[ready] Plain entry\n- Layer: brief\n\n1. [active] Numbered entry\n- Layer: adr\n"
+    items = parse_queue(mixed)
+    assert len(items) == 2
+    assert items[0].ready is True
+    assert items[1].active is True
