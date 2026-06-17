@@ -109,6 +109,10 @@ def load_config(
     payload.setdefault("project_root", root)
     payload["project_root"] = root
 
+    # Extract scope_budget string before Pydantic validation — it needs
+    # special parsing (e.g. "10/800" -> ScopeBudget(max_files=10, max_diff_lines=800)).
+    scope_budget_raw = payload.pop("scope_budget", None)
+
     for key in (
         "queue_file",
         "changes_root",
@@ -119,6 +123,12 @@ def load_config(
             payload[key] = _coerce_path(raw[key], base=root)
 
     config = HarnessConfig.model_validate(payload)
+
+    # Parse scope_budget string if present (e.g. "10/800" -> ScopeBudget).
+    if scope_budget_raw is not None and isinstance(scope_budget_raw, str):
+        from ..file_ops.queue import _parse_scope
+        sb = _parse_scope(scope_budget_raw)
+        config = config.model_copy(update={"scope_budget": sb})
 
     # Ensure all path fields are absolute, resolving defaults against root.
     # When no config file exists the Pydantic defaults are relative; this
@@ -161,6 +171,10 @@ def write_default_config(
         'harness_dir = ".harness"\n'
         'check_frequency = "targeted"\n'
         'require_session = true\n'
+        "\n"
+        "# Scope budget: limits per-task change size to prevent agent drift.\n"
+        "# Format: max-files/max-diff-lines. Set to 0/0 to disable.\n"
+        'scope_budget = "10/800"\n'
     )
     # Pure string literal — encoding="utf-8" (never utf-8-sig) guarantees
     # no BOM is emitted. No read->write round-trip here, so no BOM can

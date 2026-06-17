@@ -1,18 +1,20 @@
-# Worker Runtime Target Gate
+# Worker Runtime Target Gate / Worker 运行时目标关卡
+
+For runtime, worker, external process, CLI, plugin, or host integration targets.
 
 用于 runtime、worker、external process、CLI、plugin 或 host integration 目标。
 
-## 必需基线
+## Required Baseline / 必需基线
 
-- 本地 `AGENTS.md`。
-- runtime/deployment boundary。
-- process、timeout、cancellation、retry 和 crash ownership。
-- 可用时提供 lint/analyzer/formatter command。
-- unit test command。
-- 面向 external inputs/outputs 的 contract/integration harness。
-- 针对 logs、paths、storage references 和 raw runtime output 的 redaction/public-safety rules。
+- Local `AGENTS.md`. / 本地 `AGENTS.md`。
+- Runtime/deployment boundary. / runtime/deployment boundary。
+- Process, timeout, cancellation, retry, and crash ownership. / process、timeout、cancellation、retry 和 crash ownership。
+- Lint/analyzer/formatter command when available. / 可用时提供 lint/analyzer/formatter command。
+- Unit test command. / unit test command。
+- Contract/integration harness targeting external inputs/outputs. / 面向 external inputs/outputs 的 contract/integration harness。
+- Redaction/public-safety rules for logs, paths, storage references, and raw runtime output. / 针对 logs、paths、storage references 和 raw runtime output 的 redaction/public-safety rules。
 
-## 本地规则骨架
+## Local Rule Skeleton / 本地规则骨架
 
 ````markdown
 # <target>/AGENTS.md

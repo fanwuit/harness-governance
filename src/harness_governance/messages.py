@@ -670,6 +670,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "[harness runner] round {round_index} started: {item}",
         "zh-CN": "[harness runner] 第 {round_index} 轮开始: {item}",
     },
+    "runner.scope_exceeded": {
+        "en": "Scope budget exceeded: {violations}. Task decomposed — see NEXT.md for sub-items.",
+        "zh-CN": "范围预算超限: {violations}。任务已拆分 — 查看 NEXT.md 中的子任务。",
+    },
     # session --------------------------------------------------------------
     "session.created": {
         "en": "Session created: {session_id}",

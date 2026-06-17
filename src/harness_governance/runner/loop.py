@@ -36,6 +36,7 @@ from .base import (
     AUTONOMOUS_READY_DONE,
     ExecutionResult,
 )
+from .scope_check import check_scope_budget, resolve_round_base_ref
 
 logger = get_logger("runner.loop")
 
@@ -89,7 +90,7 @@ class LoopResult:
     """Final result of :meth:`AutonomousReadyLoop.run`."""
 
     rounds: int
-    stopped_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error"]
+    stopped_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error", "scope_exceeded"]
     invocations: list[RoundSummary] = field(default_factory=list)
 
 
@@ -109,6 +110,7 @@ class AutonomousReadyLoop:
         max_retries: int = 0,
         total_timeout_seconds: int | None = None,
         heartbeat_interval_seconds: int = 30,
+        default_scope_budget=None,
     ) -> None:
         self.executor = executor
         self.project_root = project_root.resolve()
@@ -120,6 +122,7 @@ class AutonomousReadyLoop:
         self.max_retries = max(0, max_retries)
         self.total_timeout_seconds = total_timeout_seconds
         self.heartbeat_interval_seconds = heartbeat_interval_seconds
+        self.default_scope_budget = default_scope_budget
 
         # Propagate heartbeat settings to the executor if it supports them.
         for attr in ("heartbeat_interval_seconds", "heartbeat_dir"):
@@ -132,7 +135,7 @@ class AutonomousReadyLoop:
     def run(self, *, mode: Literal["bounded", "boundary"], max_rounds: int) -> LoopResult:
         max_rounds = self._resolve_max_rounds(mode, max_rounds)
         invocations: list[RoundSummary] = []
-        stop_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error"] = "max_rounds"
+        stop_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error", "scope_exceeded"] = "max_rounds"
         run_started = time.monotonic()
 
         for round_index in range(1, max_rounds + 1):
@@ -252,6 +255,36 @@ class AutonomousReadyLoop:
             self._append_invocation(summary, inv_path)
             self._write_checkpoint(target, result, round_index, stop_reason=None,
                                    checkpoint_path=cp_path)
+
+            # --- Scope budget check (Layer 2: execution-time guard) ---
+            budget = getattr(target, "scope_budget", None) or self.default_scope_budget
+            if budget is not None and result.succeeded:
+                base_ref = resolve_round_base_ref(self.project_root)
+                scope_result = check_scope_budget(
+                    self.project_root, budget, base_ref,
+                )
+                if scope_result.exceeded:
+                    violation_details = "; ".join(
+                        v.detail for v in scope_result.violations
+                    )
+                    logger.warning(
+                        "round %d scope budget exceeded: %s",
+                        round_index, violation_details,
+                    )
+                    # Write decomposition suggestion into NEXT.md.
+                    self._write_decomposition_hints(
+                        target, scope_result, round_index,
+                    )
+                    # Force stop — the task must be decomposed before
+                    # continuing.  The checkpoint already captures the
+                    # partial progress.
+                    self._write_checkpoint(
+                        target, result, round_index,
+                        stop_reason=f"scope_budget_exceeded: {violation_details}",
+                        checkpoint_path=cp_path,
+                    )
+                    stop_for = "scope_exceeded"
+                    break
 
             if not result.succeeded:
                 stop_for = "failed"
@@ -377,6 +410,81 @@ class AutonomousReadyLoop:
         )
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         cp.dump(checkpoint_path)
+
+    def _write_decomposition_hints(
+        self,
+        queue_item,
+        scope_result,
+        round_index: int,
+    ) -> None:
+        """Append decomposition suggestions to NEXT.md (Layer 3: auto-recovery).
+
+        When a scope budget is exceeded, this method writes a
+        ``[blocked]`` entry (re-tagging the original item) and one or
+        more ``[ready]`` sub-items that split the work within budget.
+        The agent (or human) can then pick up the smaller items.
+        """
+        from ..file_ops.queue import parse_queue, format_queue
+
+        first_line = queue_item.raw.splitlines()[0] if queue_item.raw else ""
+        # Strip the original tag to get the description.
+        import re
+        desc = re.sub(r"^\s*(?:(?:\d+\.|[-*])\s+)?\[(?:active|ready|blocked|not-now|done)\]\s*", "", first_line).strip()
+
+        # Build decomposition hint block.
+        violations_text = "\n".join(
+            f"  - {v.detail}" for v in scope_result.violations
+        )
+        hint_lines = [
+            f"[blocked] {desc} (scope exceeded at round {round_index})",
+            f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
+            f"  Change: {getattr(queue_item, 'change_id', None) or ''}",
+            "  Violations:",
+            violations_text,
+            "",
+            f"[ready] Decompose: {desc} (part 1 — files subset)",
+            f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
+            f"  Scope: max-files=3, max-diff-lines=200",
+            "",
+            f"[ready] Decompose: {desc} (part 2 — remaining files)",
+            f"  Layer: {getattr(queue_item, 'layer', None) or 'unknown'}",
+            f"  Scope: max-files=3, max-diff-lines=200",
+        ]
+
+        # Read current queue, replace the original item, append hints.
+        try:
+            items = parse_queue(self.queue_file.read_text(encoding="utf-8"))
+            new_items = []
+            replaced = False
+            for item in items:
+                if not replaced and item.raw.strip() == queue_item.raw.strip():
+                    # Replace with the blocked version + decomposition hints.
+                    new_items.append(type(item)(
+                        raw=hint_lines[0] + "\n" + "\n".join(hint_lines[1:5]),
+                        active=False, ready=False,
+                        layer=item.layer, change_id=item.change_id,
+                        packetization=item.packetization, evidence=item.evidence,
+                    ))
+                    replaced = True
+                else:
+                    new_items.append(item)
+
+            if replaced:
+                # Append the decomposition [ready] items.
+                for i in range(6, len(hint_lines), 4):
+                    block = "\n".join(hint_lines[i:i+4])
+                    if block.strip():
+                        new_items.append(type(queue_item)(
+                            raw=block, active=False, ready=True,
+                            layer=getattr(queue_item, 'layer', None),
+                        ))
+
+                self.queue_file.write_text(
+                    format_queue(new_items), encoding="utf-8",
+                )
+                logger.info("decomposition hints written to %s", self.queue_file)
+        except Exception:
+            logger.warning("failed to write decomposition hints", exc_info=True)
 
 
 __all__ = ["AutonomousReadyLoop", "LoopResult", "RoundSummary"]

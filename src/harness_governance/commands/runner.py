@@ -32,6 +32,27 @@ def _default_prompt(queue_item) -> str:
     )
 
 
+def _resolve_scope_budget(project_root: Path, cli_override: str | None):
+    """Resolve the scope budget from CLI override, project config, or None."""
+    from ..models.schemas import ScopeBudget
+
+    # CLI override takes highest priority.
+    if cli_override is not None:
+        from ..file_ops.queue import _parse_scope
+        return _parse_scope(cli_override)
+
+    # Fall back to project config.
+    try:
+        from ..config import load_config
+        cfg = load_config(project_root)
+        return cfg.scope_budget
+    except Exception:
+        pass
+
+    # No budget configured — scope checking is disabled.
+    return None
+
+
 @click.group("runner")
 def runner_group() -> None:
     """Run the autonomous-ready loop."""
@@ -138,6 +159,17 @@ def runner_group() -> None:
     type=int,
     help="Seconds between heartbeat NDJSON entries (0 to disable). Only applies to 'codex' and 'subprocess' executors.",
 )
+@click.option(
+    "--scope-budget",
+    "scope_budget",
+    default=None,
+    help=(
+        "Per-round scope budget in short form (e.g. ``5/300`` for max 5 files, "
+        "300 diff lines) or long form (e.g. ``max-files=5,max-diff-lines=300``). "
+        "When set, the runner checks git diff after each round and stops if "
+        "the budget is exceeded. Overrides the project config default."
+    ),
+)
 @click.pass_context
 def runner_start_cmd(
     ctx: click.Context,
@@ -155,6 +187,7 @@ def runner_start_cmd(
     dry_run: bool,
     output_file: Path | None,
     heartbeat_interval: int,
+    scope_budget: str | None,
 ) -> None:
     """Start the autonomous-ready loop."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
@@ -237,6 +270,7 @@ def runner_start_cmd(
         prompt_builder=_default_prompt,
         timeout_seconds=timeout_seconds,
         heartbeat_interval_seconds=heartbeat_interval,
+        default_scope_budget=_resolve_scope_budget(project_root, scope_budget),
     )
     result = loop.run(mode=mode, max_rounds=max_rounds)
 
@@ -262,7 +296,7 @@ def runner_start_cmd(
         # Delegate to verify for a sanity check after the loop.
         ctx.invoke(verify_cmd, preset=verification)
 
-    if result.stopped_for in {"failed", "blocked", "error"}:
+    if result.stopped_for in {"failed", "blocked", "error", "scope_exceeded"}:
         raise click.exceptions.Exit(code=1)
 
 

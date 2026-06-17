@@ -36,6 +36,7 @@ class HarnessConfig(BaseModel):
     blocked_statuses: tuple[str, ...] = ("blocked", "archived")
     check_frequency: Literal["targeted", "phase-closeout", "always"] = "targeted"
     require_session: bool = True
+    scope_budget: ScopeBudget = Field(default_factory=lambda: ScopeBudget(max_files=10, max_diff_lines=800))
 
     @field_validator("project_root")
     @classmethod
@@ -159,6 +160,23 @@ class PlanningSession(BaseModel):
     attestation_sha256: str | None = None
 
 
+class ScopeBudget(BaseModel):
+    """Per-task scope budget carried in a NEXT.md ``[ready]`` block.
+
+    Constrains how large a single task may grow before the runner forces
+    a checkpoint or decomposition.  All fields default to ``0`` (unlimited)
+    so that existing queue entries without a ``Scope:`` line continue to
+    work without changes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_files: int = 0
+    max_diff_lines: int = 0
+    forbidden_paths: tuple[str, ...] = ()
+    owner_files: tuple[str, ...] = ()
+
+
 class QueueItem(BaseModel):
     """One entry of ``NEXT.md``.
 
@@ -175,6 +193,7 @@ class QueueItem(BaseModel):
     change_id: str | None = None
     packetization: str | None = None
     evidence: str | None = None
+    scope_budget: ScopeBudget | None = None
 
 
 class StatusQueueItem(BaseModel):
