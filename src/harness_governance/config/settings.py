@@ -162,5 +162,8 @@ def write_default_config(
         'check_frequency = "targeted"\n'
         'require_session = true\n'
     )
-    write_text_no_bom(config_path, body)
+    # Pure string literal — encoding="utf-8" (never utf-8-sig) guarantees
+    # no BOM is emitted. No read->write round-trip here, so no BOM can
+    # propagate; the project-wide no-BOM invariant holds.
+    config_path.write_text(body, encoding="utf-8")
     return config_path
