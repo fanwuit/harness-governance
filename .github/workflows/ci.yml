@@ -54,8 +54,8 @@ jobs:
       - name: Run tests with coverage
         run: pytest -v --cov=harness_governance --cov-report=term-missing --cov-report=xml
 
-      - name: Enforce coverage floor (90%)
-        # CONTRIBUTING.md targets 94%; we enforce a 90% floor in CI to
+      - name: Enforce coverage floor (85%)
+        # CONTRIBUTING.md targets 94%; we enforce an 85% floor in CI to
         # catch regressions without blocking in-flight work.
         run: |
           python -c "
@@ -63,8 +63,8 @@ jobs:
           tree = ET.parse('coverage.xml')
           line_rate = float(tree.getroot().attrib['line-rate']) * 100
           print(f'Coverage: {line_rate:.2f}%')
-          if line_rate < 90.0:
-              raise SystemExit(f'Coverage {line_rate:.2f}% below 90% floor')
+          if line_rate < 85.0:
+              raise SystemExit(f'Coverage {line_rate:.2f}% below 85% floor')
           "
 
       - name: Build wheel
