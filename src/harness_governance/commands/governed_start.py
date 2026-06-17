@@ -13,10 +13,53 @@ import click
 from ..messages import bilingual
 from ..models.schemas import RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
-from ..state_machine.classification import classify, RoutingPath
+from ..state_machine.classification import classify, RoutingPath, PUBLIC_CONTRACT_KEYWORDS
 from ..state_machine.layers import HarnessLayer
-from ..state_machine.rigor import resolve_rigor
+from ..state_machine.rigor import resolve_rigor, STRICT_DETECTION_KEYWORDS
 from ..config.defaults import PLATFORM_SKILL_PATHS
+
+
+# Keywords that imply external side effects (persisted data, network,
+# deployments, billing, etc.) — used for auto-inferring --external.
+_EXTERNAL_IMPLYING_KEYWORDS: tuple[str, ...] = (
+    "database", "db", "sql", "redis", "mongo", "postgres", "mysql",
+    "api", "endpoint", "http", "request", "response", "webhook",
+    "deploy", "deployment", "release", "ci/cd", "pipeline",
+    "payment", "billing", "charge", "invoice", "subscription",
+    "email", "notification", "push", "sms",
+    "auth", "login", "signup", "register", "session", "token",
+    "persist", "store", "save", "write", "insert", "update",
+    "migration", "seed", "fixture",
+    "数据库", "接口", "部署", "发布", "支付", "账单", "邮件",
+    "通知", "认证", "登录", "注册", "持久化", "存储", "迁移",
+)
+
+
+def _infer_flags(description: str) -> tuple[bool, bool]:
+    """Auto-infer --contracts and --external from the task description.
+
+    Returns (inferred_contracts, inferred_external).
+
+    Rules:
+    - If description contains any PUBLIC_CONTRACT_KEYWORDS → contracts=True
+    - If description contains any STRICT_DETECTION_KEYWORDS → contracts=True
+      (large-scope tasks inherently touch public contracts)
+    - If description contains any _EXTERNAL_IMPLYING_KEYWORDS → external=True
+    - If description contains any STRICT_DETECTION_KEYWORDS → external=True
+      (large-scope tasks inherently have external side effects)
+    """
+    description_lc = description.lower()
+
+    inferred_contracts = (
+        any(kw in description_lc for kw in PUBLIC_CONTRACT_KEYWORDS)
+        or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
+    )
+    inferred_external = (
+        any(kw in description_lc for kw in _EXTERNAL_IMPLYING_KEYWORDS)
+        or any(kw.lower() in description_lc for kw in STRICT_DETECTION_KEYWORDS)
+    )
+
+    return inferred_contracts, inferred_external
 
 
 def _build_recommendation(path: RoutingPath) -> str:
@@ -109,13 +152,13 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
 )
 @click.option(
     "--contracts/--no-contracts",
-    default=False,
-    help="Whether the work touches a public contract surface.",
+    default=None,
+    help="Whether the work touches a public contract surface. Auto-inferred from description when omitted.",
 )
 @click.option(
     "--external/--no-external",
-    default=False,
-    help="Whether the work has external side effects or persisted data.",
+    default=None,
+    help="Whether the work has external side effects or persisted data. Auto-inferred from description when omitted.",
 )
 @click.option(
     "--unclear/--no-unclear",
@@ -140,19 +183,25 @@ def governed_start_cmd(
     ctx: click.Context,
     description: str,
     files: str,
-    contracts: bool,
-    external: bool,
+    contracts: bool | None,
+    external: bool | None,
     unclear: bool,
     rigor_override: str | None,
     companions: tuple[str, ...],
 ) -> None:
     """Classify an incoming task and produce the canonical disclosure."""
-    has_file_changes = bool(files.strip()) or contracts or external
+    # Auto-infer --contracts and --external from description when not
+    # explicitly passed.  This prevents misrouting when agents omit flags.
+    inferred_contracts, inferred_external = _infer_flags(description)
+    resolved_contracts = contracts if contracts is not None else inferred_contracts
+    resolved_external = external if external is not None else inferred_external
+
+    has_file_changes = bool(files.strip()) or resolved_contracts or resolved_external
     payload = RoutingInput(
         description=description,
         has_file_changes=has_file_changes,
-        is_public_contract=contracts,
-        has_external_side_effect=external,
+        is_public_contract=resolved_contracts,
+        has_external_side_effect=resolved_external,
         is_unclear_or_high_risk=unclear,
         companion_skills=tuple(companions),
         rigor_tier=rigor_override,

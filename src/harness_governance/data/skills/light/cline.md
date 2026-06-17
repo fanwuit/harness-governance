@@ -1,4 +1,4 @@
-﻿---
+---
 name: harness-governance-light
 description: 轻量治理模式 — 修 bug、小改动、配置调整。仅 6 层快速通道。 / Light governance for bug fixes, small changes, config adjustments. Fast-track 6 layers.
 paths:
@@ -64,6 +64,18 @@ harness governed-start "<task description>" [--files a.py,b.py] [--contracts] [-
 ```
 
 Do not skip this step. Fast path returns briefly; trivial / governed must output the disclosure block.
+
+### Flag decision table / Flag 决策表
+
+| When / 场景 | Flag |
+|---|---|
+| Task modifies source files / 任务修改源文件 | `--files path1,path2` |
+| Task touches API, schema, auth, persistence, or public interface / 任务涉及 API、schema、认证、持久化或公共接口 | `--contracts` |
+| Task writes to DB, calls external services, deploys, or persists data / 任务写数据库、调外部服务、部署或持久化数据 | `--external` |
+| Scope or risk is unclear / 范围或风险不明确 | `--unclear` |
+
+When omitted, `--contracts` and `--external` are auto-inferred from the description. Prefer explicit flags when you know them.
+省略时 `--contracts` 和 `--external` 会从描述自动推断。已知时优先显式传参。
 
 ## Change packets
 

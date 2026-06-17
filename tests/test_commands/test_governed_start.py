@@ -314,3 +314,120 @@ class TestGovernedStartRigor:
         assert result.exit_code == 0, result.output
         payload = json.loads(result.output)
         assert payload["rigor_tier"] == "strict"
+
+
+# ---------------------------------------------------------------------------
+# Auto-infer flags (prevents agent misroute when flags are omitted)
+# ---------------------------------------------------------------------------
+
+
+class TestAutoInferFlags:
+    """When agents omit --contracts/--external, the CLI auto-infers
+    them from the description keywords to prevent fast-path misroute.
+    """
+
+    def test_saas_platform_no_flags_routes_governed(self, tmp_repo: Path) -> None:
+        """Exact bug scenario: 'SaaS 平台' without --files/--external."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "SaaS 平台 - 用户与认证系统",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+
+    def test_auth_keyword_infers_contracts(self, tmp_repo: Path) -> None:
+        """Description with 'authentication' auto-infers --contracts."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "Add authentication to the API",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+
+    def test_database_keyword_infers_external(self, tmp_repo: Path) -> None:
+        """Description with 'database' auto-infers --external."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "Add database migration for user table",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+
+    def test_pure_qa_still_fast_path(self) -> None:
+        """Pure Q&A without trigger keywords still gets fast-path."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", ".",
+                "--json",
+                "governed-start",
+                "What does the harness-engineering skill do?",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "fast-path"
+
+    def test_explicit_no_contracts_overrides_infer(self, tmp_repo: Path) -> None:
+        """--no-contracts explicitly overrides auto-inference."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root", str(tmp_repo),
+                "--json",
+                "governed-start",
+                "Add authentication to the API",
+                "--no-contracts",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        # --no-contracts forces contracts=False, but STRICT keyword gate
+        # in classification.py still forces governed-path for "authentication"
+        # So this should still be governed (safety net kicks in).
+        assert payload["path"] == "governed-path"
+
+    def test_infer_flags_unit(self) -> None:
+        """Unit test for _infer_flags function."""
+        from harness_governance.commands.governed_start import _infer_flags
+
+        # SaaS + platform → both True
+        c, e = _infer_flags("SaaS 平台 - 用户与认证系统")
+        assert c is True
+        assert e is True
+
+        # API → external=True (api is in _EXTERNAL_IMPLYING_KEYWORDS)
+        c, e = _infer_flags("Expose new API endpoint")
+        assert e is True
+
+        # Database → external=True
+        c, e = _infer_flags("Add database migration")
+        assert e is True
+
+        # Pure Q&A → both False
+        c, e = _infer_flags("What does this skill do?")
+        assert c is False
+        assert e is False
