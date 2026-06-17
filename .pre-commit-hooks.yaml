@@ -3,8 +3,8 @@
 # Usage — add to your project's .pre-commit-config.yaml:
 #
 #   repos:
-#     - repo: https://github.com/fanwuit/my-agent-first-skills
-#       rev: v0.1.0
+#     - repo: https://github.com/fanwuit/harness-governance
+#       rev: v0.8.0
 #       hooks:
 #         - id: harness-check
 #

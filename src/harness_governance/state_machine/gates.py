@@ -11,9 +11,14 @@ required vs skippable at each :class:`~.rigor.RigorTier`.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .layers import HarnessLayer
 from .rigor import RigorTier
+
+if TYPE_CHECKING:
+    from ..models.schemas import GateStatus
+    from ..session import SessionState
 
 # ---------------------------------------------------------------------------
 # Layer gate definition
@@ -404,11 +409,14 @@ def _ensure_hooks_loaded() -> None:
 
     Idempotent — no-op on subsequent calls.  Import errors are caught
     so that missing gap modules do not crash the gate engine.
+
+    The ``_hooks_loaded`` flag is only set *after* the import loop
+    completes, so a transient ``ImportError`` on one module does not
+    permanently silence the others on the next call.
     """
     global _hooks_loaded
     if _hooks_loaded:
         return
-    _hooks_loaded = True
 
     _gap_modules = (
         ".isolation",
@@ -421,7 +429,12 @@ def _ensure_hooks_loaded() -> None:
         try:
             __import__(__package__ + mod_suffix, fromlist=["__name__"])
         except ImportError:
+            # A genuinely missing module is non-fatal; the gate engine
+            # still runs without that hook.  Other exceptions (SyntaxError,
+            # circular-import RuntimeError) propagate so they are visible.
             pass
+
+    _hooks_loaded = True
 
 
 # ---------------------------------------------------------------------------
@@ -518,8 +531,12 @@ class LayerGateEngine:
                     confirmation_items_unmet.extend(failures)
             except Exception:
                 logger.exception(
-                    "Gate hook for layer %s raised an exception — skipping",
+                    "Gate hook for layer %s raised an exception",
                     layer.value,
+                )
+                confirmation_items_unmet.append(
+                    f"Gate hook {hook.__name__} raised an exception "
+                    f"(see log for details) — treating as failure"
                 )
 
         # If any hook reported failures, the gate does not pass.
@@ -577,9 +594,21 @@ class LockFileManager:
         """Write a lock file for *layer* and return its path.
 
         Creates the ``.harness/gates/`` directory if it doesn't exist.
+
+        Refuses to write a lock for a gate that did not pass — writing a
+        ``passed=False`` lock would let downstream consumers mistake a
+        failed gate for a passed one (the lock file's mere existence is
+        treated as "locked" by some callers).
         """
         from datetime import datetime, timezone
         import json
+
+        if not status.passed:
+            raise ValueError(
+                f"Refusing to write lock for layer {layer.value}: "
+                f"gate did not pass (questions {status.questions_answered}/"
+                f"{status.questions_required})."
+            )
 
         path = self.lock_path(layer)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -597,20 +626,33 @@ class LockFileManager:
         return path
 
     def read_lock(self, layer: HarnessLayer) -> dict | None:
-        """Return the parsed lock file dict, or None if it doesn't exist."""
+        """Return the parsed lock file dict, or None if it doesn't exist.
+
+        Only returns dicts whose ``passed`` field is truthy — a lock file
+        left over from a failed gate (or a tampered lock) is treated as
+        "no valid lock" so downstream consumers cannot be fooled.
+        """
         import json
 
         path = self.lock_path(layer)
         if not path.is_file():
             return None
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             return None
+        if not isinstance(data, dict) or not data.get("passed"):
+            return None
+        return data
 
     def exists(self, layer: HarnessLayer) -> bool:
-        """Return True if a lock file exists for *layer*."""
-        return self.lock_path(layer).is_file()
+        """Return True if a *valid* lock file exists for *layer*.
+
+        "Valid" means the file is present AND records ``passed: true``.
+        A stale lock from a failed gate, a tampered lock, or a lock with
+        a missing ``passed`` field does not count.
+        """
+        return self.read_lock(layer) is not None
 
     def remove_lock(self, layer: HarnessLayer) -> bool:
         """Remove the lock file for *layer*.  Return True if it was deleted."""

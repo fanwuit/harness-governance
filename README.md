@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/python-≥3.10-blue)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.1-blue)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue)](./CHANGELOG.md)
 
 AI engineering governance CLI. Encodes a 12-layer state machine, 5-layer defense system, and programmable gate enforcement. Any agent with shell access can load a per-platform skill adapter and gain access to the same governance commands.
 
@@ -19,7 +19,7 @@ The legacy Codex skill set exposed 25 separate `SKILL.md` files plus 20 shell/No
 ### 5-Layer Defense / 五层防御
 
 ```
-第 0 层 / Layer 0: 3-Skill 入口分流 (strict/standard/light × 8 platforms)
+第 0 层 / Layer 0: 4-Skill 入口分流 (strict/standard/light/monitor × 8 platforms)
 第 1 层 / Layer 1: RigorTier 自动检测 (86 个中英文关键词，默认 STRICT)
 第 2 层 / Layer 2: LayerGateEngine (12 层程序化门控验证)
 第 3 层 / Layer 3: Capability Lock Files (.harness/gates/ 磁盘级强制)
@@ -48,7 +48,7 @@ Done. Your agent will now use harness governance for engineering work.
 
 See [`QUICKSTART.md`](./QUICKSTART.md) for 5-minute guided setup / 五分钟引导配置见 QUICKSTART.md。
 
-## Commands / 命令总览 (v0.7.1)
+## Commands / 命令総览 (v0.8.0)
 
 ```
 harness init                        # 初始化项目 (3 个 skill + config + AGENTS.md)
@@ -94,7 +94,7 @@ src/harness_governance/
   models/schemas.py          ← Pydantic v2 (20+ models)
   runner/                    ← autonomous loop + orchestrator + result parser
   data/
-    skills/{strict,standard,light}/  ← 24 skill files (8 platforms × 3 tiers)
+    skills/{strict,standard,light,monitor}/  ← 32 skill files (8 platforms × 4 tiers)
     role-prompts/             ← 10 subagent role templates
     references/               ← layer-author-guide, layer-progression, etc.
   messages.py                ← bilingual i18n (~170 message IDs)
@@ -113,13 +113,13 @@ src/harness_governance/
 | QoderWork | `AGENTS.md` |
 | Generic | `AGENTS.md` |
 
-Each platform gets 3 tiers / 每个平台 3 个 tier: `strict`, `standard`, `light`.
+Each platform gets 4 tiers / 每个平台 4 个 tier: `strict`, `standard`, `light`, `monitor`.
 
 ## Development / 开发
 
 ```bash
 pip install -e .
-pytest tests/ -x --tb=short     # ~920 tests
+pytest tests/ -x --tb=short     # ~1390 tests
 harness check all                # governance self-check
 ```
 

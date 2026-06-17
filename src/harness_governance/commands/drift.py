@@ -6,8 +6,6 @@ triggers decomposition suggestions when thresholds are exceeded.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from ..messages import bilingual
@@ -17,6 +15,7 @@ from ..models.schemas import (
 )
 from ..state_machine.drift import DriftDetectionEngine, resolve_diff_base
 from ..state_machine.rigor import RigorTier
+from ._util import resolve_root
 
 
 @click.group("drift")
@@ -41,7 +40,7 @@ def drift_check(
     default_branch: str,
 ) -> None:
     """Compare actual changes against the declared scope."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     engine = DriftDetectionEngine(root)
     drift = engine.check_boundary(
         change_id, base_ref=base_ref, default_branch=default_branch
@@ -112,7 +111,7 @@ def drift_scope(
     tier: str,
 ) -> None:
     """Declare or update the scope boundary for a change."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     engine = DriftDetectionEngine(root)
 
     # Load existing scope if present, or create from tier defaults.
@@ -164,7 +163,7 @@ def drift_scope(
 @click.pass_context
 def drift_boundary(ctx: click.Context, change_id: str) -> None:
     """Show the current scope boundary for a change."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     engine = DriftDetectionEngine(root)
     scope = engine.load_scope(change_id)
 
@@ -192,16 +191,3 @@ def drift_boundary(ctx: click.Context, change_id: str) -> None:
         for p in scope.boundary.forbidden_paths:
             click.echo(f"    {p}")
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_root(ctx: click.Context) -> Path:
-    """Resolve the project root from CLI context, defaulting to cwd."""
-    if ctx.obj is not None and isinstance(ctx.obj, dict):
-        root = ctx.obj.get("project_root")
-        if root is not None:
-            return Path(root)
-    return Path.cwd()

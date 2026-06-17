@@ -17,6 +17,7 @@ import click
 
 from ..config.defaults import DEFAULT_CONFIG_FILE, PLATFORM_SKILL_PATHS
 from ..config.settings import CURRENT_SCHEMA_VERSION, load_config, write_default_config
+from ..file_ops._util import write_text_no_bom
 from ..logging_setup import get_logger
 from ..messages import bilingual
 from .init import detect_platform
@@ -73,6 +74,34 @@ def _read_and_update_toml(
             result.append(f"{key} = {_toml_value_repr(value)}")
 
     return "\n".join(result) + "\n"
+
+
+def _validate_toml_text(
+    project_root: Path, content: str, config_path: Path
+) -> None:
+    """Validate *content* by writing it to a temp file and loading it.
+
+    The temp file is removed afterwards.  Raises whatever
+    :func:`load_config` raises on invalid content.  Never touches the
+    real *config_path*.
+    """
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        suffix=".toml",
+        delete=False,
+        encoding="utf-8",
+    ) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+    try:
+        load_config(project_root, config_file=tmp_path)
+    finally:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
 
 
 # -- click group -------------------------------------------------------------
@@ -151,7 +180,61 @@ _FIELD_TYPES: dict[str, type] = {
     "harness_dir": str,
     "entry_block_marker": str,
     "check_frequency": str,
+    "require_session": bool,
+    "schema_version": int,
+    "blocked_statuses": list,
 }
+
+# Literal choices for fields that use Literal types in HarnessConfig.
+_FIELD_CHOICES: dict[str, tuple[str, ...]] = {
+    "agent_platform": (
+        "claude-code", "codex", "cline", "cursor",
+        "opencode", "windsurf", "qoderwork", "generic", "multi",
+    ),
+    "check_frequency": ("targeted", "phase-closeout", "always"),
+}
+
+
+def _coerce_value(key: str, raw_value: str) -> object:
+    """Coerce a CLI string into the proper Python type for *key*.
+
+    Raises :class:`click.BadParameter` on type/choice mismatches.
+    """
+    field_type = _FIELD_TYPES.get(key, str)
+
+    if field_type is bool:
+        lowered = raw_value.lower()
+        if lowered in ("true", "1", "yes", "on"):
+            return True
+        if lowered in ("false", "0", "no", "off"):
+            return False
+        raise click.BadParameter(
+            f"Field {key!r} expects a boolean (true/false), got {raw_value!r}.",
+            param_hint="PAIRS",
+        )
+
+    if field_type is int:
+        try:
+            return int(raw_value)
+        except ValueError as exc:
+            raise click.BadParameter(
+                f"Field {key!r} expects an integer, got {raw_value!r}.",
+                param_hint="PAIRS",
+            ) from exc
+
+    if field_type is list:
+        # Comma-separated → tuple of stripped strings (matches blocked_statuses shape).
+        items = tuple(s.strip() for s in raw_value.split(",") if s.strip())
+        return items
+
+    # str (and any other type falls back to str).
+    choices = _FIELD_CHOICES.get(key)
+    if choices and raw_value not in choices:
+        raise click.BadParameter(
+            f"Field {key!r} must be one of {', '.join(choices)}, got {raw_value!r}.",
+            param_hint="PAIRS",
+        )
+    return raw_value
 
 
 @config_group.command("set")
@@ -168,7 +251,7 @@ def config_set_cmd(ctx: click.Context, pairs: tuple[str, ...]) -> None:
             bilingual("config.not_found", path=str(config_path))
         )
 
-    # Parse key=value pairs.
+    # Parse key=value pairs and coerce to the proper type.
     updates: dict[str, object] = {}
     for pair in pairs:
         if "=" not in pair:
@@ -184,15 +267,23 @@ def config_set_cmd(ctx: click.Context, pairs: tuple[str, ...]) -> None:
                 bilingual("config.unknown_field", field=key),
                 param_hint="PAIRS",
             )
-        updates[key] = raw_value
+        updates[key] = _coerce_value(key, raw_value)
 
     logger.debug("updating %d field(s) in %s", len(updates), config_path)
 
-    # Read-modify-write the TOML file.
+    # Read-modify-write the TOML file. Validate the new content in-memory
+    # *before* touching the on-disk file so a bad value cannot corrupt it.
     new_content = _read_and_update_toml(config_path, updates)
-    config_path.write_text(new_content, encoding="utf-8")
+    try:
+        _validate_toml_text(project_root, new_content, config_path)
+    except Exception as exc:
+        raise click.ClickException(
+            bilingual("config.validate_failed", error=str(exc))
+        ) from exc
 
-    # Validate the result by reloading.
+    write_text_no_bom(config_path, new_content)
+
+    # Reload to confirm (defensive — should match the in-memory check above).
     try:
         config = load_config(project_root, config_file=config_path)
     except Exception as exc:
@@ -292,7 +383,7 @@ def config_migrate_cmd(ctx: click.Context) -> None:
         if key == "schema_version":
             continue
         lines.append(f"{key} = {_toml_value_repr(value)}")
-    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    write_text_no_bom(config_path, "\n".join(lines) + "\n")
 
     logger.info("migrated config from v%d to v%d", file_version, CURRENT_SCHEMA_VERSION)
     if json_output:

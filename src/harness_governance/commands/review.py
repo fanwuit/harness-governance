@@ -63,6 +63,12 @@ def review_close_cmd(
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     target = (project_root / checkpoint).resolve() if not checkpoint.is_absolute() else checkpoint
 
+    from ..file_ops._util import assert_inside
+    try:
+        assert_inside(project_root, target)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
     cp = Checkpoint.load(target)
     timestamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     cp.last_worker = cp.last_worker or f"review close {timestamp}"

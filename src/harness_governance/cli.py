@@ -1,6 +1,6 @@
 """harness CLI entry point.
 
-Wires the :mod:`click` groups together.  v0.8.0 ships:
+Wires the :mod:`click` groups together.  v0.8.0 ships 19 command groups:
 
 * ``harness init``
 * ``harness governed-start``
@@ -17,6 +17,10 @@ Wires the :mod:`click` groups together.  v0.8.0 ships:
 * ``harness layer {advance,show,guide}``
 * ``harness session {show,list,archive}``
 * ``harness tech-stack {capture,check,add,show,lint,docstyle}``
+* ``harness isolation`` — role isolation workspace inspection
+* ``harness drift`` — scope drift boundary inspection
+* ``harness alignment`` — contract/implementation field alignment
+* ``harness skill-chain`` — subagent invocation lineage tracing
 """
 
 from __future__ import annotations

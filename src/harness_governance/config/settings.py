@@ -162,5 +162,5 @@ def write_default_config(
         'check_frequency = "targeted"\n'
         'require_session = true\n'
     )
-    config_path.write_text(body, encoding="utf-8")
+    write_text_no_bom(config_path, body)
     return config_path

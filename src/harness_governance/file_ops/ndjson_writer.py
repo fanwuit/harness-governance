@@ -21,10 +21,17 @@ if _IS_WINDOWS:
     import msvcrt
 
     def _lock_file(fd: int) -> bool:
-        """Acquire an exclusive byte-range lock on *fd*.  Returns True on success."""
+        """Acquire an exclusive lock on byte 0 of *fd*.  Returns True on success.
+
+        ``msvcrt.locking`` locks bytes starting at the current file
+        position, so we explicitly seek to byte 0 before locking.  This
+        gives mutual exclusion regardless of where the previous
+        ``os.write`` left the offset.
+        """
         deadline = time.perf_counter() + _LOCK_TIMEOUT
         while True:
             try:
+                os.lseek(fd, 0, os.SEEK_SET)
                 msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
                 return True
             except OSError:
@@ -33,8 +40,13 @@ if _IS_WINDOWS:
                 time.sleep(0.05)
 
     def _unlock_file(fd: int) -> None:
-        """Release the byte-range lock on *fd*."""
+        """Release the byte-0 lock on *fd*.
+
+        Seeks back to byte 0 before unlocking so the unlock targets the
+        same byte that :func:`_lock_file` acquired.
+        """
         try:
+            os.lseek(fd, 0, os.SEEK_SET)
             msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
         except OSError:
             pass

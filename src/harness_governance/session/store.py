@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..config.defaults import DEFAULT_SESSIONS_DIR
+from ..file_ops._util import atomic_write_text
 from ..logging_setup import get_logger
 from .state import SessionState
 
@@ -69,11 +70,7 @@ def create_session(
 ) -> Path:
     """Write *state* to ``.harness/sessions/<id>.json`` and return the path."""
     target = _session_path(project_root, state.session_id)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        state.model_dump_json(indent=2),
-        encoding="utf-8",
-    )
+    atomic_write_text(target, state.model_dump_json(indent=2))
     logger.info("session created: %s", target)
     return target
 
@@ -93,10 +90,7 @@ def load_session(project_root: Path, session_id: str) -> SessionState:
 def save_session(project_root: Path, state: SessionState) -> None:
     """Overwrite the session file with the current *state*."""
     target = _session_path(project_root, state.session_id)
-    target.write_text(
-        state.model_dump_json(indent=2),
-        encoding="utf-8",
-    )
+    atomic_write_text(target, state.model_dump_json(indent=2))
     logger.info("session saved: %s", target)
 
 

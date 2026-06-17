@@ -51,10 +51,16 @@ def _get_check_frequency(repo_root: Path) -> str:
 
 
 def _find_enabled_skills(repo_root: Path) -> list[Path]:
-    """Find every ``*/SKILL.md`` excluding system / router skills."""
+    """Find every ``SKILL.md`` excluding system / router skills.
+
+    The tiered skill layout (since v0.7.0) writes files to paths like
+    ``.claude/skills/harness-governance-standard/SKILL.md`` (3 levels deep),
+    so we recurse with ``rglob`` rather than the single-level ``*/SKILL.md``
+    glob used historically.
+    """
     skip = {".system", "harness-engineering", "skill-use-transparency"}
     skills: list[Path] = []
-    for path in sorted(repo_root.glob("*/SKILL.md")):
+    for path in sorted(repo_root.rglob("SKILL.md")):
         if path.parts[-2] in skip:
             continue
         skills.append(path)

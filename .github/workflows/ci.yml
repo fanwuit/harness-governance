@@ -3,31 +3,74 @@ name: CI
 on:
   push:
     branches: [main, product]
+    tags: ["v*"]
   pull_request:
     branches: [main, product]
 
+permissions:
+  contents: read
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      # SHA-pinned for supply-chain hardening.
+      # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      # v5.3.0
+      - name: Set up Python 3.12
+        uses: actions/setup-python@8d9ed9ac5c534bf1e6c566af8db5712c86045508
+        with:
+          python-version: "3.12"
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Ruff check
+        run: ruff check src/ tests/
+
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+
+      - name: Mypy type check
+        run: mypy src/
+
   test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
+      # v5.3.0
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@8d9ed9ac5c534bf1e6c566af8db5712c86045508
         with:
           python-version: ${{ matrix.python }}
 
       - name: Install package
         run: pip install -e ".[test]"
 
-      - name: Run tests
-        run: pytest -v
+      - name: Run tests with coverage
+        run: pytest -v --cov=harness_governance --cov-report=term-missing --cov-report=xml
+
+      - name: Enforce coverage floor (90%)
+        # CONTRIBUTING.md targets 94%; we enforce a 90% floor in CI to
+        # catch regressions without blocking in-flight work.
+        run: |
+          python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage.xml')
+          line_rate = float(tree.getroot().attrib['line-rate']) * 100
+          print(f'Coverage: {line_rate:.2f}%')
+          if line_rate < 90.0:
+              raise SystemExit(f'Coverage {line_rate:.2f}% below 90% floor')
+          "
 
       - name: Build wheel
         run: pip install build && python -m build --wheel
@@ -53,3 +96,10 @@ jobs:
               print(f'Wheel OK: {wheels[0]} ({len(names)} files)')
           "
         shell: bash
+
+      - name: Upload coverage artifact
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml

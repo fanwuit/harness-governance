@@ -24,9 +24,47 @@ _PHASE_RE = re.compile(r"^#{2,4}\s*Phase\s+\d+\b", re.IGNORECASE | re.MULTILINE)
 # "Status: complete" inside a phase block counts as done.
 _PHASE_STATUS_RE = re.compile(r"^Status\s*:\s*(complete|done)\b", re.IGNORECASE | re.MULTILINE)
 
+# plan_id is "<YYYY-MM-DD>-<slug>". The slug must be filesystem-safe: no
+# path separators, no dots that could escape via "..", no NUL/control chars.
+_SLUG_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _sanitize_slug(slug: str | None) -> str:
+    """Reduce *slug* to a filesystem-safe token.
+
+    Returns ``"session"`` when *slug* is empty.  Path separators, slashes,
+    and ``..`` traversal sequences are collapsed to ``-`` so the result
+    cannot escape ``.planning/`` when joined into a path.
+    """
+    if not slug:
+        return "session"
+    cleaned = _SLUG_SAFE_RE.sub("-", slug).strip("-")
+    # Collapse any residual ".." sequences left by the substitution above.
+    while ".." in cleaned:
+        cleaned = cleaned.replace("..", "-")
+    return cleaned or "session"
+
+
+def _validate_plan_id(plan_id: str) -> str:
+    """Reject *plan_id* values that could escape ``.planning/``.
+
+    Allows alphanumerics, ``-``, ``_``, ``.``, but forbids path separators
+    and ``..`` traversal.  Returns the validated id unchanged.
+    """
+    if not plan_id:
+        raise ValueError("plan_id must be non-empty")
+    if "/" in plan_id or "\\" in plan_id:
+        raise ValueError(f"plan_id must not contain path separators: {plan_id!r}")
+    if any(part == ".." for part in plan_id.split("-")):
+        raise ValueError(f"plan_id must not contain '..' traversal: {plan_id!r}")
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", plan_id):
+        raise ValueError(f"plan_id contains forbidden characters: {plan_id!r}")
+    return plan_id
+
 
 def plan_dir(project_root: Path, plan_id: str) -> Path:
     """Return the absolute path to a planning session directory."""
+    _validate_plan_id(plan_id)
     return (project_root / ".planning" / plan_id).resolve()
 
 
@@ -39,7 +77,8 @@ def init_plan(
 ) -> PlanningSession:
     """Create a new ``.planning/<id>/`` directory from templates."""
     today = today or date.today()
-    plan_id = f"{today.isoformat()}-{slug or 'session'}"
+    safe_slug = _sanitize_slug(slug)
+    plan_id = f"{today.isoformat()}-{safe_slug}"
     target = plan_dir(project_root, plan_id)
     assert_inside(project_root.resolve(), target)
     target.mkdir(parents=True, exist_ok=True)
@@ -74,7 +113,13 @@ def resolve_active_plan(project_root: Path) -> PlanningSession | None:
     if active_file.is_file():
         plan_id = active_file.read_text(encoding="utf-8").strip()
         if plan_id:
-            return _session_from_id(project_root, plan_id)
+            try:
+                _validate_plan_id(plan_id)
+            except ValueError:
+                # Stale or tampered .active_plan — fall through to mtime scan.
+                pass
+            else:
+                return _session_from_id(project_root, plan_id)
 
     # Fallback: newest ``.planning/<date>-<slug>/`` by mtime.
     if not planning_root.is_dir():
@@ -87,7 +132,12 @@ def resolve_active_plan(project_root: Path) -> PlanningSession | None:
 
 
 def set_active_plan(project_root: Path, plan_id: str) -> Path:
-    """Pin ``.planning/.active_plan`` to ``plan_id``."""
+    """Pin ``.planning/.active_plan`` to ``plan_id``.
+
+    Validates *plan_id* before writing so a malicious value cannot be
+    persisted for later path-traversal by :func:`resolve_active_plan`.
+    """
+    _validate_plan_id(plan_id)
     planning_root = project_root / ".planning"
     planning_root.mkdir(parents=True, exist_ok=True)
     active_file = planning_root / ".active_plan"
@@ -159,10 +209,20 @@ def _resolve_session(project_root: Path, plan_id: str | None) -> PlanningSession
     return _session_from_id(project_root, plan_id)
 
 
+def resolve_session(project_root: Path, plan_id: str | None = None) -> PlanningSession:
+    """Public wrapper around :func:`_resolve_session`.
+
+    Raises ``FileNotFoundError`` when *plan_id* is ``None`` and no active
+    plan exists, or when *plan_id* names a non-existent directory.
+    """
+    return _resolve_session(project_root, plan_id)
+
+
 __all__ = [
     "init_plan",
     "resolve_active_plan",
     "set_active_plan",
     "attest_plan",
     "is_plan_complete",
+    "resolve_session",
 ]

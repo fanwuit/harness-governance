@@ -8,14 +8,13 @@ version = "0.8.0"
 description = "AI engineering governance CLI: 12-layer state machine + Markdown file conventions + change packets."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "fan" }]
 keywords = ["ai", "governance", "engineering", "state-machine", "agent"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -31,9 +30,9 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/fanwuit/my-agent-first-skills"
-Issues = "https://github.com/fanwuit/my-agent-first-skills/issues"
-Documentation = "https://github.com/fanwuit/my-agent-first-skills#readme"
+Repository = "https://github.com/fanwuit/harness-governance"
+Issues = "https://github.com/fanwuit/harness-governance/issues"
+Documentation = "https://github.com/fanwuit/harness-governance#readme"
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-cov>=4.0"]
@@ -52,7 +51,7 @@ harness = "harness_governance.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"harness_governance.data" = ["templates/**/*.md", "references/*.md", "fixtures/**/*", "skills/*.md", "skills/*.mdc", "role-prompts/*.md"]
+"harness_governance.data" = ["templates/**/*.md", "references/*.md", "fixtures/**/*", "skills/**/*.md", "skills/**/*.mdc", "role-prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

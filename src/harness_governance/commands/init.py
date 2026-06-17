@@ -17,6 +17,7 @@ import click
 
 from ..config.defaults import ENV_HINTS, GOVERNANCE_TIERS, PLATFORM_HINTS, PLATFORM_SKILL_PATHS, PLATFORM_SKILL_PATHS_BY_TIER
 from ..config.settings import write_default_config
+from ..file_ops._util import write_text_no_bom
 from ..messages import bilingual
 
 _SKILLS_PACKAGE = "harness_governance.data.skills"
@@ -136,14 +137,14 @@ def _ensure_agents_md_triggers(
                 start = content.index(_AGENTS_MD_MARKER_BEGIN)
                 end = content.index(_AGENTS_MD_MARKER_END) + len(_AGENTS_MD_MARKER_END)
                 content = content[:start] + block + content[end:]
-                agents_md.write_text(content, encoding="utf-8")
+                write_text_no_bom(agents_md, content)
             # else: already present, no-op
             return agents_md
         # Marker not found — append
         separator = "\n\n" if content and not content.endswith("\n\n") else ""
-        agents_md.write_text(content + separator + block, encoding="utf-8")
+        write_text_no_bom(agents_md, content + separator + block)
     else:
-        agents_md.write_text(block + "\n", encoding="utf-8")
+        write_text_no_bom(agents_md, block + "\n")
 
     return agents_md
 
@@ -160,12 +161,12 @@ def _ensure_gitignore_entry(project_root: Path, pattern: str) -> None:
         if any(line.strip() in (pattern, f"/{pattern}") for line in existing):
             return
         separator = "\n" if existing and existing[-1].strip() else ""
-        gitignore.write_text(
+        write_text_no_bom(
+            gitignore,
             gitignore.read_text(encoding="utf-8") + separator + pattern + "\n",
-            encoding="utf-8",
         )
     else:
-        gitignore.write_text(pattern + "\n", encoding="utf-8")
+        write_text_no_bom(gitignore, pattern + "\n")
 
 
 @dataclass(slots=True)
@@ -221,19 +222,16 @@ def load_skill_template(platform: str, tier: str = "standard") -> str:
 def write_skill_file(project_root: Path, platform: str, tier: str = "standard") -> Path:
     """Write a per-platform skill adapter for *tier*; returns the path.
 
-    Defensively strips a leading UTF-8 BOM (U+FEFF) from the template
-    before writing. Some platforms (notably codex) reject the file
-    when the very first byte is not ``-``; a BOM in the template would
-    silently propagate into every user project.
+    Always writes UTF-8 without a BOM via :func:`write_text_no_bom`.
+    Some platforms (notably codex) reject the file when the very first
+    byte is not ``-``; a BOM in the template would silently propagate
+    into every user project, so it is stripped defensively.
     """
     tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(platform, PLATFORM_SKILL_PATHS_BY_TIER["generic"])
     rel = tier_paths.get(tier, tier_paths["standard"])
     target = (project_root / rel).resolve()
-    target.parent.mkdir(parents=True, exist_ok=True)
     content = load_skill_template(platform, tier)
-    if content.startswith("﻿"):
-        content = content[1:]
-    target.write_text(content, encoding="utf-8")
+    write_text_no_bom(target, content)
     return target
 
 
@@ -474,7 +472,7 @@ def init_cmd(
 
         next_path = (project_root / DEFAULT_QUEUE_FILE).resolve()
         if not next_path.exists():
-            next_path.write_text(_NEXT_MD_TEMPLATE, encoding="utf-8")
+            write_text_no_bom(next_path, _NEXT_MD_TEMPLATE)
             notes.append(f"Created {next_path}")
 
         changes_path = (project_root / DEFAULT_CHANGES_ROOT).resolve()

@@ -89,6 +89,15 @@ class SubprocessAgentExecutor(AgentExecutor):
 
             proc.wait(timeout=timeout_seconds)
 
+        except FileNotFoundError:
+            return ExecutionResult(
+                exit_code=127,
+                stdout="",
+                stderr=f"[harness runner] command not found: {cmd[0]}",
+                marker=None,
+                duration_seconds=time.monotonic() - started,
+            )
+
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait()

@@ -6,12 +6,11 @@ and visualises the invocation tree (ASCII or Mermaid).
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from ..messages import bilingual
 from ..state_machine.skill_chain import SkillChainTracer
+from ._util import resolve_root
 
 
 @click.group("skill-chain")
@@ -35,7 +34,7 @@ def skill_chain_trace(
     fmt: str,
 ) -> None:
     """Display the skill invocation tree for a session."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     tracer = SkillChainTracer(root)
 
     if fmt == "mermaid":
@@ -72,7 +71,7 @@ def skill_chain_visualize(
     fmt: str,
 ) -> None:
     """Generate a call-tree diagram (Mermaid or ASCII)."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     tracer = SkillChainTracer(root)
 
     if fmt == "mermaid":
@@ -98,7 +97,7 @@ def skill_chain_inspect(
     as_json: bool,
 ) -> None:
     """Validate chain integrity and print a detailed report."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     tracer = SkillChainTracer(root)
     report = tracer.compute_report(session_id)
     issues = tracer.validate_chain_integrity(session_id)
@@ -147,16 +146,3 @@ def skill_chain_inspect(
 
     click.echo(bilingual("skill_chain.clean"))
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_root(ctx: click.Context) -> Path:
-    """Resolve the project root from CLI context, defaulting to cwd."""
-    if ctx.obj is not None and isinstance(ctx.obj, dict):
-        root = ctx.obj.get("project_root")
-        if root is not None:
-            return Path(root)
-    return Path.cwd()

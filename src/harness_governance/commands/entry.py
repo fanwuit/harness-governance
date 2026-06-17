@@ -308,6 +308,11 @@ def entry_record_cmd(
     )
     rendered = entry_ops.render_entry_record(record) + "\n"
     if output:
+        from ..file_ops._util import assert_inside
+        try:
+            assert_inside(root, output)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
         output.write_text(rendered, encoding="utf-8")
         click.echo(bilingual("entry.record_written", path=str(output)))
     else:

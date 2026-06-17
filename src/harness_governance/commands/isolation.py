@@ -7,8 +7,6 @@ cross-role violations.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from ..messages import bilingual
@@ -18,6 +16,7 @@ from ..state_machine.isolation import (
     _DEFAULT_ROLE_ALLOWANCES,
     IsolationManager,
 )
+from ._util import resolve_root
 
 
 @click.group("isolation")
@@ -46,7 +45,7 @@ def isolation_init(
     Initializes one workspace per canonical role (or those specified
     via --role).  Each workspace is a directory with a scope declaration.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = IsolationManager(root)
 
     target_roles = list(roles) if roles else list(_CANONICAL_ROLES)
@@ -76,7 +75,7 @@ def isolation_init(
 @click.pass_context
 def isolation_check(ctx: click.Context, session_id: str) -> None:
     """Verify isolation for a session — reports all violations."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = IsolationManager(root)
     summary = mgr.verify_workspace(session_id)
 
@@ -120,7 +119,7 @@ def isolation_check(ctx: click.Context, session_id: str) -> None:
 @click.pass_context
 def isolation_list(ctx: click.Context, session_id: str) -> None:
     """List isolation workspace details for each role in a session."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = IsolationManager(root)
 
     for role in _CANONICAL_ROLES:
@@ -138,16 +137,3 @@ def isolation_list(ctx: click.Context, session_id: str) -> None:
         click.echo(f"    {bilingual('isolation.paths_label')}: {paths_str}")
         click.echo(f"    {bilingual('isolation.roles_label')}: {roles_str}")
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_root(ctx: click.Context) -> Path:
-    """Resolve the project root from CLI context, defaulting to cwd."""
-    if ctx.obj is not None and isinstance(ctx.obj, dict):
-        root = ctx.obj.get("project_root")
-        if root is not None:
-            return Path(root)
-    return Path.cwd()

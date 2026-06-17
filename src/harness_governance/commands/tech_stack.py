@@ -8,8 +8,6 @@ choices before implementation begins.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from ..messages import bilingual
@@ -23,6 +21,7 @@ from ..state_machine.tech_stack import (
     LINT_TOOL_CATALOG,
     TechStackManager,
 )
+from ._util import resolve_root
 
 
 @click.group("tech-stack")
@@ -43,7 +42,7 @@ def tech_stack_capture(ctx: click.Context) -> None:
     Scans file extensions, config files, and package manager signatures.
     Writes ``.harness/tech-stack.json``.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     manifest = mgr.capture()
 
@@ -68,7 +67,7 @@ def tech_stack_check(ctx: click.Context) -> None:
     Detects unregistered tools, lint gaps, and doc-style gaps.
     Returns a non-zero exit code when issues are found.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     result: TechStackCheckResult = mgr.check()
 
@@ -138,7 +137,7 @@ def tech_stack_add(
     The tool must be confirmed later via ``harness tech-stack show``
     before the INTAKE_ORIENTATION gate will pass.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     intro = mgr.introduce_tool(
         tool_name=tool,
@@ -167,7 +166,7 @@ def tech_stack_add(
 @click.pass_context
 def tech_stack_show(ctx: click.Context, as_json: bool) -> None:
     """Display the current technology stack manifest."""
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     manifest = mgr.load()
 
@@ -227,7 +226,7 @@ def tech_stack_lint(
       harness tech-stack lint Python       # show Python lint status
       harness tech-stack lint Python --tool ruff --version 0.11.0
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     manifest = mgr.load()
 
@@ -315,7 +314,7 @@ def tech_stack_docstyle(
       harness tech-stack docstyle Python          # show Python doc style
       harness tech-stack docstyle Python --style "Google docstring"
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     mgr = TechStackManager(root)
     manifest = mgr.load()
 
@@ -384,16 +383,3 @@ def tech_stack_docstyle(
         ),
     )
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_root(ctx: click.Context) -> Path:
-    """Resolve the project root from CLI context, defaulting to cwd."""
-    if ctx.obj is not None and isinstance(ctx.obj, dict):
-        root = ctx.obj.get("repo_root")
-        if root is not None:
-            return Path(root)
-    return Path.cwd()

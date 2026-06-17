@@ -70,12 +70,12 @@ that holds all project-level settings: `agent_platform`, `queue_file`,
 **RigorTier** — Python enum in `state_machine/rigor.py`. Auto-detected from
 task description keywords (86 Chinese + English). Fallback: STRICT.
 
-**Subagent Dispatch (子代理分发)** — v0.7.1 在 24 个 skill 文件中加入的
+**Subagent Dispatch (子代理分发)** — v0.7.1 在 32 个 skill 文件中加入的
 上下文隔离规则：预渲染不拼凑、禁止传对话历史、子代理是干净工作者。
 
-**Transition Rule (转换规则)** — One of nine policy rules enforced by
+**Transition Rule (转换规则)** — One of ten policy rules (T1-T10) enforced by
 the state machine engine. Examples: readiness-before-implementation,
-ADR durability, contract-before-implementation.
+ADR durability, contract-before-implementation, scope-drift-return-to-contract.
 
 ---
 

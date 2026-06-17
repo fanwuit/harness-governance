@@ -16,7 +16,7 @@ import click
 
 from ..messages import bilingual
 from ..models.schemas import GateCheckInput, GateResult, CheckFinding
-from ..session import find_active_session
+from ..session import find_active_session, load_session
 from ..state_machine.gates import (
     LayerGateEngine,
     LockFileManager,
@@ -212,7 +212,7 @@ def gate_status(ctx: click.Context, layer: str | None) -> None:
 
 
 @gate_group.command("reset")
-@click.argument("layer")
+@click.argument("layer", required=False)
 @click.option("--confirmed", is_flag=True, default=False, help="Required safety flag.")
 @click.option("--all", "all_layers", is_flag=True, default=False, help="Reset all locks.")
 @click.pass_context
@@ -231,6 +231,9 @@ def gate_reset(
             bilingual("gate.reset.requires_confirmed")
         )
 
+    if not all_layers and not layer:
+        raise click.UsageError("Must specify LAYER or --all.")
+
     project_root: Path = ctx.obj["project_root"]
     locks = LockFileManager(project_root)
 
@@ -238,9 +241,6 @@ def gate_reset(
         count = locks.remove_all_locks()
         click.echo(bilingual("gate.reset.all_removed", count=count))
         return
-
-    if not layer:
-        raise click.UsageError("Must specify LAYER or --all.")
 
     try:
         hlayer = HarnessLayer(layer)

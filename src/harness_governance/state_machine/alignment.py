@@ -194,8 +194,12 @@ class FieldAlignmentEngine:
                 generated_at=datetime.now(timezone.utc).isoformat(),
             )
 
-        # Find Python source files.
-        source_files = list(self._project_root.glob("src/**/*.py"))
+        # Find source files (all known languages, not just Python).
+        source_files: list[Path] = []
+        src_dir = self._project_root / "src"
+        if src_dir.is_dir():
+            for ext in _EXT_TO_LANGUAGE:
+                source_files.extend(src_dir.glob(f"**/*{ext}"))
 
         for cf in contract_files:
             specs = self.extract_specs(cf)
@@ -353,9 +357,9 @@ class FieldAlignmentEngine:
                     in_table = True
                     continue
 
-            # Separator line (e.g. |---|---|).
+            # Separator line (e.g. |---|---| or |-------|------|----------|).
             if in_table and all(
-                c.strip() in ("", "---", "---:", ":---", ":---:", "----", "----:")
+                re.fullmatch(r':?-+:?', c.strip())
                 for c in stripped.split("|")
                 if c.strip()
             ):
@@ -514,7 +518,8 @@ class _FieldVisitor(ast.NodeVisitor):
                 self._scan_init_assignments(item)
             # Class-level annotations (dataclass-style).
             elif isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name):
-                self._check_annotation(item.target.id, item.annotation, item.lineno)
+                if not item.target.id.startswith("_"):
+                    self._check_annotation(item.target.id, item.annotation, item.lineno)
             # Plain class-level assignment with type comment.
             elif isinstance(item, ast.Assign):
                 for target in item.targets:
@@ -676,10 +681,10 @@ class _FieldVisitor(ast.NodeVisitor):
         if contract_type == "any":
             return True
         # UUID vs str (many codebases use str for UUID fields).
-        if {contract_type, impl_type} <= {"uuid", "str"}:
+        if {contract_type.lower(), impl_type.lower()} <= {"uuid", "str"}:
             return True
         # int vs float.
-        if {contract_type, impl_type} <= {"int", "float"}:
+        if {contract_type.lower(), impl_type.lower()} <= {"int", "float"}:
             return True
         return False
 

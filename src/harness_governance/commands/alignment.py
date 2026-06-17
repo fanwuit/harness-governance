@@ -7,12 +7,11 @@ implementation scanning.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 
 from ..messages import bilingual
 from ..state_machine.alignment import FieldAlignmentEngine
+from ._util import resolve_root
 
 
 @click.group("alignment")
@@ -41,7 +40,7 @@ def alignment_check(
     files in ``src/``.  Reports missing, renamed, and type-mismatched
     fields.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     engine = FieldAlignmentEngine(root)
     report = engine.compute_alignment()
 
@@ -101,7 +100,7 @@ def alignment_trace(ctx: click.Context, session_id: str) -> None:
     Traces each contract field through architecture, ADR,
     implementation, and verification layers.
     """
-    root = _resolve_root(ctx)
+    root = resolve_root(ctx)
     engine = FieldAlignmentEngine(root)
     matrix = engine.build_traceability_matrix(session_id)
 
@@ -126,16 +125,3 @@ def alignment_trace(ctx: click.Context, session_id: str) -> None:
         if entry.verification_ref:
             click.echo(f"    verification: {entry.verification_ref}")
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _resolve_root(ctx: click.Context) -> Path:
-    """Resolve the project root from CLI context, defaulting to cwd."""
-    if ctx.obj is not None and isinstance(ctx.obj, dict):
-        root = ctx.obj.get("project_root")
-        if root is not None:
-            return Path(root)
-    return Path.cwd()

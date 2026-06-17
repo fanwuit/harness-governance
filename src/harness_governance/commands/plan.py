@@ -75,9 +75,10 @@ def plan_attest_cmd(ctx: click.Context, plan_id: str | None) -> None:
 def plan_show_cmd(ctx: click.Context, plan_id: str | None) -> None:
     """Print the stored attestation hash."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
-    target = (project_root / ".planning" / (plan_id or "")) if plan_id else plan_ops.resolve_active_plan(project_root)
-    if target is None:
-        raise click.ClickException(bilingual("plan.no_active"))
+    try:
+        target = plan_ops.resolve_session(project_root, plan_id)
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
     attestation = target.plan_dir / ".attestation"
     if not attestation.is_file():
         raise click.ClickException(bilingual("plan.no_attestation", plan_id=target.plan_id))
@@ -98,9 +99,10 @@ def plan_show_cmd(ctx: click.Context, plan_id: str | None) -> None:
 def plan_clear_cmd(ctx: click.Context, plan_id: str | None) -> None:
     """Remove an attestation (re-open the plan)."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
-    target = (project_root / ".planning" / (plan_id or "")) if plan_id else plan_ops.resolve_active_plan(project_root)
-    if target is None:
-        raise click.ClickException(bilingual("plan.no_active"))
+    try:
+        target = plan_ops.resolve_session(project_root, plan_id)
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
     attestation = target.plan_dir / ".attestation"
     if not attestation.is_file():
         click.echo(bilingual("plan.no_attestation_to_clear", plan_id=target.plan_id))

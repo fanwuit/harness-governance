@@ -16,16 +16,16 @@ This classifies the request (Fast / Trivial / Governed) and creates a session wi
 
 ```
 src/harness_governance/
-  cli.py                  — click entry point, 14 command groups
+  cli.py                  — click entry point, 19 command groups
   state_machine/
     layers.py             — HarnessLayer enum (12 values)
-    engine.py             — StateMachineEngine, 10 transition rules
+    engine.py             — StateMachineEngine, 10 transition rules (T1-T10)
     classification.py     — 3-way classifier + RigorTier integration
     rigor.py              — STRICT/STANDARD/LIGHT detection
     gates.py              — GATE_CATALOG (12), LayerGateEngine, LockFileManager
     transitions.py        — TransitionContext + TransitionVerdict
   commands/
-    init.py               — 3-tier skill injection (strict/standard/light × 8 platforms)
+    init.py               — 4-tier skill injection (strict/standard/light/monitor × 8 platforms)
     governed_start.py     — entry router + session creation
     gate.py               — gate check/status/reset/timing
     layer.py              — layer advance/show/guide (gate-enforced)
@@ -36,7 +36,7 @@ src/harness_governance/
   models/schemas.py       — Pydantic v2 (20+ models)
   runner/                 — autonomous loop, orchestrator, result parser
   data/
-    skills/{strict,standard,light}/  — 24 skill files (8 platforms × 3 tiers)
+    skills/{strict,standard,light,monitor}/  — 32 skill files (8 platforms × 4 tiers)
     role-prompts/          — 10 role templates
     references/            — layer-author-guide, layer-progression, etc.
     templates/             — change-packet, planning artifacts
@@ -46,8 +46,8 @@ src/harness_governance/
 ## Testing
 
 ```bash
-pytest tests/ -x --tb=short          # full suite (~920 tests)
-pytest tests/test_skill_versions.py  # 24 skill file validation
+pytest tests/ -x --tb=short          # full suite (~1390 tests)
+pytest tests/test_skill_versions.py  # 32 skill file validation
 pytest tests/test_commands/          # CLI integration tests
 ```
 

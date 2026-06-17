@@ -1,26 +1,68 @@
-name: Publish to TestPyPI
+name: Publish
 
 on:
   push:
     tags:
       - "v*"
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+permissions:
+  contents: read
 
+jobs:
+  # Gate the publish on CI so a tag can never ship without green tests.
+  # CI runs on tag pushes too (see ci.yml `on.push.tags`), and we block
+  # here until both the lint and test jobs report success.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      # v5.3.0
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@8d9ed9ac5c534bf1e6c566af8db5712c86045508
         with:
           python-version: "3.12"
 
-      - name: Install build tools
-        run: pip install build
+      - name: Verify tag matches package version
+        # Refuses to publish when the git tag (e.g. v0.8.0) does not
+        # match the version declared in pyproject.toml / __init__.py.
+        run: |
+          python -c "
+          import re, sys
+          from pathlib import Path
+          tag = '${{ github.ref_name }}'
+          assert tag.startswith('v'), f'Tag must start with v: {tag}'
+          tag_version = tag[1:]
+          pyproject = Path('pyproject.toml').read_text(encoding='utf-8')
+          m = re.search(r'^version\s*=\s*\"([^\"]+)\"', pyproject, re.MULTILINE)
+          assert m, 'version not found in pyproject.toml'
+          pkg_version = m.group(1)
+          init = Path('src/harness_governance/__init__.py').read_text(encoding='utf-8')
+          m2 = re.search(r'__version__\s*=\s*\"([^\"]+)\"', init)
+          assert m2, '__version__ not found'
+          init_version = m2.group(1)
+          if tag_version != pkg_version:
+              raise SystemExit(f'Tag {tag} != pyproject version {pkg_version}')
+          if tag_version != init_version:
+              raise SystemExit(f'Tag {tag} != __init__ version {init_version}')
+          print(f'Version OK: {tag_version}')
+          "
+
+      - name: Install build tools (pinned)
+        run: pip install "build>=1.2" "twine>=5.1"
 
       - name: Build sdist and wheel
         run: python -m build
+
+      - name: Validate package metadata
+        run: twine check dist/*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -28,7 +70,7 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
+  publish-testpypi:
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -47,3 +89,25 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    # Production publish requires a manual approval via the `pypi`
+    # GitHub environment's required reviewers.  Skipped for pre-release
+    # tags (e.g. v0.8.0a1, v0.8.0rc1).
+    needs: publish-testpypi
+    if: ${{ !contains(github.ref_name, 'a') && !contains(github.ref_name, 'rc') && !contains(github.ref_name, 'b') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/harness-governance
+    permissions:
+      id-token: write  # required for trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

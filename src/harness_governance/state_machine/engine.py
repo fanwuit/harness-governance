@@ -1,8 +1,9 @@
 """State-machine engine.
 
-The engine enforces the 9 transition rules from :mod:`.transitions`
-against proposed layer transitions. It does not execute work — it only
-validates that a transition is legal given the declared context.
+The engine enforces the 10 transition rules (T1-T10) from
+:mod:`.transitions` against proposed layer transitions. It does not
+execute work — it only validates that a transition is legal given the
+declared context.
 
 The engine is intentionally side-effect free: callers collect
 :class:`Violation` objects and decide what to do (abort, escalate,
@@ -105,7 +106,7 @@ class TransitionVerdict:
 
 
 class StateMachineEngine:
-    """Validates proposed transitions against the 9-rule policy."""
+    """Validates proposed transitions against the 10-rule policy (T1-T10)."""
 
     def evaluate(self, context: TransitionContext) -> TransitionVerdict:
         """Return a verdict describing whether ``context`` is allowed."""
@@ -247,20 +248,35 @@ class StateMachineEngine:
                 )
             )
 
-        # Rule T8: verification failure -> return to owner.
+        # Rule T8: verification failure -> return to the layer that owns the cause.
+        #
+        # The engine has no per-failure provenance, so we approximate "lowest
+        # layer that owns the failure" as the upstream layers where contracts,
+        # readiness, facts, and intake live.  A verification failure may
+        # legitimately return to any of these; transitioning anywhere else
+        # (e.g. straight back to IMPLEMENTATION to retry, or forward to
+        # REVIEW_NEXT) does not address the root cause and is blocked.
         if context.verification_failed and context.to_layer is not context.from_layer:
-            violations.append(
-                Violation(
-                    rule_code="T8-VERIFICATION-FAILURE-OWNER",
-                    rule_title="Return to lowest layer that owns the failure",
-                    message=(
-                        f"Verification failure recorded but transition "
-                        f"{context.from_layer.value} -> "
-                        f"{context.to_layer.value} does not address the cause. "
-                        "Return to the lowest layer that owns the failure first."
-                    ),
+            _T8_OWNER_LAYERS = {
+                HarnessLayer.CONTRACT,
+                HarnessLayer.READINESS,
+                HarnessLayer.FACT_DISCOVERY,
+                HarnessLayer.INTAKE,
+            }
+            if context.to_layer not in _T8_OWNER_LAYERS:
+                violations.append(
+                    Violation(
+                        rule_code="T8-VERIFICATION-FAILURE-OWNER",
+                        rule_title="Return to lowest layer that owns the failure",
+                        message=(
+                            f"Verification failure recorded but transition "
+                            f"{context.from_layer.value} -> "
+                            f"{context.to_layer.value} does not address the cause. "
+                            "Return to the lowest layer that owns the failure first "
+                            "(contract / readiness / fact-discovery / intake)."
+                        ),
+                    )
                 )
-            )
 
         # Rule T9: work finishing/pausing -> review-next.
         if (

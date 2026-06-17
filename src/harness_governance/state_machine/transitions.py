@@ -1,4 +1,4 @@
-"""The 9 canonical transition rules.
+"""The 10 canonical transition rules (T1-T10).
 
 Rules are encoded as :class:`TransitionRule` dataclasses carrying a
 machine-readable ``code`` (so violations can be referenced in error
@@ -17,7 +17,7 @@ from .layers import HarnessLayer
 
 @dataclass(frozen=True, slots=True)
 class TransitionRule:
-    """One entry of the 9-rule transition policy."""
+    """One entry of the 10-rule transition policy (T1-T10)."""
 
     code: str
     title: str
@@ -26,7 +26,7 @@ class TransitionRule:
     source: str = "harness-engineering/references/layer-progression.md § Transition Rules"
 
 
-# The 9 rules, in canonical order. ``target_layer`` is the layer the
+# The 10 rules, in canonical order. ``target_layer`` is the layer the
 # rule constrains entry into; ``requires_layer`` (if set) is the
 # layer that must be reached first.
 TRANSITION_RULES: tuple[TransitionRule, ...] = (

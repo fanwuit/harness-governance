@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
+
+from ._util import atomic_write_text
 
 
 @dataclass(slots=True)
@@ -32,6 +34,9 @@ class Checkpoint:
 
     @classmethod
     def from_markdown(cls, text: str) -> "Checkpoint":
+        # Known field names on the dataclass; unknown headings are ignored
+        # rather than crashing cls(**fields) with TypeError.
+        valid_field_names = {f.name for f in fields(cls)}
         fields = {
             "last_worker": "",
             "durable_state_updated": "",
@@ -46,7 +51,9 @@ class Checkpoint:
             if stripped.startswith("## "):
                 if current is not None:
                     fields[current] = "\n".join(buffer).strip()
-                current = _heading_to_field(stripped[3:])
+                candidate = _heading_to_field(stripped[3:])
+                # Only track headings that map to a real dataclass field.
+                current = candidate if candidate in valid_field_names else None
                 buffer = []
             elif current is not None:
                 buffer.append(line)
@@ -83,7 +90,7 @@ class Checkpoint:
                 "",
             ]
         )
-        path.write_text(body, encoding="utf-8")
+        atomic_write_text(path, body)
 
 
 _HEADING_TO_FIELD = {

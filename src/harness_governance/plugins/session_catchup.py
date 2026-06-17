@@ -17,7 +17,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable
 
 PLANNING_FILES: tuple[str, ...] = ("task_plan.md", "progress.md", "findings.md")
 MIN_SESSION_BYTES = 5000
@@ -120,7 +120,7 @@ def _is_substantial(session: Path) -> bool:
         return False
 
 
-def _planning_file_from_path(path_value: str) -> Optional[str]:
+def _planning_file_from_path(path_value: str) -> str | None:
     for pf in PLANNING_FILES:
         if path_value.endswith(pf):
             return pf
@@ -130,8 +130,8 @@ def _planning_file_from_path(path_value: str) -> Optional[str]:
 @dataclass(slots=True)
 class CatchupReport:
     runtime: str
-    previous_session: Optional[Path] = None
-    last_planning_update_file: Optional[str] = None
+    previous_session: Path | None = None
+    last_planning_update_file: str | None = None
     last_planning_update_line: int = -1
     unsynced_message_count: int = 0
     unsynced_preview: list[str] = field(default_factory=list)
@@ -184,9 +184,9 @@ def _parse_claude_messages(session: Path) -> list[dict]:
     return out
 
 
-def _find_last_claude_planning_update(messages: list[dict]) -> tuple[int, Optional[str]]:
+def _find_last_claude_planning_update(messages: list[dict]) -> tuple[int, str | None]:
     last_line = -1
-    last_file: Optional[str] = None
+    last_file: str | None = None
     for msg in messages:
         line_num = msg.get("_line_num")
         if not isinstance(line_num, int):

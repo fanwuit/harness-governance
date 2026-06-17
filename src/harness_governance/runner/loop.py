@@ -124,7 +124,7 @@ class AutonomousReadyLoop:
     def run(self, *, mode: Literal["bounded", "boundary"], max_rounds: int) -> LoopResult:
         max_rounds = self._resolve_max_rounds(mode, max_rounds)
         invocations: list[RoundSummary] = []
-        stop_for: LoopResult.__annotations__["stopped_for"] = "max_rounds"
+        stop_for: Literal["max_rounds", "boundary", "blocked", "failed", "no_ready", "error"] = "max_rounds"
         run_started = time.monotonic()
 
         for round_index in range(1, max_rounds + 1):
@@ -215,7 +215,11 @@ class AutonomousReadyLoop:
 
             # At this point, result is either a successful ExecutionResult,
             # a failed one (all retries exhausted), or a stop-marker result.
-            assert result is not None
+            if result is None:
+                # Should not happen — all paths above either set result or
+                # return early.  Guard defensively for -O mode.
+                stop_for = "error"
+                break
 
             finished_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
             stdout_path, stderr_path = self._dump_outputs(round_index, result)

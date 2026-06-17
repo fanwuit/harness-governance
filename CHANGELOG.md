@@ -5,7 +5,7 @@ All notable changes to `harness-governance` are documented in this file.
 
 ---
 
-## [0.8.0] - Unreleased
+## [0.8.0] - 2026-06-17
 
 ### Added / 新增
 
@@ -14,6 +14,7 @@ All notable changes to `harness-governance` are documented in this file.
 - **Gap 3 — Scope drift** (`drift.py`): `git diff`-based scope boundary enforcement, decomposition triggers, T10 transition rule (`T10-DRIFT-CONTRACT-BOUNDARY`), IMPLEMENTATION gate hook / 基于 git diff 的范围漂移检测 + T10 转换规则
 - **Gap 4 — Tech stack management** (`tech_stack.py`): Language/framework/lint-tool detection, `LINT_TOOL_CATALOG` (14 languages) + `DOC_STYLE_CATALOG` (15 languages), INTAKE_ORIENTATION gate hook / 技术栈版本管理 + lint/文档规范目录
 - **Gap 5 — Skill chain tracing** (`skill_chain.py`): UUID-based invocation lineage, ASCII tree + Mermaid diagrams, VERIFICATION + REVIEW_NEXT gate hooks / 技能调用链追踪 + 可视化
+- **4th governance tier `monitor`**: 8 platforms × 4 tiers = 32 skill files (was 24) / 第 4 个治理 tier `monitor`，skill 文件数 24→32
 - **Gate engine enhancement**: `blocking_artifacts` (separate from `required_artifacts` — avoids deadlock), `GATE_HOOK_REGISTRY` extensible hook system, `_ensure_hooks_loaded()` / 门禁引擎增强：产物阻塞 + 钩子注册表
 - **`NDJSONWriter`** (`file_ops/ndjson_writer.py`): Inter-process NDJSON append with file locking (Windows `msvcrt` / Unix `fcntl`) / 带文件锁的 NDJSON 追加工具
 - **`SubagentResult`**: 7 new optional fields (isolation, drift, skill-chain gaps) / 新增 7 个可选字段

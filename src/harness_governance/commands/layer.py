@@ -191,6 +191,20 @@ def layer_advance_cmd(
             )
 
     # Build transition context and evaluate.
+    #
+    # Propagate scope-drift signal from the gate hooks into the engine.
+    # The drift gate hook (state_machine.drift._gate_hook_drift) reports
+    # failures via confirmation_items_unmet with messages starting
+    # "Scope drift".  When present, set scope_drift_detected so rule T10
+    # can fire — previously this flag was never wired up, making T10
+    # unreachable from the CLI.
+    scope_drift_detected = False
+    if not skip_gate and is_layer_required(from_layer, tier):
+        for item in status.confirmation_items_unmet:
+            if "Scope drift" in item or "Forbidden paths" in item:
+                scope_drift_detected = True
+                break
+
     engine = StateMachineEngine()
     tc = TransitionContext(
         from_layer=from_layer,
@@ -204,6 +218,7 @@ def layer_advance_cmd(
         verification_failed=verification_failed,
         work_finished_or_paused=work_paused,
         contract_work_repeating=contract_stalling,
+        scope_drift_detected=scope_drift_detected,
     )
     verdict = engine.evaluate(tc)
 

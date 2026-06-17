@@ -384,8 +384,11 @@ class TechStackManager:
             for t in manifest.introduced_tools
         )
 
-        if all(t.confirmed for t in updated):
-            # No change — tool_name not found.
+        old_confirmed = {t.tool_name for t in manifest.introduced_tools if t.confirmed}
+        new_confirmed = {t.tool_name for t in updated if t.confirmed}
+
+        if old_confirmed == new_confirmed:
+            # No change — tool_name not found or already confirmed.
             return False
 
         manifest.introduced_tools = updated
@@ -557,21 +560,34 @@ class TechStackManager:
     def require_lint_confirmation(
         self, manifest: TechStackManifest
     ) -> list[LintGap]:
-        """Return lint gaps for each language that lacks a confirmed tool."""
+        """Return lint gaps for each language that lacks a confirmed tool.
+
+        A language is considered "covered" when either:
+        * a lint tool for that language is already recorded in
+          ``manifest.lint_tools`` (matched by name against
+          :data:`LINT_TOOL_CATALOG`), or
+        * a lint config file for that language is detected on disk by
+          :meth:`detect_configured_lints`.
+        """
         gaps: list[LintGap] = []
         configured = self.detect_configured_lints()
 
-        # Collect already-confirmed tool names.
-        confirmed_tools: set[str] = {t.tool_name for t in manifest.lint_tools}
+        # Pre-compute, per language, the set of tool names that count as
+        # lint coverage for that language (so a Python lint tool does
+        # NOT cover Java, etc.).
+        confirmed_by_lang: dict[str, set[str]] = {lang: set() for lang in manifest.languages}
+        for lang in manifest.languages:
+            catalog_names = {
+                entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])
+            }
+            for t in manifest.lint_tools:
+                if t.tool_category == "lint" and t.tool_name in catalog_names:
+                    confirmed_by_lang[lang].add(t.tool_name)
 
         for language in manifest.languages:
-            if language in confirmed_tools:
+            if confirmed_by_lang.get(language):
                 continue
-            # A lint tool name in manifest.lint_tools already counts.
-            already_covered = any(
-                t.tool_category == "lint" for t in manifest.lint_tools
-            )
-            if already_covered:
+            if language in configured:
                 continue
 
             existing = configured.get(language)
@@ -848,19 +864,26 @@ def _gate_hook_tech_stack(
     if manifest is None:
         return failures
 
+    # Pre-compute, per language, the set of tool names that count as
+    # lint coverage for that language (so a Python lint tool does NOT
+    # cover Java, etc.). Mirrors require_lint_confirmation.
+    configured = mgr.detect_configured_lints()
+    confirmed_by_lang: dict[str, set[str]] = {lang: set() for lang in manifest.languages}
     for lang in manifest.languages:
-        # Check lint tool confirmation.
-        has_lint = any(
-            t.tool_category == "lint" and t.is_satisfied
-            for t in manifest.lint_tools
-        )
-        if not has_lint:
-            configured = mgr.detect_configured_lints()
-            if lang not in configured:
-                failures.append(
-                    f"Lint tool not confirmed for {lang}. "
-                    f"Run 'harness tech-stack lint {lang} --tool <name>' to confirm."
-                )
+        catalog_names = {
+            entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])
+        }
+        for t in manifest.lint_tools:
+            if t.tool_category == "lint" and t.tool_name in catalog_names:
+                confirmed_by_lang[lang].add(t.tool_name)
+
+    for lang in manifest.languages:
+        # Check lint tool confirmation (per-language).
+        if not confirmed_by_lang.get(lang) and lang not in configured:
+            failures.append(
+                f"Lint tool not confirmed for {lang}. "
+                f"Run 'harness tech-stack lint {lang} --tool <name>' to confirm."
+            )
 
         # Check doc style confirmation.
         if lang not in manifest.doc_styles:

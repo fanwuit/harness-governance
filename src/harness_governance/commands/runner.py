@@ -173,6 +173,11 @@ def runner_start_cmd(
 
         if output_file:
             output_path = (project_root / output_file).resolve()
+            from ..file_ops._util import assert_inside
+            try:
+                assert_inside(project_root, output_path)
+            except ValueError as exc:
+                raise click.ClickException(str(exc)) from exc
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(prompt.text, encoding="utf-8")
             click.echo(bilingual("runner.orchestrator_written", path=str(output_path)))
@@ -394,8 +399,15 @@ def runner_parse_result_cmd(
     """
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
 
+    from ..file_ops._util import assert_inside
+
     if input_file:
-        text = (project_root / input_file).read_text(encoding="utf-8")
+        input_path = (project_root / input_file).resolve()
+        try:
+            assert_inside(project_root, input_path)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+        text = input_path.read_text(encoding="utf-8")
     else:
         text = sys.stdin.read()
 
@@ -403,6 +415,10 @@ def runner_parse_result_cmd(
     result = parser.parse(text, role=role)
 
     log_path = (project_root / invocation_log).resolve()
+    try:
+        assert_inside(project_root, log_path)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     append_invocation_log(log_path, result, round_index=round_index)
 
     click.echo(_json.dumps(

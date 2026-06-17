@@ -1,10 +1,9 @@
 """Internationalized CLI messages for ``harness-governance``.
 
 The CLI speaks English by default. Setting the ``HARNESS_LANG`` environment
-variable to ``zh-CN`` (or passing ``--lang zh-CN`` on the top-level CLI)
-switches the user-facing strings to Chinese; when Chinese is active,
-each message is rendered bilingually as ``中文 / English`` so a
-mixed-language team can still grep the English text.
+variable to ``zh-CN`` switches the user-facing strings to Chinese; when
+Chinese is active, each message is rendered bilingually as ``中文 / English``
+so a mixed-language team can still grep the English text.
 
 The translation table is intentionally flat (a :class:`dict` keyed by
 message ID) — every user-visible string in the project is registered
