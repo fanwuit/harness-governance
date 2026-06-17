@@ -5,6 +5,39 @@ All notable changes to `harness-governance` are documented in this file.
 
 ---
 
+## [0.8.1] - 2026-06-17
+
+### Fixed / 修复
+
+- **Security**: `plan_id` path traversal prevention (slug sanitization + `set_active_plan` validation) / plan_id 路径穿越防御
+- **Security**: `assert_inside` guard on `--output`, `--checkpoint`, `--invocation-log` paths / 输出路径越界检查
+- **Security**: `write_lock` refuses to write failed gate locks; `read_lock`/`exists` validate content / 写锁拒绝失败 gate + 读锁校验
+- **Security**: `config set` validates TOML before writing + type coercion + Literal validation / 配置写入前校验
+- **Correctness**: `gate reset --all --confirmed` now works (LAYER made optional + early validation) / gate reset --all 可用
+- **Correctness**: `plan show/clear <id>` no longer crashes with `AttributeError` / plan show/clear 不再崩溃
+- **Correctness**: `check` uses `rglob` to find tiered SKILL.md files / check 用递归 glob 找 skill 文件
+- **Correctness**: `scope_drift_detected` wired into `TransitionContext` + T8 no longer over-blocks / scope_drift 接入 + T8 不再误拦
+- **Correctness**: tech-stack lint per-language check (Python ruff no longer covers Java) / lint 按语言判定
+- **Correctness**: Windows NDJSON lock position consistency / Windows 锁位置一致性
+- **Correctness**: Atomic writes for session/checkpoint files / session/checkpoint 原子写
+- **Correctness**: Hook registration flag set after import loop / 钩子注册标志位修正
+- **UTF-8 no-BOM guarantee**: `_strip_bom` + `write_text_no_bom` + `atomic_write_text` defensive strip; `init.py` 7 writes + `config_cmd.py` 2 writes all funnel through / UTF-8 无 BOM 强制保证
+
+### Added / 新增
+
+- **Queue numbered/bullet list support**: NEXT.md now accepts `1. [ready]`, `- [ready]`, `* [ready]` and numbered field lines like `1. Layer: implementation` / 队列支持编号列表和 bullet 列表格式
+
+### CI/CD
+
+- `ci.yml`: tag trigger + SHA-pinned actions + mypy/cov threshold + macOS matrix
+- `publish.yml`: ci gate + version verification + TestPyPI + production PyPI
+
+### Docs / 文档
+
+- 24→32 skill files, 3→4 tiers, 9→10 rules, 14→19 command groups, ~1390 tests
+
+---
+
 ## [0.8.0] - 2026-06-17
 
 ### Added / 新增
