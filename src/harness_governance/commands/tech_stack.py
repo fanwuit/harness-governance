@@ -227,7 +227,9 @@ def tech_stack_show(ctx: click.Context, as_json: bool) -> None:
         for t in manifest.introduced_tools:  # type: ignore[assignment]
             t_tool: ToolIntroduction = t  # type: ignore[assignment]
             status = "✓" if t_tool.confirmed else "⚠"
-            click.echo(f"  {status} {t_tool.tool_name} @ {t_tool.version} [{t_tool.tool_category}]")
+            click.echo(
+                f"  {status} {t_tool.tool_name} @ {t_tool.version} [{t_tool.tool_category}]"
+            )
 
 
 # ---------------------------------------------------------------------------

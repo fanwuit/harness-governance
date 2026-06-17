@@ -622,7 +622,9 @@ class TechStackManager:
 
         # Check for unconfirmed introduced tools.
         pending: tuple[ToolIntroduction, ...] = tuple(
-            t for t in manifest.introduced_tools if not t.confirmed  # type: ignore[union-attr]
+            t
+            for t in manifest.introduced_tools
+            if not t.confirmed  # type: ignore[union-attr]
         )
 
         return TechStackCheckResult(
