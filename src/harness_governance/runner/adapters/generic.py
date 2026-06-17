@@ -1,7 +1,9 @@
 """Subprocess-based AgentExecutor that runs a configurable shell command.
 
 Output is streamed to stderr in real time so long-running agent
-sessions are not completely silent while they work.
+sessions are not completely silent while they work.  An optional
+heartbeat thread writes NDJSON progress entries so callers can
+distinguish "still running" from "hung / crashed".
 """
 
 from __future__ import annotations
@@ -12,10 +14,19 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
 from ..base import AgentExecutor, ExecutionResult, detect_marker, detect_verification_summary
+from ._heartbeat import (
+    HeartbeatCounters,
+    format_progress_line,
+    start_heartbeat_thread,
+)
+
+# Minimum seconds between progress lines on stderr.
+_PROGRESS_INTERVAL_S = 60
 
 
 @dataclass(slots=True)
@@ -26,6 +37,10 @@ class SubprocessAgentExecutor(AgentExecutor):
     positional append when ``prompt_as_arg`` is True). Stdout and stderr
     are streamed to the parent's stderr in real time, then captured for
     marker detection and invocation-log recording.
+
+    When ``heartbeat_interval_seconds > 0``, a daemon thread writes
+    NDJSON heartbeat entries to ``heartbeat_dir / <stamp>-heartbeat.ndjson``
+    so external monitors can observe progress.
     """
 
     command_template: str
@@ -34,6 +49,8 @@ class SubprocessAgentExecutor(AgentExecutor):
     env_overrides: dict[str, str] | None = None
     workdir: Path | None = None
     stream_output: bool = True
+    heartbeat_interval_seconds: int = 30
+    heartbeat_dir: Path | None = None
 
     @property
     def name(self) -> str:
@@ -59,6 +76,7 @@ class SubprocessAgentExecutor(AgentExecutor):
             cmd = shlex.split(cmd_str)
 
         started = time.monotonic()
+        counters = HeartbeatCounters()
         stdout_lines: list[str] = []
         stderr_lines: list[str] = []
 
@@ -72,16 +90,48 @@ class SubprocessAgentExecutor(AgentExecutor):
                 cwd=cwd,
             )
 
-            # Stream stdout and stderr in real time when enabled.
+            # --- Heartbeat thread ---
+            hb_thread = None
+            if self.heartbeat_interval_seconds > 0:
+                hb_dir = self.heartbeat_dir or (
+                    (self.workdir or Path.cwd()) / ".harness" / "worker-output"
+                )
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+                hb_path = hb_dir / f"{stamp}-heartbeat.ndjson"
+                hb_thread = start_heartbeat_thread(
+                    proc,
+                    hb_path,
+                    counters,
+                    self.heartbeat_interval_seconds,
+                    started,
+                )
+
+            # --- Stream stdout ---
+            last_progress = started
             if proc.stdout is not None:
                 for line in proc.stdout:
+                    counters.stdout_lines += 1
                     if self.stream_output:
                         sys.stderr.write(line)
                         sys.stderr.flush()
+                        # Progress hint every _PROGRESS_INTERVAL_S seconds
+                        now = time.monotonic()
+                        if now - last_progress >= _PROGRESS_INTERVAL_S:
+                            sys.stderr.write(
+                                format_progress_line(
+                                    now - started,
+                                    counters.stdout_lines,
+                                    counters.stderr_lines,
+                                )
+                            )
+                            sys.stderr.flush()
+                            last_progress = now
                     stdout_lines.append(line)
 
+            # --- Stream stderr ---
             if proc.stderr is not None:
                 for line in proc.stderr:
+                    counters.stderr_lines += 1
                     if self.stream_output:
                         sys.stderr.write(line)
                         sys.stderr.flush()

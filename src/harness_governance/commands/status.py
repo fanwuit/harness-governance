@@ -51,7 +51,7 @@ DEFAULT_PROJECT_CONFIG: dict[str, str] = {
     "statusJson": ".harness/status.json",
 }
 
-# Legacy paths for backward compatibility (de-codex migration).
+# Migration compat: pre-0.8 projects may have codex-exec invocation logs.
 _LEGACY_INVOCATION_LOG = ".harness/codex-exec-invocations.ndjson"
 
 

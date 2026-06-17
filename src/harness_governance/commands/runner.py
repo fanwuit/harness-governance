@@ -70,8 +70,8 @@ def runner_group() -> None:
     show_default=True,
     help=(
         "AgentExecutor to use. 'orchestrator' generates a prompt for native "
-        "subagent dispatch (recommended). 'codex' and 'subprocess' are "
-        "DEPRECATED — they spawn external CLI processes, not subagents."
+        "subagent dispatch (interactive sessions). 'codex' and 'subprocess' "
+        "are for headless/CI automation — they spawn external processes."
     ),
 )
 @click.option(
@@ -130,6 +130,14 @@ def runner_group() -> None:
     type=click.Path(dir_okay=False, path_type=Path),
     help="Output file for orchestrator prompt (only with --executor orchestrator). Default: stdout.",
 )
+@click.option(
+    "--heartbeat-interval",
+    "heartbeat_interval",
+    default=30,
+    show_default=True,
+    type=int,
+    help="Seconds between heartbeat NDJSON entries (0 to disable). Only applies to 'codex' and 'subprocess' executors.",
+)
 @click.pass_context
 def runner_start_cmd(
     ctx: click.Context,
@@ -146,6 +154,7 @@ def runner_start_cmd(
     invocation_log: Path,
     dry_run: bool,
     output_file: Path | None,
+    heartbeat_interval: int,
 ) -> None:
     """Start the autonomous-ready loop."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
@@ -194,15 +203,6 @@ def runner_start_cmd(
             )
         return
 
-    if executor in ("codex", "subprocess") and not ctx.obj.get("json_output", False):
-        name = "codex exec" if executor == "codex" else "subprocess"
-        import logging
-        logging.getLogger("harness.runner").warning(
-            "DEPRECATED: --executor %s spawns an external CLI process, "
-            "not a native subagent. Use --executor orchestrator instead.",
-            name,
-        )
-
     if executor == "codex":
         agent = CodexCliExecutor(model=model, workdir=project_root)
     else:  # subprocess
@@ -236,6 +236,7 @@ def runner_start_cmd(
         invocation_log=invocation_log,
         prompt_builder=_default_prompt,
         timeout_seconds=timeout_seconds,
+        heartbeat_interval_seconds=heartbeat_interval,
     )
     result = loop.run(mode=mode, max_rounds=max_rounds)
 

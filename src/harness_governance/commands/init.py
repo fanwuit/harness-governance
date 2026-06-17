@@ -383,7 +383,7 @@ def init_cmd(
     skill_paths: list[Path] = []
 
     if all_platforms:
-        # Write skill files for ALL supported platforms (3 tiers each)
+        # Write skill files for ALL supported platforms (4 tiers each)
         seen_paths: set[Path] = set()
         for plat in sorted(PLATFORM_SKILL_PATHS):
             for tier in GOVERNANCE_TIERS:
@@ -440,7 +440,7 @@ def init_cmd(
                 )
                 should_write = False  # stale: warn but don't overwrite without --force
         if should_write:
-            # Write all 3 tier skills (strict / standard / light)
+            # Write all 4 tier skills (strict / standard / light / monitor)
             written = write_all_skill_files(project_root, detected)
             skill_path = written[0] if written else None
             for p in written:

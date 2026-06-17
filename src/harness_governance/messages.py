@@ -662,6 +662,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "[harness runner] timed out after {seconds}s",
         "zh-CN": "[harness runner] 超时，已运行 {seconds}s",
     },
+    "runner.heartbeat_progress": {
+        "en": "[harness runner] elapsed: {elapsed}s, stdout: {stdout_lines} lines, stderr: {stderr_lines} lines",
+        "zh-CN": "[harness runner] 已运行: {elapsed}s, stdout: {stdout_lines} 行, stderr: {stderr_lines} 行",
+    },
+    "runner.round_started": {
+        "en": "[harness runner] round {round_index} started: {item}",
+        "zh-CN": "[harness runner] 第 {round_index} 轮开始: {item}",
+    },
     # session --------------------------------------------------------------
     "session.created": {
         "en": "Session created: {session_id}",

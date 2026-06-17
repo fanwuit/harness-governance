@@ -48,6 +48,7 @@ def test_subprocess_executor_runs_command(runner_repo: Path) -> None:
         command_template=f'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
         prompt_as_arg=False,
         workdir=runner_repo,
+        heartbeat_interval_seconds=0,
     )
     result = executor.execute("ignored", timeout_seconds=10, round_label="1")
     assert result.exit_code == 0
@@ -59,6 +60,7 @@ def test_subprocess_executor_records_failure_exit_code(runner_repo: Path) -> Non
         command_template='python -c "import sys; sys.exit(2)"',
         prompt_as_arg=False,
         workdir=runner_repo,
+        heartbeat_interval_seconds=0,
     )
     result = executor.execute("ignored", timeout_seconds=10, round_label="1")
     assert result.exit_code == 2
@@ -68,6 +70,7 @@ def test_loop_runs_one_round_and_writes_checkpoint(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
         command_template='python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
         workdir=runner_repo,
+        heartbeat_interval_seconds=0,
     )
     loop = AutonomousReadyLoop(
         executor=executor,
@@ -76,6 +79,7 @@ def test_loop_runs_one_round_and_writes_checkpoint(runner_repo: Path) -> None:
         checkpoint_file=Path(".harness/run-checkpoint.md"),
         invocation_log=Path(".harness/codex-exec-invocations.ndjson"),
         prompt_builder=lambda item: "PROMPT",
+        heartbeat_interval_seconds=0,
     )
     result = loop.run(mode="bounded", max_rounds=1)
     assert result.rounds == 1
@@ -91,6 +95,7 @@ def test_loop_stops_on_boundary_marker(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
         command_template='python -c "print(\\"AUTONOMOUS_BOUNDARY_REACHED\\")"',
         workdir=runner_repo,
+        heartbeat_interval_seconds=0,
     )
     loop = AutonomousReadyLoop(
         executor=executor,
@@ -99,6 +104,7 @@ def test_loop_stops_on_boundary_marker(runner_repo: Path) -> None:
         checkpoint_file=Path(".harness/run-checkpoint.md"),
         invocation_log=Path(".harness/codex-exec-invocations.ndjson"),
         prompt_builder=lambda item: "PROMPT",
+        heartbeat_interval_seconds=0,
     )
     result = loop.run(mode="boundary", max_rounds=10)
     assert result.rounds == 1
@@ -109,6 +115,7 @@ def test_loop_reports_no_ready_when_queue_empty(tmp_path: Path) -> None:
     executor = SubprocessAgentExecutor(
         command_template='python -c "print(1)"',
         workdir=tmp_path,
+        heartbeat_interval_seconds=0,
     )
     loop = AutonomousReadyLoop(
         executor=executor,
@@ -117,6 +124,7 @@ def test_loop_reports_no_ready_when_queue_empty(tmp_path: Path) -> None:
         checkpoint_file=Path(".harness/run-checkpoint.md"),
         invocation_log=Path(".harness/codex-exec-invocations.ndjson"),
         prompt_builder=lambda item: "PROMPT",
+        heartbeat_interval_seconds=0,
     )
     result = loop.run(mode="bounded", max_rounds=5)
     assert result.rounds == 0

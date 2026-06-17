@@ -1,7 +1,7 @@
 """Smoke tests for the CLI command tree.
 
-Legacy parity tests (comparing Python CLI output against the original
-.mjs / .sh scripts) were removed after the legacy scripts were deleted.
+Migration parity tests (comparing Python CLI output against the original
+.mjs / .sh scripts) were removed after those scripts were deleted.
 The Python CLI's behavior is now fully covered by the dedicated unit
 and integration tests in the rest of the test suite.
 """

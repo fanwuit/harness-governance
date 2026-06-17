@@ -491,15 +491,15 @@ def _check_self_docs(repo_root: Path, current_version: str) -> list[CheckFinding
     _obsolete_paths: list[tuple[str, str]] = [
         (
             ".claude/skills/harness-governance/SKILL.md",
-            ".claude/skills/harness-governance-{tier}/SKILL.md (3 tiers)",
+            ".claude/skills/harness-governance-{tier}/SKILL.md (4 tiers)",
         ),
         (
             ".codex/skills/harness-governance/SKILL.md",
-            ".agents/skills/harness-governance-{tier}/SKILL.md (3 tiers)",
+            ".agents/skills/harness-governance-{tier}/SKILL.md (4 tiers)",
         ),
         (
             ".cursor/rules/harness-governance.mdc",
-            ".cursor/rules/harness-governance-{tier}.mdc (3 tiers)",
+            ".cursor/rules/harness-governance-{tier}.mdc (4 tiers)",
         ),
     ]
     for md_path in sorted(

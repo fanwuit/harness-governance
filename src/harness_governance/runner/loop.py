@@ -1,7 +1,5 @@
 """AutonomousReadyLoop: orchestrates bounded rounds of agent execution.
 
-Mirrors the legacy ``run-autonomous-ready-loop.sh`` semantics:
-
 * Read queue, pick first ``[ready]`` item (or ``[active]`` if no ready).
 * Invoke the :class:`AgentExecutor` with the prepared prompt.
 * Capture ``AUTONOMOUS_*`` marker from worker output.
@@ -110,6 +108,7 @@ class AutonomousReadyLoop:
         timeout_seconds: int = 1800,
         max_retries: int = 0,
         total_timeout_seconds: int | None = None,
+        heartbeat_interval_seconds: int = 30,
     ) -> None:
         self.executor = executor
         self.project_root = project_root.resolve()
@@ -120,6 +119,15 @@ class AutonomousReadyLoop:
         self.timeout_seconds = timeout_seconds
         self.max_retries = max(0, max_retries)
         self.total_timeout_seconds = total_timeout_seconds
+        self.heartbeat_interval_seconds = heartbeat_interval_seconds
+
+        # Propagate heartbeat settings to the executor if it supports them.
+        for attr in ("heartbeat_interval_seconds", "heartbeat_dir"):
+            if hasattr(executor, attr) and hasattr(self, attr):
+                try:
+                    setattr(executor, attr, getattr(self, attr))
+                except (AttributeError, TypeError):
+                    pass  # frozen dataclass or read-only — skip
 
     def run(self, *, mode: Literal["bounded", "boundary"], max_rounds: int) -> LoopResult:
         max_rounds = self._resolve_max_rounds(mode, max_rounds)
@@ -162,6 +170,10 @@ class AutonomousReadyLoop:
                 if self.total_timeout_seconds is not None:
                     remaining = self.total_timeout_seconds - (time.monotonic() - run_started)
                     effective_timeout = max(1, min(int(remaining), self.timeout_seconds))
+
+                # Write a "running" checkpoint so observers can see the
+                # loop is alive even before the round finishes.
+                self._write_running_checkpoint(target, round_index, cp_path)
 
                 try:
                     result = self.executor.execute(
@@ -314,6 +326,26 @@ class AutonomousReadyLoop:
         if result.stderr:
             stderr_path.write_text(result.stderr, encoding="utf-8")
         return stdout_path, stderr_path
+
+    def _write_running_checkpoint(
+        self,
+        queue_item,
+        round_index: int,
+        checkpoint_path: Path,
+    ) -> None:
+        """Write a transient 'running' checkpoint before each attempt.
+
+        Observers can ``cat .harness/run-checkpoint.md`` during a long
+        round to confirm the loop is alive and see which item is being
+        processed.
+        """
+        cp = Checkpoint()
+        first_line = queue_item.raw.splitlines()[0] if queue_item.raw else "<empty>"
+        cp.last_worker = f"round {round_index}: {first_line}"
+        cp.stop_reason = f"running: round {round_index}"
+        cp.next_resume_source = str(self.queue_file)
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        cp.dump(checkpoint_path)
 
     def _write_checkpoint(
         self,
