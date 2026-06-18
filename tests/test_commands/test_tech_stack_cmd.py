@@ -111,7 +111,7 @@ class TestTechStackCheckCLI:
         _invoke(tmp_path, "tech-stack", "capture")
         result = _invoke(tmp_path, "tech-stack", "check")
         # Should mention lint or doc-style issues
-        combined = result.output + (result.stderr if hasattr(result, "stderr") else "")
+        combined = result.output
         assert len(combined) > 0
 
     def test_check_passes_after_lint_and_docstyle_confirmed(

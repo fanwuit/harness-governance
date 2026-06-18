@@ -542,8 +542,8 @@ def test_governed_start_warns_when_competing(tmp_path: Path):
         cli,
         ["--project-root", str(tmp_path), "governed-start", "test task"],
     )
-    # The warning goes to stderr
-    stderr = result.stderr or result.output
+    # The warning goes to stderr; when mix_stderr=True (default), it's in output
+    stderr = result.output
     assert "competing" in stderr.lower() or "竞争" in stderr
 
 
@@ -558,7 +558,7 @@ def test_governed_start_silent_when_clean(tmp_path: Path):
         cli,
         ["--project-root", str(tmp_path), "governed-start", "test task --files x.py"],
     )
-    stderr = result.stderr or ""
+    stderr = result.output
     assert "competing" not in stderr.lower()
     assert "竞争 skill" not in stderr
 

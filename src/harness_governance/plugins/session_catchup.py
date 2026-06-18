@@ -46,7 +46,7 @@ def _claude_project_dir(project_path: str) -> Path:
         .replace("_", "-")
     )
     if sanitized.startswith("-"):
-        sanitized = sanitized[1:]
+        sanitized = sanitized.lstrip("-")
     return Path.home() / ".claude" / "projects" / sanitized
 
 
