@@ -53,7 +53,10 @@ See [`QUICKSTART.md`](./QUICKSTART.md) for 5-minute guided setup / 五分钟引�
 
 ```
 harness init                        # 初始化项目 (4 个 skill + config + AGENTS.md)
+harness start "<desc>"              # governed-start 的直观 alias
 harness governed-start "<desc>"     # 入口分类器 (--rigor light|standard|strict)
+harness next                        # 当前 session/layer/gate 的下一步建议
+harness ship                        # 交付就绪检查（不发布、不部署、不 push）
 harness gate check <layer>          # 门控验证 (exit 0=通过)
 harness gate status [layer]         # 查看锁文件状态
 harness gate reset <layer>          # 重置锁 (需 --confirmed)

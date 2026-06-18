@@ -147,6 +147,31 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Inspect progress: `harness layer show`; inspect gates: `harness gate status`",
         "zh-CN": "查看进度: `harness layer show`; 查看门控: `harness gate status`",
     },
+    # aliases --------------------------------------------------------------
+    "alias.next.header": {
+        "en": "Next step for session: {session}",
+        "zh-CN": "会话下一步: {session}",
+    },
+    "alias.next.gate": {
+        "en": "Current gate: {state} ({questions}/{required} questions answered)",
+        "zh-CN": "当前门控: {state} ({questions}/{required} 问题已答)",
+    },
+    "alias.ship.header": {
+        "en": "Ship readiness check",
+        "zh-CN": "交付就绪检查",
+    },
+    "alias.ship.no_publish": {
+        "en": "No publish, deploy, push, or tag is performed by this command.",
+        "zh-CN": "此命令不会发布、部署、push 或打 tag。",
+    },
+    "alias.ship.no_session": {
+        "en": "No active session; gate readiness was not evaluated.",
+        "zh-CN": "没有活跃会话；未评估门控就绪状态。",
+    },
+    "alias.ship.gates": {
+        "en": "Gate locks: {locked}/{total}",
+        "zh-CN": "门控锁: {locked}/{total}",
+    },
     "governed_start.disclosure": {
         "en": "Disclosure:",
         "zh-CN": "披露:",

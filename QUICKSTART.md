@@ -50,6 +50,9 @@ harness init --all-platforms       # all 8 platforms
 # Large task — auto-detected STRICT (12 layers) / 大型任务自动 STRICT
 harness governed-start "Build a SaaS platform from scratch"
 
+# Same entry via the ergonomic alias / 使用更直观的 alias
+harness start "Build a SaaS platform from scratch"
+
 # Medium task with explicit tier / 中型任务显式指定
 harness governed-start "Add avatar field to user table" --rigor standard
 
@@ -72,6 +75,7 @@ harness governed-start "Add /v2/widgets endpoint" \
 ```bash
 # Read the author interaction guide for current layer / 查看当前层的交互指南
 harness layer guide
+harness next
 
 # Answer questions, then check the gate / 回答问题后检查门控
 harness gate check intake-orientation
@@ -177,6 +181,7 @@ Done when: endpoint returns 200 with valid JSON
 ```bash
 harness status              # dashboard / 仪表盘
 harness status --json       # machine-readable / 机器可读
+harness ship                # readiness check only; does not publish / 只做就绪检查，不发布
 ```
 
 ## Optional: bilingual output / 双语输出

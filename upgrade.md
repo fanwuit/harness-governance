@@ -61,7 +61,7 @@ P0 已实现。状态机 gate 判定逻辑未改变；改动集中在 CLI 输出
 
 ## 优先级 P1：近期值得借鉴
 
-### 2. Slash 命令 Alias 层
+### 2. Slash 命令 Alias 层（CLI alias v1 已完成，slash 暂缓）
 
 **来源**：GStack
 
@@ -94,8 +94,18 @@ harness gate check LAYER_4
 ```
 
 **实现位置**：
-- `src/harness_governance/cli.py` — 增加 alias 命令组
-- `src/harness_governance/data/skills/` — skill 文件中增加 alias 触发说明
+- `src/harness_governance/commands/aliases.py` — 已新增 `harness start`、`harness next`、`harness ship`
+- `src/harness_governance/cli.py` — 已注册 alias 命令
+- `tests/test_commands/test_aliases.py` — 已覆盖 alias 行为
+- `README.md`、`QUICKSTART.md` — 已记录普通 CLI alias 用法
+
+**完成状态**：
+普通 CLI alias v1 已完成。`harness ship` 只做交付就绪检查，不发布、不部署、不 push、不打 tag。
+
+**暂缓跟踪项**：
+- `/harness start`、`/harness ship` 等 slash 形式：平台交互语法，不作为 Python CLI 命令实现；后续放入各平台 skill 文档。
+- `harness plan` alias：已有 `harness plan` 命令组，暂不复用该名称避免冲突。
+- `harness review` alias：已有 `harness review close`，如需扩展 review 语义需单独设计。
 
 ---
 
@@ -305,7 +315,7 @@ Need help? Run: harness guide quickstart
 | 优先级 | 借鉴点 | 来源 | 实现成本 | 预期收益 |
 |---|---|---|---|---|
 | **P0** | 红旗清单 + 拒绝理由提示 | Superpowers | 低 | 高 — 直接提升 agent 遵循率 |
-| **P1** | Slash 命令 Alias 层 | GStack | 中 | 高 — 降低学习门槛 |
+| **P1** | Slash 命令 Alias 层 | GStack | 中 | 已完成（CLI alias v1；slash 暂缓） |
 | **P1** | 完整场景示例 | GStack | 中 | 已完成（文档） |
 | **P2** | 轻量规格模式 | OpenSpec | 中 | 中 — 简单任务不需要 5 个文件 |
 | **P2** | 渐进式安装 | Superpowers | 低 | 中 — 降低试用门槛 |
@@ -316,9 +326,9 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P1 规划**：设计 alias 命令层，优先考虑普通 CLI alias（如 `harness start`），slash 形式先放在平台 skill 文档中
-2. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界
-3. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`
+1. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界
+2. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`
+3. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式
 
 ---
 

@@ -3,7 +3,10 @@
 Wires the :mod:`click` groups together.  v0.8.0 ships 19 command groups:
 
 * ``harness init``
+* ``harness start`` — alias for governed-start
 * ``harness governed-start``
+* ``harness next`` — current session next-step guidance
+* ``harness ship`` — readiness check, no publication
 * ``harness packet {init,check}``
 * ``harness entry {check,record}``
 * ``harness plan {init,attest,show,clear,complete}``
@@ -32,6 +35,7 @@ import click
 
 from . import __version__
 from .commands.alignment import alignment_group
+from .commands.aliases import next_cmd, ship_cmd, start_cmd
 from .commands.check import check_group
 from .commands.config_cmd import config_group
 from .commands.drift import drift_group
@@ -105,7 +109,10 @@ def cli(
 
 
 cli.add_command(init_cmd)
+cli.add_command(start_cmd)
 cli.add_command(governed_start_cmd)
+cli.add_command(next_cmd)
+cli.add_command(ship_cmd)
 cli.add_command(packet_group)
 cli.add_command(entry_group)
 cli.add_command(plan_group)
