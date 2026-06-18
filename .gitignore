@@ -27,6 +27,7 @@ htmlcov/
 .codex/skills/harness-governance/
 .clinerules/harness-governance.md
 AGENTS.md
+.trae/
 
 # Local environment
 .venv/
