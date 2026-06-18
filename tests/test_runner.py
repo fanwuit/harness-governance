@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -48,7 +49,7 @@ def test_detect_verification_summary_picks_pytest_line() -> None:
 
 def test_subprocess_executor_runs_command(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template='python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+        command_template=f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
         prompt_as_arg=False,
         workdir=runner_repo,
         heartbeat_interval_seconds=0,
@@ -60,7 +61,7 @@ def test_subprocess_executor_runs_command(runner_repo: Path) -> None:
 
 def test_subprocess_executor_records_failure_exit_code(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template='python -c "import sys; sys.exit(2)"',
+        command_template=f'"{sys.executable}" -c "import sys; sys.exit(2)"',
         prompt_as_arg=False,
         workdir=runner_repo,
         heartbeat_interval_seconds=0,
@@ -71,7 +72,7 @@ def test_subprocess_executor_records_failure_exit_code(runner_repo: Path) -> Non
 
 def test_loop_runs_one_round_and_writes_checkpoint(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template='python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+        command_template=f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
         workdir=runner_repo,
         heartbeat_interval_seconds=0,
     )
@@ -100,7 +101,7 @@ def test_loop_runs_one_round_and_writes_checkpoint(runner_repo: Path) -> None:
 
 def test_loop_stops_on_boundary_marker(runner_repo: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template='python -c "print(\\"AUTONOMOUS_BOUNDARY_REACHED\\")"',
+        command_template=f'"{sys.executable}" -c "print(\\"AUTONOMOUS_BOUNDARY_REACHED\\")"',
         workdir=runner_repo,
         heartbeat_interval_seconds=0,
     )
@@ -120,7 +121,7 @@ def test_loop_stops_on_boundary_marker(runner_repo: Path) -> None:
 
 def test_loop_reports_no_ready_when_queue_empty(tmp_path: Path) -> None:
     executor = SubprocessAgentExecutor(
-        command_template='python -c "print(1)"',
+        command_template=f'"{sys.executable}" -c "print(1)"',
         workdir=tmp_path,
         heartbeat_interval_seconds=0,
     )

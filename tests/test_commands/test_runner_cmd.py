@@ -7,6 +7,7 @@ render, and parse-result commands.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -46,7 +47,7 @@ def test_runner_start_subprocess_success(tmp_repo: Path) -> None:
             "--executor",
             "subprocess",
             "--command",
-            'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
             "--max-rounds",
             "1",
         ],
@@ -81,7 +82,7 @@ def test_runner_writes_checkpoint_to_change_dir(tmp_repo: Path) -> None:
             "--executor",
             "subprocess",
             "--command",
-            'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
             "--max-rounds",
             "1",
         ],
@@ -112,7 +113,7 @@ def test_runner_falls_back_to_global_when_no_packet_dir(tmp_repo: Path) -> None:
             "--executor",
             "subprocess",
             "--command",
-            'python -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
+            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
             "--max-rounds",
             "1",
         ],
@@ -240,7 +241,7 @@ def test_runner_start_exit_code_1_on_failure(tmp_repo: Path) -> None:
             "--executor",
             "subprocess",
             "--command",
-            'python -c "print(\\"AUTONOMOUS_FAILED\\")"',
+            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_FAILED\\")"',
             "--max-rounds",
             "1",
         ],

@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import json
 import os
-import platform
+import sys
 import time
 from pathlib import Path
 from typing import Any
 
 _LOCK_TIMEOUT = 5.0  # seconds
-_IS_WINDOWS = platform.system() == "Windows"
+_IS_WINDOWS = sys.platform == "win32"
 
 if _IS_WINDOWS:
     import msvcrt
@@ -32,7 +32,7 @@ if _IS_WINDOWS:
         while True:
             try:
                 os.lseek(fd, 0, os.SEEK_SET)
-                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)  # type: ignore[attr-defined]
                 return True
             except OSError:
                 if time.perf_counter() >= deadline:
@@ -47,7 +47,7 @@ if _IS_WINDOWS:
         """
         try:
             os.lseek(fd, 0, os.SEEK_SET)
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)  # type: ignore[attr-defined]
         except OSError:
             pass
 
