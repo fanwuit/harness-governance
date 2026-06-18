@@ -7,6 +7,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from harness_governance.commands.check import check_routing
 from harness_governance.commands.init import detect_platform
 from harness_governance.config.defaults import PLATFORM_SKILL_PATHS
 
@@ -22,6 +23,16 @@ def test_init_writes_config_and_skill(tmp_repo: Path) -> None:
     assert "harness governed-start" in result.output
     assert "harness status" in result.output
     assert "harness layer guide" in result.output
+
+
+def test_init_generated_skills_pass_routing_check(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    routing = check_routing(tmp_repo)
+
+    assert routing.passed, [f.message for f in routing.findings]
 
 
 def test_init_is_idempotent(tmp_repo: Path) -> None:
@@ -256,6 +267,18 @@ def test_init_creates_changes_dir(tmp_repo: Path) -> None:
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
     assert result.exit_code == 0, result.output
     assert (tmp_repo / "docs" / "changes").is_dir()
+
+
+def test_init_creates_user_evidence_template(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    template = tmp_repo / "docs" / "verification" / "user-evidence-template.md"
+    assert template.is_file()
+    text = template.read_text(encoding="utf-8")
+    assert "## User-Perceived Integration Evidence" in text
+    assert "Anti-Self-Proof Assertion" in text
 
 
 def test_init_cursor_config_valid(tmp_repo: Path) -> None:

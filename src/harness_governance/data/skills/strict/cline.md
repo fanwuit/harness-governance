@@ -1,4 +1,4 @@
-﻿---
+---
 name: harness-governance-strict
 description: 严格治理模式 — 大型平台、系统重构、从零构建。全部 12 层强制执行。 / Strict governance for large platforms, system rewrites, build-from-scratch. All 12 layers enforced.
 paths:
@@ -6,6 +6,12 @@ paths:
 ---
 
 <!-- harness-skill-version: 0.8.0 -->
+
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
 
 
 ## ⛔ STRICT MODE — 全 12 层强制执行 / All 12 Layers Enforced

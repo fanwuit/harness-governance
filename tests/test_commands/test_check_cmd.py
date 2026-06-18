@@ -12,6 +12,7 @@ from harness_governance.commands.check import (
     _check_self_docs,
     check_inventory,
     check_routing,
+    check_user_evidence,
 )
 from harness_governance import __version__ as _current_version
 
@@ -80,6 +81,163 @@ def test_check_all_cli(tmp_repo: Path) -> None:
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["check"] == "all"
+
+
+def test_check_user_evidence_passes_real_user_acceptance(tmp_repo: Path) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "save-loop.md").write_text(
+        """# Save loop
+
+MVP complete.
+
+## User-Perceived Integration Evidence
+- Evidence level: real-user acceptance
+- Real User Entry: Save button in the package editor toolbar
+- User-Visible State: Editor shows the saved title after reload
+- Persistence/External State: GET /packages/123 returns the same title
+- Anti-Self-Proof Assertion: UI value, PUT payload, GET response, and reopened UI match
+- Forbidden Test Shortcuts: none
+- Command: npm run test:e2e -- save-loop
+- Result: passed 2026-06-18
+""",
+        encoding="utf-8",
+    )
+
+    result = check_user_evidence(tmp_repo)
+
+    assert result.passed, [f.message for f in result.findings]
+    assert result.inspected == 1
+
+
+def test_check_user_evidence_fails_missing_required_field(tmp_repo: Path) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "save-loop.md").write_text(
+        """# Save loop
+
+## User-Perceived Integration Evidence
+- Evidence level: real-user acceptance
+- Real User Entry: Save button
+- User-Visible State:
+- Persistence/External State: GET /packages/123
+- Anti-Self-Proof Assertion: UI/payload/readback/reopen match
+- Forbidden Test Shortcuts: none
+- Command: npm run test:e2e
+- Result: passed
+""",
+        encoding="utf-8",
+    )
+
+    result = check_user_evidence(tmp_repo)
+
+    assert not result.passed
+    assert any("User-Visible State" in f.message for f in result.findings)
+
+
+def test_check_user_evidence_rejects_closure_claim_without_acceptance(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "save-loop.md").write_text(
+        """# Save loop
+
+closed loop complete.
+
+## User-Perceived Integration Evidence
+- Evidence level: contract
+- Real User Entry: Save button
+- User-Visible State: Editor shows saved title
+- Persistence/External State: GET /packages/123
+- Anti-Self-Proof Assertion: UI/payload/readback/reopen match
+- Forbidden Test Shortcuts: none
+- Command: npm run test:contract
+- Result: passed
+""",
+        encoding="utf-8",
+    )
+
+    result = check_user_evidence(tmp_repo)
+
+    assert not result.passed
+    assert any("real-user acceptance" in f.message for f in result.findings)
+
+
+def test_check_user_evidence_allows_explicit_not_applicable(tmp_repo: Path) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "docs-only.md").write_text(
+        """# Docs only
+
+## User-Perceived Integration Not Applicable
+- Reason: Documentation-only change with no product path
+- Replacement verification: harness check docs
+- Residual risk: none
+""",
+        encoding="utf-8",
+    )
+
+    result = check_user_evidence(tmp_repo)
+
+    assert result.passed, [f.message for f in result.findings]
+
+
+def test_check_user_evidence_requires_change_packet_verification(
+    tmp_repo: Path,
+) -> None:
+    change_dir = tmp_repo / "docs" / "changes" / "save-loop"
+    change_dir.mkdir(parents=True)
+    (change_dir / "proposal.md").write_text(
+        "# Save package\n\nThis adds a user-visible save closed loop.\n",
+        encoding="utf-8",
+    )
+
+    result = check_user_evidence(tmp_repo)
+
+    assert not result.passed
+    assert any("verification.md" in f.target for f in result.findings)
+
+
+def test_check_user_evidence_cli(tmp_repo: Path) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "bad.md").write_text(
+        "# Bad save\n\nsave feature without evidence sections.\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "check", "user-evidence"],
+    )
+
+    assert result.exit_code == 1
+    assert "user-evidence check failed" in result.output
+
+
+def test_check_all_includes_user_evidence(tmp_repo: Path) -> None:
+    (tmp_repo / "README.md").write_text(
+        "# README\n\n| x | x | x | x | 鏄?| x |\n\n鍚敤鐨勯潪 system skills锛? 涓猏n",
+        encoding="utf-8",
+    )
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "bad.md").write_text(
+        "# Bad save\n\nsave feature without evidence sections.\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "--json", "check", "all"],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.output)
+    assert any(f["check"] == "user-evidence" for f in payload["findings"])
 
 
 def test_check_inventory_handles_count_drift(tmp_repo: Path) -> None:

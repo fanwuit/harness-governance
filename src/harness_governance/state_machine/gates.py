@@ -233,8 +233,10 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Do you believe all implementation prerequisites are met? / 你是否认为所有实施前提条件都已满足？",
             "Is this a throwaway prototype or will it produce real/persisted artifacts? / 这是丢弃式原型还是会产生真实产物？",
             "Any concerns about the implementation environment or tooling? / 对实施环境或工具有任何顾虑吗？",
+            "What is the real user entry for user-perceived functionality, or why is it not applicable? / 用户可感知功能的真实用户入口是什么，或为什么不适用？",
+            "Which backend, persisted, or external state proves the result is not a mock? / 哪个后端、持久化或外部状态证明结果不是 mock？",
         ),
-        min_questions_answered=_q(3),
+        min_questions_answered=_q(5),
         required_artifacts=(
             ".harness/sessions/*.json",
             "tests/**/*.py",
@@ -271,8 +273,11 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Any additional verification steps beyond the defined commands? / 除了已定义的命令外，还有额外的验证步骤吗？",
             "Should I record screenshots or traces? / 需要我录制截图或跟踪吗？",
             "If verification fails: investigate the cause, or report and pause? / 如果验证失败：调查原因，还是报告并暂停？",
+            "Which UI state is the user-perceived result? / 哪个 UI 状态是用户感知结果？",
+            "Does verification prove request payload/readback/reopened UI match the current UI value? / 验证是否证明请求 payload、读回和重新打开的 UI 与当前 UI 值一致？",
+            "Could any test-only path be mistaken for the product path? / 是否存在测试专用路径冒充产品路径？",
         ),
-        min_questions_answered=_q(3),
+        min_questions_answered=_q(6),
         required_artifacts=("docs/verification/*.md",),
         confirmation_items=(
             "All verification commands executed, results are fresh",
@@ -435,6 +440,19 @@ def _ensure_hooks_loaded() -> None:
             pass
 
     _hooks_loaded = True
+
+
+def _gate_hook_user_evidence(_session: "SessionState", project_root: Path) -> list[str]:
+    """Require user-perceived evidence before verification closes."""
+    from ..commands.check import check_user_evidence
+
+    result = check_user_evidence(project_root)
+    if result.passed:
+        return []
+    return [f"{finding.target}: {finding.message}" for finding in result.findings]
+
+
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_user_evidence)
 
 
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ from .check import (
     check_packets,
     check_priority,
     check_routing,
+    check_user_evidence,
 )
 from .governed_start import governed_start_cmd
 from .verify import is_harness_governance_repo
@@ -156,6 +157,7 @@ def ship_cmd(ctx: click.Context) -> None:
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
+        check_user_evidence(project_root),
         check_docs(project_root),
     ]
     checks_passed = all(result.passed for result in results)

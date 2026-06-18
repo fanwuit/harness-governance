@@ -1,4 +1,4 @@
-﻿---
+---
 name: harness-governance-light
 description: 轻量治理模式 — 修 bug、小改动、配置调整。仅 6 层快速通道。 / Light governance for bug fixes, small changes, config adjustments. Fast-track 6 layers.
 paths:
@@ -6,6 +6,12 @@ paths:
 ---
 
 <!-- harness-skill-version: 0.8.0 -->
+
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
 
 
 ## 🔵 LIGHT MODE — 核心 6 层快速通道 / Core 6-Layer Fast Track

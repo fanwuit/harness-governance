@@ -37,6 +37,73 @@ _OLD_CHAIN = re.compile(
     r"(?:->|\n\s*->\s*\n)\s*Verification\s*(?:->|\n\s*->\s*\n)\s*Review / Next",
     re.MULTILINE,
 )
+_USER_EVIDENCE_SECTION = "User-Perceived Integration Evidence"
+_USER_EVIDENCE_NA_SECTION = "User-Perceived Integration Not Applicable"
+_USER_EVIDENCE_FIELDS = (
+    "Evidence level",
+    "Real User Entry",
+    "User-Visible State",
+    "Persistence/External State",
+    "Anti-Self-Proof Assertion",
+    "Forbidden Test Shortcuts",
+    "Command",
+    "Result",
+)
+_USER_EVIDENCE_NA_FIELDS = (
+    "Reason",
+    "Replacement verification",
+    "Residual risk",
+)
+_USER_EVIDENCE_LEVELS = {"smoke", "contract", "real-user acceptance"}
+_USER_EVIDENCE_TRIGGER_TERMS = (
+    "mvp",
+    "closed loop",
+    "user-visible save",
+    "save",
+    "publish",
+    "import",
+    "export",
+    "login",
+    "payment",
+    "pay",
+    "upload",
+    "run",
+    "preview",
+    "generate",
+    "sync",
+    "闭环",
+    "保存",
+    "发布",
+    "导入",
+    "导出",
+    "登录",
+    "支付",
+    "上传",
+    "运行",
+    "预览",
+    "生成",
+    "同步",
+)
+_USER_EVIDENCE_CLOSURE_CLAIMS = (
+    "mvp complete",
+    "closed loop complete",
+    "user-visible save complete",
+)
+_USER_EVIDENCE_FORBIDDEN_SHORTCUTS = (
+    ".lifecycle-actions",
+    "button:first",
+    "hidden test panel",
+    "hidden test panels",
+    "test-only",
+    "fixture-only",
+    "acceptance drawer",
+    "mock/fallback",
+    "mock all",
+    "assert called",
+    "skip e2e",
+    "todo evidence",
+    "not tested",
+)
 
 
 def _get_check_frequency(repo_root: Path) -> str:
@@ -166,6 +233,219 @@ def check_entry(repo_root: Path) -> CheckResult:
         passed=not all_errors,
         findings=tuple(findings),
         inspected=len(files),
+    )
+
+
+def _is_user_evidence_template(path: Path) -> bool:
+    return "template" in path.name.lower()
+
+
+def _user_evidence_files(repo_root: Path) -> list[Path]:
+    files: set[Path] = set()
+    for path in repo_root.glob("docs/verification/*.md"):
+        if not _is_user_evidence_template(path):
+            files.add(path)
+    for path in repo_root.glob("docs/changes/*/verification.md"):
+        if not _is_user_evidence_template(path):
+            files.add(path)
+    return sorted(files)
+
+
+def _change_docs(repo_root: Path) -> list[Path]:
+    return sorted(
+        p
+        for p in repo_root.glob("docs/changes/*/*.md")
+        if p.is_file() and not _is_user_evidence_template(p)
+    )
+
+
+def _section_body(text: str, heading: str) -> str | None:
+    pattern = re.compile(
+        rf"^##\s+{re.escape(heading)}\s*$"
+        rf"(?P<body>.*?)(?=^##\s+|\Z)",
+        re.IGNORECASE | re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    return match.group("body") if match else None
+
+
+def _field_value(section: str, field: str) -> str | None:
+    pattern = re.compile(
+        rf"^[ \t]*-[ \t]+{re.escape(field)}:[ \t]*(?P<value>.*)$", re.I | re.M
+    )
+    match = pattern.search(section)
+    if not match:
+        return None
+    return match.group("value").strip()
+
+
+def _has_user_evidence_trigger(text: str) -> bool:
+    lower = text.lower()
+    return any(term in lower for term in _USER_EVIDENCE_TRIGGER_TERMS)
+
+
+def _has_closure_claim(text: str) -> bool:
+    lower = text.lower()
+    return any(term in lower for term in _USER_EVIDENCE_CLOSURE_CLAIMS)
+
+
+def _forbidden_shortcuts(text: str) -> list[str]:
+    lower = text.lower()
+    return [term for term in _USER_EVIDENCE_FORBIDDEN_SHORTCUTS if term in lower]
+
+
+def _rel(repo_root: Path, path: Path) -> str:
+    try:
+        return str(path.relative_to(repo_root))
+    except ValueError:
+        return str(path)
+
+
+def _validate_user_evidence_file(repo_root: Path, path: Path) -> list[CheckFinding]:
+    text = path.read_text(encoding="utf-8")
+    rel = _rel(repo_root, path)
+    findings: list[CheckFinding] = []
+    evidence = _section_body(text, _USER_EVIDENCE_SECTION)
+    not_applicable = _section_body(text, _USER_EVIDENCE_NA_SECTION)
+
+    if evidence is None and not_applicable is None:
+        if _has_user_evidence_trigger(text):
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "user-perceived work requires either "
+                        "User-Perceived Integration Evidence or "
+                        "User-Perceived Integration Not Applicable"
+                    ),
+                )
+            )
+        return findings
+
+    if evidence is not None:
+        values: dict[str, str | None] = {
+            field: _field_value(evidence, field) for field in _USER_EVIDENCE_FIELDS
+        }
+        for field, value in values.items():
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="user-evidence",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required and cannot be empty",
+                    )
+                )
+
+        level = (values.get("Evidence level") or "").lower()
+        if level and level not in _USER_EVIDENCE_LEVELS:
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "Evidence level must be smoke, contract, "
+                        "or real-user acceptance"
+                    ),
+                )
+            )
+        if _has_closure_claim(text) and level != "real-user acceptance":
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "MVP/closed-loop/user-visible completion claims require "
+                        "real-user acceptance evidence"
+                    ),
+                )
+            )
+
+    if not_applicable is not None:
+        for field in _USER_EVIDENCE_NA_FIELDS:
+            value = _field_value(not_applicable, field)
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="user-evidence",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required and cannot be empty",
+                    )
+                )
+
+    for shortcut in _forbidden_shortcuts(text):
+        findings.append(
+            CheckFinding(
+                check="user-evidence",
+                target=rel,
+                level="error",
+                message=f"forbidden test shortcut or self-proof term: {shortcut}",
+            )
+        )
+
+    return findings
+
+
+def check_user_evidence(repo_root: Path) -> CheckResult:
+    """Check user-perceived integration evidence documents.
+
+    First version is intentionally document-level: it validates structured
+    evidence in ``docs/verification/*.md`` and change-packet
+    ``verification.md`` files. Template files are ignored.
+    """
+    findings: list[CheckFinding] = []
+    evidence_files = _user_evidence_files(repo_root)
+
+    for path in evidence_files:
+        findings.extend(_validate_user_evidence_file(repo_root, path))
+
+    for path in _change_docs(repo_root):
+        if path.name == "verification.md":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if not _has_user_evidence_trigger(text):
+            continue
+        verification = path.parent / "verification.md"
+        if not verification.is_file():
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change mentions user-perceived work but has no "
+                        "verification.md evidence file"
+                    ),
+                )
+            )
+            continue
+        verification_text = verification.read_text(encoding="utf-8")
+        if (
+            _section_body(verification_text, _USER_EVIDENCE_SECTION) is None
+            and _section_body(verification_text, _USER_EVIDENCE_NA_SECTION) is None
+        ):
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change mentions user-perceived work but verification.md "
+                        "does not declare user-perceived evidence or Not Applicable"
+                    ),
+                )
+            )
+
+    return CheckResult(
+        check="user-evidence",
+        passed=not any(f.level == "error" for f in findings),
+        findings=tuple(findings),
+        inspected=len(evidence_files),
     )
 
 
@@ -817,6 +1097,14 @@ def check_inventory_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_inventory(project_root))
 
 
+@check_group.command("user-evidence")
+@click.pass_context
+def check_user_evidence_cmd(ctx: click.Context) -> None:
+    """User-perceived integration evidence check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_user_evidence(project_root))
+
+
 @check_group.command("docs")
 @click.option(
     "--stale-days",
@@ -907,6 +1195,7 @@ def check_all_cmd(ctx: click.Context) -> None:
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
+        check_user_evidence(project_root),
         check_docs(project_root),
     ]
     aggregate = CheckResult(
@@ -924,6 +1213,7 @@ __all__ = [
     "check_packets_cmd",
     "check_entry_cmd",
     "check_inventory_cmd",
+    "check_user_evidence_cmd",
     "check_docs_cmd",
     "check_priority_cmd",
     "check_all_cmd",
@@ -931,6 +1221,7 @@ __all__ = [
     "check_packets",
     "check_entry",
     "check_inventory",
+    "check_user_evidence",
     "check_docs",
     "check_priority",
 ]
