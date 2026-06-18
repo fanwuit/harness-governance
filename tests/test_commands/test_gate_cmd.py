@@ -76,6 +76,11 @@ class TestGateCheck:
         )
         assert result.exit_code == 1, result.output
         assert "FAILED" in result.output or "失败" in result.output
+        assert "Questions answered: 0/4" in result.output
+        assert "Red flags we do not accept" in result.output
+        assert "Required actions" in result.output
+        assert "harness layer guide intake-orientation" in result.output
+        assert "harness gate check intake-orientation" in result.output
 
     def test_check_no_session(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -111,6 +116,29 @@ class TestGateCheck:
         data = json.loads(result.output)
         assert data["passed"] is True
         assert data["layer"] == "intake-orientation"
+
+    def test_check_failed_json_output_has_no_prose_guidance(
+        self, tmp_path: Path
+    ) -> None:
+        _seed_gate_session(tmp_path, layer_qa=())
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "gate",
+                "check",
+                "intake-orientation",
+            ],
+        )
+        assert result.exit_code == 1, result.output
+        data = json.loads(result.output)
+        assert data["passed"] is False
+        assert data["layer"] == "intake-orientation"
+        assert "Red flags we do not accept" not in result.output
+        assert "Required actions" not in result.output
 
     def test_check_writes_lock_file(self, tmp_path: Path) -> None:
         _seed_gate_session(tmp_path)

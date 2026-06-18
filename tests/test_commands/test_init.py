@@ -18,6 +18,10 @@ def test_init_writes_config_and_skill(tmp_repo: Path) -> None:
     assert (tmp_repo / ".harness" / "config.toml").is_file()
     skill_path = tmp_repo / PLATFORM_SKILL_PATHS["claude-code"]
     assert skill_path.is_file()
+    assert "Quick start guide" in result.output
+    assert "harness governed-start" in result.output
+    assert "harness status" in result.output
+    assert "harness layer guide" in result.output
 
 
 def test_init_is_idempotent(tmp_repo: Path) -> None:

@@ -23,6 +23,12 @@ Created: .claude/skills/harness-governance-light/SKILL.md
 Created: .claude/skills/harness-governance-monitor/SKILL.md
 Note: AGENTS.md triggers: AGENTS.md
 Done. Your agent will now use harness governance for engineering work.
+
+Quick start guide:
+1. Describe your task: `harness governed-start "your task here"`
+2. View current state: `harness status`
+3. Read the current layer guide: `harness layer guide`
+4. Full walkthrough: QUICKSTART.md
 ```
 
 Each platform gets 4 skill tiers (strict/standard/light/monitor) / 每个平台 4 个 tier:
@@ -80,7 +86,63 @@ harness layer advance idea --confirmed
 harness gate timing
 ```
 
-## 4. Run document gardener check / 文档园丁检查 (v0.7.1)
+## 4. Walkthrough: bug fix with a gate / 示例：带门控的 bug 修复
+
+This example shows the expected rhythm: classify, inspect the current layer,
+answer or record evidence, check the gate, then advance.
+
+这个示例展示常见节奏：先分类，再查看当前层，补齐问题或证据，检查门控，然后推进。
+
+```bash
+harness governed-start "Fix login redirect bug" --files src/auth.py --contracts
+```
+
+Expected output includes the route, rigor tier, current layer, and layer path:
+
+预期输出会包含路由、严格程度、当前层和层路径：
+
+```text
+Routing: governed-path
+Current layer: intake-orientation
+Rigor tier: strict
+Layer path: intake-orientation -> idea -> fact-discovery -> ... -> review-next
+Next layer: idea
+```
+
+If the gate is not ready, the failure output tells you exactly what is missing:
+
+如果门控尚未就绪，失败输出会明确列出缺失内容：
+
+```bash
+harness gate check intake-orientation
+```
+
+```text
+Gate intake-orientation: FAILED (0/4 questions answered; artifacts missing: none)
+
+Missing requirements:
+- Questions answered: 0/4.
+
+Red flags we do not accept:
+- "This is just a small change, tests or evidence are not needed."
+- "I'll add the missing gate evidence later."
+
+Required actions:
+1. Run `harness layer guide intake-orientation` and answer the required questions.
+2. Create or record the missing evidence listed above.
+3. Re-run `harness gate check intake-orientation`.
+```
+
+After the gate passes, advance to the next layer:
+
+门控通过后，推进到下一层：
+
+```bash
+harness layer advance idea --confirmed
+harness layer show
+```
+
+## 5. Run document gardener check / 文档园丁检查 (v0.7.1)
 
 ```bash
 harness check docs
@@ -93,7 +155,7 @@ harness check docs
 harness check all   # includes docs check / 包含文档检查
 ```
 
-## 5. Start a change packet / 创建变更包 (1 min)
+## 6. Start a change packet / 创建变更包 (1 min)
 
 ```bash
 harness packet init add-v2-widgets
@@ -101,7 +163,7 @@ ls docs/changes/add-v2-widgets
 # contracts.md  design.md  proposal.md  tasks.md  verification.md
 ```
 
-## 6. Use the queue (NEXT.md) / 使用队列
+## 7. Use the queue (NEXT.md) / 使用队列
 
 ```markdown
 [ready] Add /v2/widgets endpoint

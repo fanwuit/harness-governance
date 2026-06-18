@@ -8,6 +8,7 @@ so the rules can be cited verbatim in user-facing output.
 from __future__ import annotations
 
 import logging
+import re
 from enum import Enum
 from typing import Iterable
 
@@ -45,12 +46,23 @@ PUBLIC_CONTRACT_KEYWORDS: tuple[str, ...] = (
     "payment",
 )
 
-# Work-action keywords that signal the task involves file modifications.
-# When the description contains any of these, the classifier should NOT
-# return Fast Path even when no explicit flags are set.
-# Source: common engineering verbs in both English and Chinese.
-WORK_ACTION_KEYWORDS: tuple[str, ...] = (
+# Edit-intent keywords signal that the request is asking us to change
+# project state when paired with a file/project target. They should not
+# automatically force the governed path; low-risk single-file/docs edits
+# can still be trivial-safe-change.
+EDIT_INTENT_KEYWORDS: tuple[str, ...] = (
     # English
+    "update",
+    "sync",
+    "clean up",
+    "mark",
+    "document",
+    "complete",
+    "finish",
+    "improve",
+    "remediate",
+    "work through",
+    "carry out",
     "implement",
     "develop",
     "fix",
@@ -65,6 +77,17 @@ WORK_ACTION_KEYWORDS: tuple[str, ...] = (
     "adapt",
     "align",
     # Chinese
+    "更新",
+    "同步",
+    "整理",
+    "清理",
+    "补充",
+    "标记",
+    "收口",
+    "完成",
+    "改进",
+    "整改",
+    "做完",
     "开发",
     "实现",
     "修复",
@@ -80,6 +103,87 @@ WORK_ACTION_KEYWORDS: tuple[str, ...] = (
     "集成",
     "部署",
     "调整",
+)
+
+# Governed keywords identify work that should stay in the governed path
+# even if no explicit flags are passed.
+GOVERNED_WORK_KEYWORDS: tuple[str, ...] = (
+    "implement",
+    "develop",
+    "fix",
+    "refactor",
+    "rewrite",
+    "debug",
+    "migrate",
+    "redesign",
+    "integrate",
+    "classifier",
+    "classification",
+    "cli",
+    "gate",
+    "layer",
+    "init",
+    "governed-start",
+    "test",
+    "tests",
+    "pytest",
+    "multi-file",
+    "multiple files",
+    "开发",
+    "实现",
+    "修复",
+    "重构",
+    "重写",
+    "迁移",
+    "集成",
+    "分类器",
+    "分类",
+    "命令",
+    "门控",
+    "测试",
+    "多文件",
+    "多项",
+)
+
+LOW_RISK_MAINTENANCE_KEYWORDS: tuple[str, ...] = (
+    "readme",
+    "quickstart",
+    "upgrade.md",
+    "docs",
+    "documentation",
+    "document",
+    "comment",
+    "comments",
+    "typo",
+    "changelog",
+    "文档",
+    "文件",
+    "说明",
+    "注释",
+    "错别字",
+)
+
+PROJECT_TARGET_KEYWORDS: tuple[str, ...] = (
+    "readme",
+    "quickstart",
+    "upgrade.md",
+    "changelog",
+    "docs",
+    "src/",
+    "tests/",
+    "cli",
+    "classifier",
+    "classification",
+    "gate",
+    "layer",
+    "init",
+    "governed-start",
+    "测试",
+    "文档",
+    "文件",
+    "分类器",
+    "门控",
+    "命令",
 )
 
 
@@ -177,7 +281,17 @@ def classify(
     resolved_rigor = resolve_rigor(rigor, description)
     description_lc = description.lower()
 
-    mentions_work = _mentions_work_action_keyword(description_lc)
+    mentions_edit_intent = _mentions_edit_intent(description_lc)
+    mentions_project_target = _mentions_file_or_project_target(description_lc)
+    mentions_governed_work = _mentions_governed_work_keyword(description_lc)
+    mentions_multi_item = _mentions_multi_item_work(description_lc)
+    mentions_low_risk_maintenance = _mentions_low_risk_maintenance(description_lc)
+    inferred_file_changes = (
+        has_file_changes
+        or (mentions_edit_intent and mentions_project_target)
+        or (mentions_edit_intent and mentions_governed_work)
+        or (mentions_edit_intent and mentions_multi_item)
+    )
 
     # --- STRICT keyword gate: prevents fast-path / trivial misroute ---
     # When the description contains STRICT_DETECTION_KEYWORDS (platform,
@@ -197,19 +311,25 @@ def classify(
                 is_public_contract,
                 has_external_side_effect,
             )
-        has_file_changes = True
+        inferred_file_changes = True
         is_public_contract = True
 
-    if not has_file_changes and not is_public_contract and not has_external_side_effect:
-        if not is_unclear_or_high_risk and not mentions_work:
+    if (
+        not inferred_file_changes
+        and not is_public_contract
+        and not has_external_side_effect
+    ):
+        if not is_unclear_or_high_risk:
             logger.info("classified as fast-path")
             logger.debug(
-                "fast-path flags: file_changes=%s public=%s external=%s unclear=%s work_kw=%s",
-                has_file_changes,
+                "fast-path flags: file_changes=%s public=%s external=%s unclear=%s edit_intent=%s target=%s governed_kw=%s",
+                inferred_file_changes,
                 is_public_contract,
                 has_external_side_effect,
                 is_unclear_or_high_risk,
-                mentions_work,
+                mentions_edit_intent,
+                mentions_project_target,
+                mentions_governed_work,
             )
             return RoutingDecision(
                 path=RoutingPath.FAST_PATH,
@@ -221,12 +341,13 @@ def classify(
             )
 
     if (
-        has_file_changes
+        inferred_file_changes
         and not is_public_contract
         and not has_external_side_effect
         and not is_unclear_or_high_risk
         and not _mentions_public_contract_keyword(description_lc)
-        and not mentions_work
+        and not (mentions_governed_work and not mentions_low_risk_maintenance)
+        and not mentions_multi_item
     ):
         logger.info("classified as trivial-safe-change")
         return RoutingDecision(
@@ -241,23 +362,27 @@ def classify(
 
     logger.info("classified as governed-path")
     logger.debug(
-        "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s work_kw=%s",
-        has_file_changes,
+        "governed-path flags: file_changes=%s public=%s external=%s unclear=%s keyword=%s edit_intent=%s target=%s governed_kw=%s multi_item=%s",
+        inferred_file_changes,
         is_public_contract,
         has_external_side_effect,
         is_unclear_or_high_risk,
         _mentions_public_contract_keyword(description_lc),
-        mentions_work,
+        mentions_edit_intent,
+        mentions_project_target,
+        mentions_governed_work,
+        mentions_multi_item,
     )
     return RoutingDecision(
         path=RoutingPath.GOVERNED_PATH,
         rationale=_governed_rationale(
-            has_file_changes=has_file_changes,
+            has_file_changes=inferred_file_changes,
             is_public_contract=is_public_contract,
             has_external_side_effect=has_external_side_effect,
             is_unclear_or_high_risk=is_unclear_or_high_risk,
             mentions_public_keyword=_mentions_public_contract_keyword(description_lc),
-            mentions_work_keyword=mentions_work,
+            mentions_governed_work=mentions_governed_work,
+            mentions_multi_item=mentions_multi_item,
         ),
         current_layer=HarnessLayer.INTAKE_ORIENTATION,
         primary_skill="harness-engineering",
@@ -269,8 +394,34 @@ def _mentions_public_contract_keyword(description_lc: str) -> bool:
     return any(keyword in description_lc for keyword in PUBLIC_CONTRACT_KEYWORDS)
 
 
-def _mentions_work_action_keyword(description_lc: str) -> bool:
-    return any(keyword in description_lc for keyword in WORK_ACTION_KEYWORDS)
+def _mentions_edit_intent(description_lc: str) -> bool:
+    return any(keyword in description_lc for keyword in EDIT_INTENT_KEYWORDS)
+
+
+def _mentions_governed_work_keyword(description_lc: str) -> bool:
+    return any(keyword in description_lc for keyword in GOVERNED_WORK_KEYWORDS)
+
+
+def _mentions_file_or_project_target(description_lc: str) -> bool:
+    if any(keyword in description_lc for keyword in PROJECT_TARGET_KEYWORDS):
+        return True
+    if re.search(r"[\w.-]+\.(?:md|py|toml|json|yaml|yml|txt|rst|mdc)\b", description_lc):
+        return True
+    if re.search(r"(?:^|\s)(?:src|tests|docs|\.harness|\.github|\.claude)[\\/]", description_lc):
+        return True
+    return False
+
+
+def _mentions_low_risk_maintenance(description_lc: str) -> bool:
+    return any(keyword in description_lc for keyword in LOW_RISK_MAINTENANCE_KEYWORDS)
+
+
+def _mentions_multi_item_work(description_lc: str) -> bool:
+    return bool(
+        re.search(r"\b\d+\s*-\s*\d+\b", description_lc)
+        or re.search(r"\bp\d+\b", description_lc)
+        or re.search(r"\d+\s*项", description_lc)
+    )
 
 
 def _mentions_strict_keyword(description_lc: str) -> bool:
@@ -289,7 +440,8 @@ def _governed_rationale(
     has_external_side_effect: bool,
     is_unclear_or_high_risk: bool,
     mentions_public_keyword: bool,
-    mentions_work_keyword: bool = False,
+    mentions_governed_work: bool = False,
+    mentions_multi_item: bool = False,
 ) -> str:
     reasons: list[str] = []
     if is_public_contract or mentions_public_keyword:
@@ -298,8 +450,10 @@ def _governed_rationale(
         reasons.append("produces external side effects or persisted data")
     if is_unclear_or_high_risk:
         reasons.append("scope, risk, or requirements are unclear")
-    if mentions_work_keyword and not reasons:
-        reasons.append("description implies file modifications")
+    if mentions_governed_work and not reasons:
+        reasons.append("description implies governed file modifications")
+    if mentions_multi_item and not reasons:
+        reasons.append("description implies multi-item project work")
     if has_file_changes and not reasons:
-        reasons.append("requires multi-layer governance")
+        reasons.append("description implies file modifications")
     return "Governed path: " + "; ".join(reasons) + "."

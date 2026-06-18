@@ -18,6 +18,8 @@ from ..state_machine.classification import (
     RoutingPath,
     PUBLIC_CONTRACT_KEYWORDS,
 )
+from ..state_machine.gates import layers_for_tier
+from ..state_machine.layers import HarnessLayer
 from ..state_machine.rigor import resolve_rigor, STRICT_DETECTION_KEYWORDS
 from ..config.defaults import PLATFORM_SKILL_PATHS
 
@@ -115,6 +117,30 @@ def _build_recommendation(path: RoutingPath) -> str:
     if path is RoutingPath.TRIVIAL_SAFE_CHANGE:
         return "governed_start.recommendation.trivial"
     return "governed_start.recommendation.governed"
+
+
+def _format_layer_path(rigor_tier: str) -> str:
+    """Return the layer path for the resolved rigor tier."""
+    from ..state_machine.rigor import RigorTier
+
+    tier = RigorTier(rigor_tier)
+    return " -> ".join(layer.value for layer in layers_for_tier(tier))
+
+
+def _next_layer(current: HarnessLayer | None, rigor_tier: str) -> HarnessLayer | None:
+    """Return the next layer in the rigor-specific path, if any."""
+    if current is None:
+        return None
+    from ..state_machine.rigor import RigorTier
+
+    path = layers_for_tier(RigorTier(rigor_tier))
+    try:
+        index = path.index(current)
+    except ValueError:
+        return None
+    if index + 1 >= len(path):
+        return None
+    return path[index + 1]
 
 
 def _check_skill_freshness(project_root: Path) -> str | None:
@@ -308,6 +334,26 @@ def governed_start_cmd(
                     "current_layer": result.current_layer.value
                     if result.current_layer
                     else None,
+                    "layer_path": (
+                        _format_layer_path(result.rigor_tier)
+                        if result.path is RoutingPath.GOVERNED_PATH
+                        and result.rigor_tier
+                        else None
+                    ),
+                    "next_layer": (
+                        next_layer.value
+                        if (
+                            result.path is RoutingPath.GOVERNED_PATH
+                            and result.rigor_tier
+                            and (
+                                next_layer := _next_layer(
+                                    result.current_layer,
+                                    result.rigor_tier,
+                                )
+                            )
+                        )
+                        else None
+                    ),
                     "primary_skill": result.primary_skill,
                     "disclosure": result.disclosure,
                     "recommended_next_command": result.recommended_next_command,
@@ -355,6 +401,17 @@ def governed_start_cmd(
         )
     if result.rigor_tier:
         click.echo(bilingual("governed_start.rigor_tier", tier=result.rigor_tier))
+    if result.path is RoutingPath.GOVERNED_PATH and result.rigor_tier:
+        click.echo(
+            bilingual(
+                "governed_start.layer_path",
+                path=_format_layer_path(result.rigor_tier),
+            )
+        )
+        next_layer = _next_layer(result.current_layer, result.rigor_tier)
+        if next_layer:
+            click.echo(bilingual("governed_start.next_layer", layer=next_layer.value))
+        click.echo(bilingual("governed_start.path_hint"))
     click.echo("")
     click.echo(bilingual("governed_start.disclosure"))
     click.echo(result.disclosure)

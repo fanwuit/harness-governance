@@ -593,6 +593,12 @@ def init_cmd(
             continue
         click.echo(f"Note: {note}")
     click.echo(bilingual("init.done"))
+    click.echo("")
+    click.echo(bilingual("init.quickstart_header"))
+    click.echo("1. " + bilingual("init.quickstart_task"))
+    click.echo("2. " + bilingual("init.quickstart_status"))
+    click.echo("3. " + bilingual("init.quickstart_guide"))
+    click.echo("4. " + bilingual("init.quickstart_docs"))
 
 
 __all__ = ["init_cmd", "detect_platform", "write_skill_file", "InitResult"]

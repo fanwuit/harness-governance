@@ -36,6 +36,7 @@ from ..state_machine.gates import (
 )
 from ..state_machine.layers import HarnessLayer, LAYER_MAP
 from ..state_machine.rigor import RigorTier
+from .gate_failure import format_gate_failure_guidance
 
 _GUIDE_PACKAGE = "harness_governance.data.references"
 _GUIDE_FILE = "layer-author-guide.md"
@@ -235,6 +236,8 @@ def layer_advance_cmd(
                     bilingual("layer.gate_blocked"),
                     err=True,
                 )
+                for line in format_gate_failure_guidance(from_layer.value, status):
+                    click.echo(line, err=True)
             raise SystemExit(1)
 
         # Gate passed — write lock for the current layer.

@@ -16,6 +16,7 @@ import click
 from ..messages import bilingual
 from ..models.schemas import GateResult, CheckFinding
 from ..session import TransitionRecord, find_active_session, load_session
+from .gate_failure import format_gate_failure_guidance
 from ..state_machine.gates import (
     LayerGateEngine,
     LockFileManager,
@@ -112,6 +113,8 @@ def gate_check(ctx: click.Context, layer: str, session_id: str | None) -> None:
                 ),
                 err=True,
             )
+            for line in format_gate_failure_guidance(layer, status):
+                click.echo(line, err=True)
 
     # JSON output.
     if ctx.obj.get("json_output"):

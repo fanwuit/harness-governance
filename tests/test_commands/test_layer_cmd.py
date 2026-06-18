@@ -332,6 +332,11 @@ class TestLayerAdvanceGateEnforcement:
         assert result.exit_code != 0, (
             f"Gate should have blocked advance, got: {result.output}"
         )
+        assert "Questions answered: 0/4" in result.output
+        assert "Red flags we do not accept" in result.output
+        assert "Required actions" in result.output
+        assert "harness layer guide intake-orientation" in result.output
+        assert "harness gate check intake-orientation" in result.output
 
     def test_advance_passes_gate_with_sufficient_qa(self, tmp_path: Path) -> None:
         """With enough Q&A, the gate passes and writes a lock file."""

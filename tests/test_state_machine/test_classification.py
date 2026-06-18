@@ -120,7 +120,7 @@ def test_chinese_develop_keyword_upgrades_from_fast_path() -> None:
         is_unclear_or_high_risk=False,
     )
     assert decision.path is RoutingPath.GOVERNED_PATH
-    assert "implies file modifications" in decision.rationale
+    assert "implies governed file modifications" in decision.rationale
 
 
 def test_chinese_fix_keyword_upgrades_from_fast_path() -> None:
@@ -140,6 +140,89 @@ def test_chinese_refactor_keyword_upgrades_from_trivial() -> None:
     decision = classify(
         "重构用户模块的代码结构",
         has_file_changes=True,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+
+
+def test_chinese_improvement_plan_execution_upgrades_from_fast_path() -> None:
+    """Requests like '分步做完改进项' imply project modifications."""
+    decision = classify(
+        "先分步做完1-4项改进",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+    assert "multi-item project work" in decision.rationale
+
+
+def test_english_improvement_plan_execution_upgrades_from_fast_path() -> None:
+    """Requests like 'complete improvements 1-4' imply project modifications."""
+    decision = classify(
+        "complete improvements 1-4",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+    assert "multi-item project work" in decision.rationale
+
+
+def test_readonly_file_mention_still_fast_path() -> None:
+    """Mentioning a filename is not enough to imply an edit."""
+    decision = classify(
+        "解释 upgrade.md 是什么",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.FAST_PATH
+
+
+def test_low_risk_markdown_update_is_trivial_safe() -> None:
+    """A single low-risk docs file update should not require 12 layers."""
+    decision = classify(
+        "同步 upgrade.md 状态",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+
+def test_closeout_and_upgrade_doc_sync_is_trivial_safe() -> None:
+    decision = classify(
+        "完成收口当前改动并同步 upgrade.md 状态",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+
+def test_low_risk_quickstart_walkthrough_is_trivial_safe() -> None:
+    decision = classify(
+        "补充 QUICKSTART walkthrough",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+    )
+    assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+
+
+def test_cli_classifier_and_tests_work_is_governed() -> None:
+    decision = classify(
+        "修改 governed-start 输出 12 层路径并加测试",
+        has_file_changes=False,
         is_public_contract=False,
         has_external_side_effect=False,
         is_unclear_or_high_risk=False,

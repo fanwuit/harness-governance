@@ -82,6 +82,26 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Done. Minimal config written. Run `harness init` (without --minimal) for full setup.",
         "zh-CN": "完成。已写入最小配置。运行 `harness init`（不带 --minimal）获取完整设置。",
     },
+    "init.quickstart_header": {
+        "en": "Quick start guide:",
+        "zh-CN": "快速上手:",
+    },
+    "init.quickstart_task": {
+        "en": "Describe your task: `harness governed-start \"your task here\"`",
+        "zh-CN": "描述任务: `harness governed-start \"你的任务\"`",
+    },
+    "init.quickstart_status": {
+        "en": "View current state: `harness status`",
+        "zh-CN": "查看当前状态: `harness status`",
+    },
+    "init.quickstart_guide": {
+        "en": "Read the current layer guide: `harness layer guide`",
+        "zh-CN": "阅读当前层指南: `harness layer guide`",
+    },
+    "init.quickstart_docs": {
+        "en": "Full walkthrough: QUICKSTART.md",
+        "zh-CN": "完整 walkthrough: QUICKSTART.md",
+    },
     "init.prompt_platform": {
         "en": "Could not auto-detect platform. Select your AI coding tool:",
         "zh-CN": "无法自动检测平台。请选择你的 AI 编程工具：",
@@ -114,6 +134,18 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "governed_start.rigor_tier": {
         "en": "Rigor tier: {tier}",
         "zh-CN": "严格程度: {tier}",
+    },
+    "governed_start.layer_path": {
+        "en": "Layer path: {path}",
+        "zh-CN": "层路径: {path}",
+    },
+    "governed_start.next_layer": {
+        "en": "Next layer: {layer}",
+        "zh-CN": "下一层: {layer}",
+    },
+    "governed_start.path_hint": {
+        "en": "Inspect progress: `harness layer show`; inspect gates: `harness gate status`",
+        "zh-CN": "查看进度: `harness layer show`; 查看门控: `harness gate status`",
     },
     "governed_start.disclosure": {
         "en": "Disclosure:",
@@ -779,6 +811,62 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "gate.check.failed": {
         "en": "Gate {layer}: FAILED ({questions}/{required} questions answered; artifacts missing: {missing})",
         "zh-CN": "门控 {layer}: 失败 ({questions}/{required} 问题已答; 缺失工件: {missing})",
+    },
+    "gate.failure.details_header": {
+        "en": "Missing requirements:",
+        "zh-CN": "缺失要求:",
+    },
+    "gate.failure.questions_missing": {
+        "en": "Questions answered: {answered}/{required}.",
+        "zh-CN": "问题回答进度: {answered}/{required}。",
+    },
+    "gate.failure.artifacts_missing": {
+        "en": "Required artifacts not found: {missing}.",
+        "zh-CN": "未找到必需工件: {missing}。",
+    },
+    "gate.failure.blocking_artifacts_missing": {
+        "en": "Blocking artifacts not found: {missing}.",
+        "zh-CN": "未找到阻塞性工件: {missing}。",
+    },
+    "gate.failure.confirmations_unmet": {
+        "en": "Confirmation checks not met:",
+        "zh-CN": "确认检查未满足:",
+    },
+    "gate.failure.red_flags_header": {
+        "en": "Red flags we do not accept:",
+        "zh-CN": "不接受的红旗借口:",
+    },
+    "gate.failure.red_flag.small_change": {
+        "en": "\"This is just a small change, tests or evidence are not needed.\"",
+        "zh-CN": "“这只是小改动，不需要测试或证据。”",
+    },
+    "gate.failure.red_flag.later": {
+        "en": "\"I'll add the missing gate evidence later.\"",
+        "zh-CN": "“缺失的门控证据之后再补。”",
+    },
+    "gate.failure.red_flag.existing": {
+        "en": "\"The existing checks probably cover this.\"",
+        "zh-CN": "“现有检查应该已经覆盖了。”",
+    },
+    "gate.failure.red_flag.skip": {
+        "en": "\"I'll skip the gate because it is slowing me down.\"",
+        "zh-CN": "“门控拖慢了进度，所以先跳过。”",
+    },
+    "gate.failure.actions_header": {
+        "en": "Required actions:",
+        "zh-CN": "必需动作:",
+    },
+    "gate.failure.action.guide": {
+        "en": "Run `harness layer guide {layer}` and answer the required questions.",
+        "zh-CN": "运行 `harness layer guide {layer}` 并回答必需问题。",
+    },
+    "gate.failure.action.complete": {
+        "en": "Create or record the missing evidence listed above.",
+        "zh-CN": "创建或记录上方列出的缺失证据。",
+    },
+    "gate.failure.action.rerun": {
+        "en": "Re-run `harness gate check {layer}`.",
+        "zh-CN": "重新运行 `harness gate check {layer}`。",
     },
     "gate.status.locked": {
         "en": "[LOCKED]  {layer} — session: {session}, at: {passed_at}",

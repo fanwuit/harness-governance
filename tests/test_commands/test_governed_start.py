@@ -54,6 +54,35 @@ def test_governed_start_classifies_public_api_as_governed(tmp_repo: Path) -> Non
     assert result.exit_code == 0, result.output
     assert "governed-path" in result.output
     assert "Disclosure" in result.output
+    assert "Layer path:" in result.output
+    assert "intake-orientation -> idea -> fact-discovery" in result.output
+    assert "Next layer: idea" in result.output
+    assert "harness layer show" in result.output
+    assert "harness gate status" in result.output
+
+
+def test_governed_start_json_includes_layer_path(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "Expose new /v2/widgets endpoint",
+            "--files",
+            "src/api.py",
+            "--contracts",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["path"] == "governed-path"
+    assert payload["current_layer"] == "intake-orientation"
+    assert payload["next_layer"] == "idea"
+    assert payload["layer_path"].startswith("intake-orientation -> idea")
+    assert payload["layer_path"].endswith("verification -> review-next")
 
 
 def test_governed_start_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:
@@ -418,6 +447,80 @@ class TestAutoInferFlags:
         assert result.exit_code == 0, result.output
         payload = json.loads(result.output)
         assert payload["path"] == "fast-path"
+
+    def test_readonly_file_mention_no_flags_stays_fast_path(self) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                ".",
+                "--json",
+                "governed-start",
+                "解释 upgrade.md 是什么",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "fast-path"
+
+    def test_low_risk_markdown_update_no_flags_routes_trivial(
+        self, tmp_repo: Path
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_repo),
+                "--json",
+                "governed-start",
+                "同步 upgrade.md 状态",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "trivial-safe-change"
+        assert payload["session_id"] is None
+
+    def test_cli_and_tests_work_no_flags_routes_governed(
+        self, tmp_repo: Path
+    ) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_repo),
+                "--json",
+                "governed-start",
+                "修改 governed-start 输出 12 层路径并加测试",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+        assert payload["next_layer"] == "idea"
+
+    def test_english_complete_improvements_no_flags_routes_governed(
+        self, tmp_repo: Path
+    ) -> None:
+        """Execution verbs should route governed even when flags are omitted."""
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_repo),
+                "--json",
+                "governed-start",
+                "complete improvements 1-4",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["path"] == "governed-path"
+        assert payload["layer_path"].startswith("intake-orientation -> idea")
 
     def test_explicit_no_contracts_overrides_infer(self, tmp_repo: Path) -> None:
         """--no-contracts explicitly overrides auto-inference."""
