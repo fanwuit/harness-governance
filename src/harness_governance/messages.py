@@ -172,6 +172,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Gate locks: {locked}/{total}",
         "zh-CN": "门控锁: {locked}/{total}",
     },
+    "alias.ship.release_verify_hint": {
+        "en": "Before pushing a release tag for this repository: run `harness verify local --release` or install `harness hook install --tag-release`.",
+        "zh-CN": "推送本仓库 release tag 前: 运行 `harness verify local --release`，或安装 `harness hook install --tag-release`。",
+    },
     "governed_start.disclosure": {
         "en": "Disclosure:",
         "zh-CN": "披露:",
@@ -623,6 +627,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Unknown preset: {preset!r}. Built-in presets: {available}.",
         "zh-CN": "未知的 preset: {preset!r}。内置 preset: {available}。",
     },
+    "verify.release.self_repo_only": {
+        "en": "`harness verify local --release` is only available in the harness-governance source repository.",
+        "zh-CN": "`harness verify local --release` 仅可在 harness-governance 源码仓库中使用。",
+    },
     "hook.install.requires_target": {
         "en": "Choose a hook target, for example --tag-release.",
         "zh-CN": "请选择 hook 目标，例如 --tag-release。",
@@ -638,6 +646,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "hook.install.tag_release": {
         "en": "Installed tag-release pre-push hook: {path}",
         "zh-CN": "已安装 tag-release pre-push hook：{path}",
+    },
+    "hook.install.tag_release.self_repo_only": {
+        "en": "`--tag-release` is only available in the harness-governance source repository.",
+        "zh-CN": "`--tag-release` 仅可在 harness-governance 源码仓库中使用。",
     },
     # review ---------------------------------------------------------------
     "review.recorded": {

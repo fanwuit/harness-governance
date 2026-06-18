@@ -13,6 +13,8 @@ from typing import Literal, cast
 import click
 
 from ..messages import bilingual
+from ..config import load_config
+from ..file_ops.queue import append_governed_queue_item
 from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import (
@@ -425,6 +427,14 @@ def governed_start_cmd(
             rigor_tier=resolved_rigor.value,
         )
         session_path = create_session(project_root, session)
+        config = load_config(project_root)
+        append_governed_queue_item(
+            config.queue_file,
+            session_id=session_id,
+            description=resolved_description,
+            layer=result.current_layer or HarnessLayer.INTAKE_ORIENTATION,
+            rigor_tier=resolved_rigor.value,
+        )
         import logging
 
         logging.getLogger("harness").info("session created: %s", session_path)

@@ -14,7 +14,16 @@ def _init_git_dir(project_root: Path) -> None:
     (project_root / ".git" / "hooks").mkdir(parents=True)
 
 
+def _mark_harness_governance_repo(project_root: Path) -> None:
+    (project_root / "src" / "harness_governance").mkdir(parents=True)
+    (project_root / "pyproject.toml").write_text(
+        '[project]\nname = "harness-governance"\n',
+        encoding="utf-8",
+    )
+
+
 def test_hook_install_tag_release_writes_pre_push(tmp_repo: Path) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     _init_git_dir(tmp_repo)
     runner = CliRunner()
 
@@ -32,6 +41,7 @@ def test_hook_install_tag_release_writes_pre_push(tmp_repo: Path) -> None:
 
 
 def test_hook_install_tag_release_requires_git_dir(tmp_repo: Path) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -41,7 +51,19 @@ def test_hook_install_tag_release_requires_git_dir(tmp_repo: Path) -> None:
     assert "No .git directory" in result.output
 
 
+def test_hook_install_tag_release_is_self_repo_only(tmp_repo: Path) -> None:
+    _init_git_dir(tmp_repo)
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "hook", "install", "--tag-release"],
+    )
+    assert result.exit_code != 0
+    assert "only available in the harness-governance source repository" in result.output
+
+
 def test_hook_install_does_not_overwrite_existing_hook(tmp_repo: Path) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     _init_git_dir(tmp_repo)
     hook = tmp_repo / ".git" / "hooks" / "pre-push"
     hook.write_text("# custom\n", encoding="utf-8")
@@ -56,6 +78,7 @@ def test_hook_install_does_not_overwrite_existing_hook(tmp_repo: Path) -> None:
 
 
 def test_hook_install_force_overwrites_existing_hook(tmp_repo: Path) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     _init_git_dir(tmp_repo)
     hook = tmp_repo / ".git" / "hooks" / "pre-push"
     hook.write_text("# custom\n", encoding="utf-8")

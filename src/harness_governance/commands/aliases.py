@@ -20,6 +20,7 @@ from .check import (
     check_routing,
 )
 from .governed_start import governed_start_cmd
+from .verify import is_harness_governance_repo
 
 
 @click.command("start")
@@ -148,6 +149,7 @@ def next_cmd(ctx: click.Context) -> None:
 def ship_cmd(ctx: click.Context) -> None:
     """Run release-readiness checks without publishing or deploying."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    release_verification_available = is_harness_governance_repo(project_root)
     results = [
         check_routing(project_root),
         check_priority(project_root),
@@ -182,6 +184,7 @@ def ship_cmd(ctx: click.Context) -> None:
         "session_id": session.session_id if session else None,
         "gates": gate_rows,
         "published": False,
+        "release_verification_available": release_verification_available,
     }
 
     if ctx.obj.get("json_output"):
@@ -206,6 +209,8 @@ def ship_cmd(ctx: click.Context) -> None:
                 total=len(gate_rows),
             )
         )
+    if release_verification_available:
+        click.echo(bilingual("alias.ship.release_verify_hint"))
     if not passed:
         raise click.exceptions.Exit(code=1)
 

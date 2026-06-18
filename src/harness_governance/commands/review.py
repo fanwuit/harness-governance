@@ -7,7 +7,9 @@ from pathlib import Path
 
 import click
 
+from ..config import load_config
 from ..file_ops.checkpoint import Checkpoint
+from ..file_ops.queue import mark_queue_item_done
 from ..messages import bilingual
 
 
@@ -103,6 +105,13 @@ def review_close_cmd(
         cp.next_resume_source = next_resume
 
     cp.dump(target)
+    config = load_config(project_root)
+    mark_queue_item_done(
+        config.queue_file,
+        task_id=task_id,
+        evidence=evidence,
+        risks=risks,
+    )
     click.echo(bilingual("review.recorded", task_id=task_id, path=str(target)))
 
 

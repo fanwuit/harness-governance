@@ -37,6 +37,16 @@ _RELEASE_COMMANDS: tuple[tuple[str, ...], ...] = (
 )
 
 
+def is_harness_governance_repo(project_root: Path) -> bool:
+    """Return True only for the harness-governance source repository."""
+    pyproject = project_root / "pyproject.toml"
+    package_root = project_root / "src" / "harness_governance"
+    if not pyproject.is_file() or not package_root.is_dir():
+        return False
+    text = pyproject.read_text(encoding="utf-8")
+    return 'name = "harness-governance"' in text or "name = 'harness-governance'" in text
+
+
 @click.command("verify")
 @click.argument("preset")
 @click.option(
@@ -107,6 +117,9 @@ def verify_cmd(ctx: click.Context, preset: str, release: bool) -> None:
 
 
 def _run_release_verification(project_root: Path) -> None:
+    if not is_harness_governance_repo(project_root):
+        raise click.ClickException(bilingual("verify.release.self_repo_only"))
+
     failures: list[str] = []
     for command in _RELEASE_COMMANDS:
         label = " ".join(command)
@@ -149,4 +162,9 @@ def _verify_wheel_contents(project_root: Path) -> bool:
     return True
 
 
-__all__ = ["verify_cmd", "_run_release_verification", "_verify_wheel_contents"]
+__all__ = [
+    "verify_cmd",
+    "is_harness_governance_repo",
+    "_run_release_verification",
+    "_verify_wheel_contents",
+]

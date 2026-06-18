@@ -85,6 +85,47 @@ def test_governed_start_json_includes_layer_path(tmp_repo: Path) -> None:
     assert payload["layer_path"].endswith("verification -> review-next")
 
 
+def test_governed_start_governed_path_appends_active_queue_item(
+    tmp_repo: Path,
+) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "Expose new /v2/widgets endpoint",
+            "--files",
+            "src/api.py",
+            "--contracts",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    session_id = payload["session_id"]
+
+    text = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Expose new /v2/widgets endpoint" in text
+    assert f"- Session: {session_id}" in text
+    assert "- Layer: intake-orientation" in text
+    assert "- Verification command: harness check all" in text
+
+    second = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "What does this skill do?",
+        ],
+    )
+    assert second.exit_code == 0, second.output
+    assert (tmp_repo / "NEXT.md").read_text(encoding="utf-8") == text
+
+
 def test_governed_start_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:
     """When the on-disk skill is older than the installed template,
     governed-start must surface a `skill_version_warning` in both

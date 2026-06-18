@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from ..messages import bilingual
+from .verify import is_harness_governance_repo
 
 _TAG_RELEASE_MARKER = "harness-governance: tag-release pre-push"
 _TAG_RELEASE_PRE_PUSH = f"""#!/bin/sh
@@ -59,6 +60,9 @@ def hook_install_cmd(ctx: click.Context, tag_release: bool, force: bool) -> None
         raise click.UsageError(bilingual("hook.install.requires_target"))
 
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    if tag_release and not is_harness_governance_repo(project_root):
+        raise click.ClickException(bilingual("hook.install.tag_release.self_repo_only"))
+
     git_dir = project_root / ".git"
     if not git_dir.is_dir():
         raise click.ClickException(bilingual("hook.install.no_git"))

@@ -196,6 +196,115 @@ def format_queue(items: Iterable[QueueItem]) -> str:
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
+def append_governed_queue_item(
+    queue_path: Path,
+    *,
+    session_id: str,
+    description: str,
+    layer: HarnessLayer,
+    rigor_tier: str,
+) -> bool:
+    """Append a governed task entry to ``NEXT.md`` if not already present."""
+    existing = queue_path.read_text(encoding="utf-8") if queue_path.is_file() else ""
+    if f"Session: {session_id}" in existing:
+        return False
+
+    entry = "\n".join(
+        (
+            f"[active] {description}",
+            f"- Session: {session_id}",
+            f"- Layer: {layer.value}",
+            f"- Rigor: {rigor_tier}",
+            "- Verification command: harness check all",
+            "- Done when: review close records verification evidence",
+        )
+    )
+    queue_path.parent.mkdir(parents=True, exist_ok=True)
+    separator = "\n\n" if existing.strip() else ""
+    queue_path.write_text(existing.rstrip() + separator + entry + "\n", encoding="utf-8")
+    return True
+
+
+def mark_queue_item_done(
+    queue_path: Path,
+    *,
+    task_id: str,
+    evidence: Iterable[str] = (),
+    risks: Iterable[str] = (),
+) -> bool:
+    """Mark the queue block matching *task_id* as ``[done]``.
+
+    Matching is intentionally broad enough for CLI use: it accepts a
+    ``Session: <task_id>`` field, a ``Change: <task_id>`` field, or a first-line
+    task title containing the id passed to ``harness review close``.
+    """
+    if not queue_path.is_file():
+        return False
+
+    text = queue_path.read_text(encoding="utf-8")
+    blocks = _split_blocks(text)
+    changed = False
+    rendered: list[str] = []
+    for block in blocks:
+        if not changed and _queue_block_matches(block, task_id):
+            rendered.append(_mark_block_done(block, task_id, evidence, risks))
+            changed = True
+        else:
+            rendered.append(block.rstrip())
+
+    if changed:
+        queue_path.write_text("\n\n".join(rendered).rstrip() + "\n", encoding="utf-8")
+    return changed
+
+
+def _split_blocks(text: str) -> list[str]:
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if line.strip() == "":
+            if current:
+                blocks.append("\n".join(current).rstrip())
+                current = []
+            continue
+        current.append(line)
+    if current:
+        blocks.append("\n".join(current).rstrip())
+    return blocks
+
+
+def _queue_block_matches(block: str, task_id: str) -> bool:
+    escaped = re.escape(task_id)
+    return bool(
+        re.search(rf"^\s*-?\s*Session:\s*{escaped}\s*$", block, re.MULTILINE)
+        or re.search(rf"^\s*-?\s*Change:\s*{escaped}\s*$", block, re.MULTILINE)
+        or re.search(rf"^\s*\[(?:active|ready)\]\s+.*{escaped}", block, re.IGNORECASE)
+    )
+
+
+def _mark_block_done(
+    block: str,
+    task_id: str,
+    evidence: Iterable[str],
+    risks: Iterable[str],
+) -> str:
+    lines = block.splitlines()
+    if lines:
+        lines[0] = re.sub(
+            r"^(\s*)\[(active|ready)\]",
+            r"\1[done]",
+            lines[0],
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    if not any(re.match(r"\s*-?\s*Closed:\s*", line) for line in lines):
+        lines.append(f"- Closed: {task_id}")
+    for item in evidence:
+        lines.append(f"- Evidence: {item}")
+    for item in risks:
+        lines.append(f"- Risk: {item}")
+    return "\n".join(lines)
+
+
 # Extended inline field keys beyond the core Layer/Change/Packetization/Evidence.
 # Used by extract_ready_block_fields() for Subagent runner variable extraction.
 _EXTENDED_FIELD_KEYS = frozenset(
@@ -264,4 +373,11 @@ def extract_ready_block_fields(raw: str) -> dict[str, str]:
     return result
 
 
-__all__ = ["parse_queue", "read_queue", "format_queue", "extract_ready_block_fields"]
+__all__ = [
+    "parse_queue",
+    "read_queue",
+    "format_queue",
+    "append_governed_queue_item",
+    "mark_queue_item_done",
+    "extract_ready_block_fields",
+]

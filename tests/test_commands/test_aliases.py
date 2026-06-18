@@ -13,6 +13,14 @@ from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
 
 
+def _mark_harness_governance_repo(project_root: Path) -> None:
+    (project_root / "src" / "harness_governance").mkdir(parents=True)
+    (project_root / "pyproject.toml").write_text(
+        '[project]\nname = "harness-governance"\n',
+        encoding="utf-8",
+    )
+
+
 def test_start_alias_invokes_governed_start(tmp_repo: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(
@@ -82,3 +90,20 @@ def test_ship_alias_does_not_publish_and_fails_without_session(tmp_repo: Path) -
     assert payload["published"] is False
     assert payload["session_id"] is None
     assert payload["passed"] is False
+    assert payload["release_verification_available"] is False
+
+
+def test_ship_alias_mentions_release_verification_only_for_self_repo(
+    tmp_repo: Path,
+) -> None:
+    _mark_harness_governance_repo(tmp_repo)
+    (tmp_repo / "README.md").write_text("# Test repo\n", encoding="utf-8")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "ship"],
+    )
+
+    assert result.exit_code == 1, result.output
+    assert "harness verify local --release" in result.output

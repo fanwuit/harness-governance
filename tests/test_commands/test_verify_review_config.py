@@ -11,6 +11,14 @@ from harness_governance.cli import cli
 from harness_governance.commands import verify as verify_module
 
 
+def _mark_harness_governance_repo(project_root: Path) -> None:
+    (project_root / "src" / "harness_governance").mkdir(parents=True)
+    (project_root / "pyproject.toml").write_text(
+        '[project]\nname = "harness-governance"\n',
+        encoding="utf-8",
+    )
+
+
 def test_verify_routing_preset_passes(tmp_repo: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(
@@ -47,6 +55,7 @@ def test_verify_local_release_runs_release_steps(
     tmp_repo: Path,
     monkeypatch,
 ) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     monkeypatch.setattr(
         verify_module,
         "_RELEASE_COMMANDS",
@@ -63,10 +72,21 @@ def test_verify_local_release_runs_release_steps(
     assert "verify local --release: passed" in result.output
 
 
+def test_verify_local_release_is_self_repo_only(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "verify", "local", "--release"],
+    )
+    assert result.exit_code != 0
+    assert "only available in the harness-governance source repository" in result.output
+
+
 def test_verify_local_release_fails_on_step(
     tmp_repo: Path,
     monkeypatch,
 ) -> None:
+    _mark_harness_governance_repo(tmp_repo)
     monkeypatch.setattr(
         verify_module,
         "_RELEASE_COMMANDS",
@@ -109,6 +129,37 @@ def test_review_close_writes_checkpoint(tmp_repo: Path) -> None:
     assert "task-1" in checkpoint
     assert "pytest -q" in checkpoint
     assert "scope creep" in checkpoint
+
+
+def test_review_close_marks_matching_queue_item_done(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Session: task-1\n"
+        "- Layer: implementation\n"
+        "- Verification command: pytest\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "review",
+            "close",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+            "--risk",
+            "none",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    text = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[done] Implement queue closure" in text
+    assert "- Closed: task-1" in text
+    assert "- Evidence: pytest -q" in text
+    assert "- Risk: none" in text
 
 
 def test_config_init_writes_file(tmp_repo: Path) -> None:
