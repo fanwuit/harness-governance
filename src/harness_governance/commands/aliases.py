@@ -198,11 +198,11 @@ def ship_cmd(ctx: click.Context) -> None:
     if session is None:
         click.echo(bilingual("alias.ship.no_session"))
     else:
-        locked = sum(1 for row in gate_rows if row["locked"])
+        locked_count = sum(1 for row in gate_rows if bool(row["locked"]))
         click.echo(
             bilingual(
                 "alias.ship.gates",
-                locked=locked,
+                locked=locked_count,
                 total=len(gate_rows),
             )
         )

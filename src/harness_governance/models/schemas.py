@@ -406,6 +406,7 @@ class VersionConstraint(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tool_name: str
+    language: str | None = None
     declared_version: str = ""
     detected_version: str | None = None
     constraint_type: Literal["exact", "range", "unpinned"] = "unpinned"

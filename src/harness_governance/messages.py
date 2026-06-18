@@ -87,8 +87,8 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "快速上手:",
     },
     "init.quickstart_task": {
-        "en": "Describe your task: `harness governed-start \"your task here\"`",
-        "zh-CN": "描述任务: `harness governed-start \"你的任务\"`",
+        "en": 'Describe your task: `harness governed-start "your task here"`',
+        "zh-CN": '描述任务: `harness governed-start "你的任务"`',
     },
     "init.quickstart_status": {
         "en": "View current state: `harness status`",
@@ -623,6 +623,22 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Unknown preset: {preset!r}. Built-in presets: {available}.",
         "zh-CN": "未知的 preset: {preset!r}。内置 preset: {available}。",
     },
+    "hook.install.requires_target": {
+        "en": "Choose a hook target, for example --tag-release.",
+        "zh-CN": "请选择 hook 目标，例如 --tag-release。",
+    },
+    "hook.install.no_git": {
+        "en": "No .git directory found in the project root.",
+        "zh-CN": "项目根目录中未找到 .git 目录。",
+    },
+    "hook.install.exists": {
+        "en": "A pre-push hook already exists. Use --force to overwrite it.",
+        "zh-CN": "pre-push hook 已存在。使用 --force 覆盖。",
+    },
+    "hook.install.tag_release": {
+        "en": "Installed tag-release pre-push hook: {path}",
+        "zh-CN": "已安装 tag-release pre-push hook：{path}",
+    },
     # review ---------------------------------------------------------------
     "review.recorded": {
         "en": "Recorded review/next state for {task_id} in {path}",
@@ -816,6 +832,18 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Author confirmation recorded in audit trail.",
         "zh-CN": "作者确认已记录到审计日志。",
     },
+    "layer.answer_recorded": {
+        "en": "Author answer recorded for {layer} ({count} answer(s) recorded).",
+        "zh-CN": "已记录 {layer} 的作者回答（累计 {count} 条）。",
+    },
+    "layer.ask.recorded": {
+        "en": "Author questions recorded for {layer}: {count} new, {answered} total.",
+        "zh-CN": "已记录 {layer} 的作者问题：新增 {count} 条，累计 {answered} 条。",
+    },
+    "layer.ask.no_questions": {
+        "en": "No author questions found for layer: {layer}.",
+        "zh-CN": "未找到 {layer} 的作者问题。",
+    },
     "layer.skip_gate_requires_confirmed": {
         "en": "--skip-gate requires --confirmed (safety interlock).",
         "zh-CN": "--skip-gate 必须配合 --confirmed 使用（安全联动）。",
@@ -862,19 +890,19 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "不接受的红旗借口:",
     },
     "gate.failure.red_flag.small_change": {
-        "en": "\"This is just a small change, tests or evidence are not needed.\"",
+        "en": '"This is just a small change, tests or evidence are not needed."',
         "zh-CN": "“这只是小改动，不需要测试或证据。”",
     },
     "gate.failure.red_flag.later": {
-        "en": "\"I'll add the missing gate evidence later.\"",
+        "en": '"I\'ll add the missing gate evidence later."',
         "zh-CN": "“缺失的门控证据之后再补。”",
     },
     "gate.failure.red_flag.existing": {
-        "en": "\"The existing checks probably cover this.\"",
+        "en": '"The existing checks probably cover this."',
         "zh-CN": "“现有检查应该已经覆盖了。”",
     },
     "gate.failure.red_flag.skip": {
-        "en": "\"I'll skip the gate because it is slowing me down.\"",
+        "en": '"I\'ll skip the gate because it is slowing me down."',
         "zh-CN": "“门控拖慢了进度，所以先跳过。”",
     },
     "gate.failure.actions_header": {
@@ -882,8 +910,8 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "必需动作:",
     },
     "gate.failure.action.guide": {
-        "en": "Run `harness layer guide {layer}` and answer the required questions.",
-        "zh-CN": "运行 `harness layer guide {layer}` 并回答必需问题。",
+        "en": "Run `harness layer guide {layer}`, then record answers with `harness layer answer {layer} --question <q> --answer <a>`.",
+        "zh-CN": "运行 `harness layer guide {layer}`，然后用 `harness layer answer {layer} --question <问题> --answer <回答>` 记录答案。",
     },
     "gate.failure.action.complete": {
         "en": "Create or record the missing evidence listed above.",

@@ -483,9 +483,7 @@ class TestAutoInferFlags:
         assert payload["path"] == "trivial-safe-change"
         assert payload["session_id"] is None
 
-    def test_cli_and_tests_work_no_flags_routes_governed(
-        self, tmp_repo: Path
-    ) -> None:
+    def test_cli_and_tests_work_no_flags_routes_governed(self, tmp_repo: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(
             cli,

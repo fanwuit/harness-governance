@@ -163,6 +163,218 @@ harness example refactor      # 场景：架构重构
 
 ---
 
+### 3A. State Contract Closure / 状态契约闭环（新增，P1）
+
+**来源**：本项目 governed strict 链路事故复盘
+
+**现状问题**：
+- CLI 可以输出 `confirmed` / `recorded` / `passed`，但测试可能只覆盖输出或单个写入字段。
+- gate/check 读取的是另一份状态 schema 时，单元测试仍可能全部通过，真实 strict/governed 链路却卡死。
+- 派生项目如果只继承 harness 的流程提示，而没有集成测试和端到端测试约束，会复现同类“状态写入与消费不闭环”问题。
+
+**建议改进**：
+把“状态契约闭环”作为 harness 对自身和派生项目的 P1 治理约束：
+
+```text
+CLI 承诺状态已 confirmed/recorded
+-> 持久化状态写入
+-> 下游 check/gate 能读取并认可
+-> 集成测试或 E2E 测试固定该链路
+```
+
+派生项目最低要求：
+1. **集成测试**：每个治理状态 writer 必须证明对应 check/gate consumer 能消费它。
+2. **端到端 smoke**：至少一条真实 governed-path 最小推进链路可走通。
+3. **负例测试**：缺少该状态时，gate/check 仍必须阻止推进。
+
+后续可新增 harness 能力：
+
+```bash
+harness state-contract check
+```
+
+该命令用于扫描/登记：
+- 哪些 CLI 命令写入持久化治理状态。
+- 哪些 gate/check 读取这些状态。
+- 是否存在对应的 integration/e2e 回归测试。
+
+配套 UX 能力：
+
+```bash
+harness layer ask intake-orientation
+# 或
+harness layer intake
+```
+
+该命令用于补齐 strict/governed-path 的真实使用体验：
+- 自动读取当前 layer guide 的 Author Questions。
+- 逐题提示用户回答，而不是只展示整段 guide。
+- 将每个答案写入 session 的 `layer_qa`，等价于多次执行 `harness layer answer ...`。
+- 回答完成后显示当前 gate 还缺什么，例如 tech-stack lint/docstyle 或其他 confirmation item。
+- 不伪造 gate 通过；只提供正式状态写入入口和下一步提示。
+
+**实现位置**：
+- `upgrade.md`：记录为 P1 跟踪项。
+- `tests/STATE_CONTRACTS.md`：已定义状态契约闭环测试约束。
+- `tests/test_e2e/test_governed_path_smoke.py`：已新增最小 strict governed-path E2E smoke。
+- `src/harness_governance/commands/state_contract.py`：已新增 `harness state-contract check` 第一版显式证据检查。
+- `src/harness_governance/commands/layer.py`：已新增 `harness layer ask <layer>` 和 `harness layer intake`。
+- `tests/test_commands/test_layer_cmd.py`、`tests/test_commands/test_state_contract_cmd.py`：已覆盖交互式问答和 state-contract check。
+- 后续可在 `harness init` 中生成派生项目测试骨架。
+- 后续可在 `verification` gate 或 `harness check` 中要求 state-contract 证据。
+
+**完成状态**：
+P1 第一版已实现。已具备正式问答入口、状态契约文档、最小 E2E smoke 和 `harness state-contract check`。剩余增强是派生项目模板生成、接入 verification gate / harness check，以及更自动化的 writer/consumer 扫描。
+
+---
+
+### 3B. Tag-only Release Verification Hook / 仅 tag 推送的发布前验证（新增，P1）
+
+**来源**：GitHub CI #32 失败复盘
+
+**范围声明**：
+该能力第一版只针对 `harness-governance` 本仓库的 release hygiene。它固定使用本项目 Python 包的 CI/release 验证命令，不承诺作为派生项目的通用 release policy，也不要求派生项目必须有 CI。
+
+**现状问题**：
+- 普通 commit / push 阶段没有本地前置验证，格式问题会等到 GitHub CI 才暴露。
+- 但如果对所有 commit 或普通 push 都强制全量验证，会显著增加日常开发摩擦。
+- 项目真正需要更强约束的是 release/tag 前验证：tag 一旦推到远端，失败成本高于普通提交。
+- Git 没有标准 `pre-tag` hook，不能直接在 `git tag` 前自动拦截。
+
+**建议改进**：
+实现“只拦 tag push，不拦普通提交/普通 push”的 release 验证能力。
+
+第一阶段新增本地验证命令：
+
+```bash
+harness verify local --release
+```
+
+建议执行内容：
+- `ruff format --check src/ tests/`
+- `ruff check src/ tests/`
+- `mypy src/`
+- `pytest`
+- `python -m build --wheel`
+- wheel contents check
+
+第二阶段新增 hook 安装命令：
+
+```bash
+harness hook install --tag-release
+```
+
+安装 `.git/hooks/pre-push`，hook 只检测 tag ref：
+
+```sh
+while read local_ref local_sha remote_ref remote_sha
+do
+  case "$local_ref" in
+    refs/tags/*)
+      harness verify local --release || exit 1
+      ;;
+  esac
+done
+```
+
+预期行为：
+- `git push origin main`：不触发 release 验证。
+- `git push origin v0.8.2`：触发 `harness verify local --release`；失败则阻止 tag push。
+
+后续可选封装：
+
+```bash
+harness release tag v0.8.2
+```
+
+该命令在创建 tag 前先跑 release 验证，再执行 `git tag`。它补足 Git 没有 `pre-tag` hook 的缺口，但第一版可以先做 tag-only `pre-push`。
+
+**实现位置**：
+- `src/harness_governance/commands/verify.py`：已新增 `harness verify local --release`。
+- `src/harness_governance/commands/hook.py`：已新增 `harness hook install --tag-release`。
+- `tests/test_commands/test_verify_review_config.py`、`tests/test_commands/test_hook_cmd.py`：已覆盖 release 验证和 tag-only hook 安装。
+- 后续可在 `harness ship` 输出中提示 tag release 前安装/运行该验证。
+
+**完成状态**：
+P1 第一版已实现。普通 commit / 普通 push 不拦截；安装 tag-release hook 后，仅 `refs/tags/*` push 会触发 `harness verify local --release`。当前验证内容按本仓库 Python 包 release 流程固定。剩余增强是 `harness ship` 提示和可选 `harness release tag <version>` 封装。
+
+---
+
+### 3C. Agent Preflight Assessment / 代理侧预评估路由（新增，P1）
+
+**来源**：本项目 dogfood 反馈
+
+**现状问题**：
+- 用户实际是在和 agent 对话，而不是直接和 `harness governed-start` 对话。
+- 当前 agent 往往把用户原话直接传给 `harness governed-start`，导致 harness 只能靠关键词和规则猜测任务难度。
+- 只靠关键词会不断增加触发词，仍然无法可靠表达上下文、文件范围、风险和 agent 已经理解到的任务意图。
+- 例如“加入 upgrade.md 并排序优先级”这类任务，agent 已知道是文档跟踪项更新，但 harness 可能因为“文件修改/持久化状态”等关键词进入 governed-path。
+
+**建议改进**：
+在 `harness governed-start` 前增加 agent-side preflight：agent 先把自然语言请求理解为结构化 assessment，再交给 harness 做最终路由和审计。
+
+目标链路：
+
+```text
+用户自然语言
+-> agent 预评估任务类型、范围、风险、文件影响
+-> harness governed-start 接收结构化 assessment
+-> harness 输出最终 routing + rationale + disclosure
+```
+
+建议第一版支持两种输入：
+
+```bash
+harness governed-start "记录 tag-only hook 到 upgrade.md" \
+  --files upgrade.md \
+  --contracts=false \
+  --external=false \
+  --unclear=false \
+  --change-kind docs-tracking \
+  --risk low
+```
+
+或：
+
+```bash
+harness governed-start --assessment .harness/tmp/agent-assessment.json
+```
+
+assessment 示例：
+
+```json
+{
+  "user_request": "先加入 upgrade.md，并排优先级",
+  "agent_interpretation": "Update the tracking document only.",
+  "intended_files": ["upgrade.md"],
+  "operation": "documentation_update",
+  "writes_files": true,
+  "touches_public_contract": false,
+  "has_external_side_effects": false,
+  "scope_unclear": false,
+  "risk": "low",
+  "recommended_route": "trivial-safe-change"
+}
+```
+
+路由原则：
+- agent 负责上下文理解，不只传用户原话。
+- harness 保留最终裁决权，可以接受、升级或拒绝 agent 的建议。
+- disclosure 中显示 agent recommendation 与 harness final route 的差异。
+- 关键词检测退为兜底，而不是主路径。
+
+**实现位置**：
+- 后续扩展 `src/harness_governance/models/schemas.py`：新增 `AgentAssessment` schema。
+- 后续扩展 `src/harness_governance/commands/governed_start.py`：支持 `--assessment`、`--change-kind`、`--risk` 等结构化输入。
+- 后续扩展 `src/harness_governance/state_machine/classification.py`：把 assessment 作为主要路由信号，关键词作为 fallback。
+- 后续补 `tests/test_state_machine/test_classification.py` 和 `tests/test_commands/test_governed_start.py`。
+- 后续更新 AGENTS/skill 文档：agent 必须先做 preflight，再调用 governed-start。
+
+**优先级判断**：
+P1。原因是它解决的是治理入口架构问题：没有 agent preflight，harness 会继续变成关键词分类器，并且 dogfood 过程中会反复出现“任务实际很简单但路由过重”的问题。该项优先级高于 P2 规格/安装能力，但低于已经完成的状态闭环和 release hook 第一版。
+
+---
+
 ## 优先级 P2：中期值得借鉴
 
 ### 4. 轻量规格模式
@@ -317,6 +529,9 @@ Need help? Run: harness guide quickstart
 | **P0** | 红旗清单 + 拒绝理由提示 | Superpowers | 低 | 高 — 直接提升 agent 遵循率 |
 | **P1** | Slash 命令 Alias 层 | GStack | 中 | 已完成（CLI alias v1；slash 暂缓） |
 | **P1** | 完整场景示例 | GStack | 中 | 已完成（文档） |
+| **P1** | State Contract Closure / 状态契约闭环 | 事故复盘 | 中 | 第一版已完成 — 文档、E2E smoke、`state-contract check`、`layer ask/intake` |
+| **P1** | Tag-only Release Verification Hook | CI 复盘 | 中 | 第一版已完成 — `verify local --release`、tag-only hook install |
+| **P1** | Agent Preflight Assessment / 代理侧预评估路由 | Dogfood | 中 | 高 — 避免 governed-start 退化为关键词分类器 |
 | **P2** | 轻量规格模式 | OpenSpec | 中 | 中 — 简单任务不需要 5 个文件 |
 | **P2** | 渐进式安装 | Superpowers | 低 | 中 — 降低试用门槛 |
 | **P3** | Skill 组合灵活性 | Superpowers | 高 | 低 — 适合 skill 市场模式 |
@@ -326,9 +541,13 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界
-2. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`
-3. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式
+1. **P1 设计**：实现 Agent Preflight Assessment schema 与 `governed-start --assessment` 输入协议。
+2. **P1 增强**：评估是否将 `harness state-contract check` 接入 `verification` gate / `harness check`。
+3. **P1 增强**：在 `harness init` 中生成派生项目 state-contract 测试骨架。
+4. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证。
+5. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
+6. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
+7. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
 
 ---
 

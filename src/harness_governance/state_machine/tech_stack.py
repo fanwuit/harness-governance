@@ -695,6 +695,86 @@ class TechStackManager:
         self._persist(manifest)
         return True
 
+    def confirm_lint_tool(
+        self,
+        language: str,
+        tool_name: str,
+        version: str = "",
+        session_id: str = "",
+    ) -> VersionConstraint:
+        """Record a lint tool confirmation in the schema used by gate checks."""
+        manifest = self.load()
+        if manifest is None:
+            manifest = TechStackManifest(
+                languages=tuple(self.detect_project_languages() or [language]),
+                captured_at=datetime.now(timezone.utc).isoformat(),
+            )
+
+        if language not in manifest.languages:
+            manifest.languages = (*manifest.languages, language)
+
+        constraint = VersionConstraint(
+            tool_name=tool_name,
+            language=language,
+            declared_version=version,
+            detected_version=None,
+            constraint_type="exact" if version else "unpinned",
+            is_satisfied=True,
+            tool_category="lint",
+        )
+
+        updated_lints: list[VersionConstraint] = []
+        replaced = False
+        for existing in manifest.lint_tools:
+            same_tool = existing.tool_name == tool_name
+            same_language = existing.language == language
+            legacy_match = (
+                existing.language is None
+                and self._lint_tool_covers_language(existing, language)
+            )
+            if same_tool and (same_language or legacy_match):
+                if not replaced:
+                    updated_lints.append(constraint)
+                    replaced = True
+                continue
+            updated_lints.append(existing)
+        if not replaced:
+            updated_lints.append(constraint)
+        manifest.lint_tools = tuple(updated_lints)
+
+        updated_introductions: list[ToolIntroduction] = []
+        intro_found = False
+        for intro in manifest.introduced_tools:
+            if intro.tool_name == tool_name and intro.tool_category == "lint":
+                intro_found = True
+                updated_introductions.append(
+                    ToolIntroduction(
+                        tool_name=intro.tool_name,
+                        version=version or intro.version,
+                        introduced_by=intro.introduced_by or session_id,
+                        confirmed=True,
+                        confirmation_method="cli",
+                        tool_category=intro.tool_category,
+                    )
+                )
+            else:
+                updated_introductions.append(intro)
+        if not intro_found:
+            updated_introductions.append(
+                ToolIntroduction(
+                    tool_name=tool_name,
+                    version=version,
+                    introduced_by=session_id,
+                    confirmed=True,
+                    confirmation_method="cli",
+                    tool_category="lint",
+                )
+            )
+        manifest.introduced_tools = tuple(updated_introductions)
+
+        self._persist(manifest)
+        return constraint
+
     def detect_unexpected(self) -> list[str]:
         """Scan for tools present on the project that are not in the manifest.
 
@@ -824,6 +904,22 @@ class TechStackManager:
         tools.extend(u["name"] for u in _UNIVERSAL_LINT_TOOLS)
         return tools
 
+    def _lint_tool_covers_language(
+        self, constraint: VersionConstraint, language: str
+    ) -> bool:
+        """Return whether a persisted lint constraint covers *language*."""
+        if constraint.tool_category != "lint":
+            return False
+        if constraint.language is not None:
+            return constraint.language == language
+
+        catalog_names = {entry["name"] for entry in LINT_TOOL_CATALOG.get(language, [])}
+        universal_names = {entry["name"] for entry in _UNIVERSAL_LINT_TOOLS}
+        return (
+            constraint.tool_name in catalog_names
+            or constraint.tool_name in universal_names
+        )
+
     def detect_configured_lints(self) -> dict[str, tuple[str, str | None]]:
         """Scan for lint configuration files on disk.
 
@@ -880,9 +976,8 @@ class TechStackManager:
             lang: set() for lang in manifest.languages
         }
         for lang in manifest.languages:
-            catalog_names = {entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])}
             for t in manifest.lint_tools:
-                if t.tool_category == "lint" and t.tool_name in catalog_names:
+                if self._lint_tool_covers_language(t, lang):
                     confirmed_by_lang[lang].add(t.tool_name)
 
         for language in manifest.languages:
@@ -1045,6 +1140,7 @@ class TechStackManager:
             constraints.append(
                 VersionConstraint(
                     tool_name=tool_name,
+                    language=language,
                     declared_version=version or "",
                     detected_version=version,
                     constraint_type="exact" if version else "unpinned",
@@ -1199,9 +1295,8 @@ def _gate_hook_tech_stack(
         lang: set() for lang in manifest.languages
     }
     for lang in manifest.languages:
-        catalog_names = {entry["name"] for entry in LINT_TOOL_CATALOG.get(lang, [])}
         for t in manifest.lint_tools:
-            if t.tool_category == "lint" and t.tool_name in catalog_names:
+            if mgr._lint_tool_covers_language(t, lang):
                 confirmed_by_lang[lang].add(t.tool_name)
 
     for lang in manifest.languages:

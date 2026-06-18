@@ -6,6 +6,10 @@ delegate to existing commands so we don't duplicate logic.
 
 from __future__ import annotations
 
+import glob
+import subprocess
+import sys
+import zipfile
 from pathlib import Path
 
 import click
@@ -21,19 +25,43 @@ _PRESETS: dict[str, str] = {
     "entry": "entry",
     "inventory": "inventory",
     "all-local-checks": "all",
+    "local": "all",
 }
+
+_RELEASE_COMMANDS: tuple[tuple[str, ...], ...] = (
+    (sys.executable, "-m", "ruff", "format", "--check", "src/", "tests/"),
+    (sys.executable, "-m", "ruff", "check", "src/", "tests/"),
+    (sys.executable, "-m", "mypy", "src/"),
+    (sys.executable, "-m", "pytest"),
+    (sys.executable, "-m", "build", "--wheel"),
+)
 
 
 @click.command("verify")
 @click.argument("preset")
+@click.option(
+    "--release",
+    "release",
+    is_flag=True,
+    default=False,
+    help="Run harness-governance repository release/tag readiness checks.",
+)
 @click.pass_context
-def verify_cmd(ctx: click.Context, preset: str) -> None:
+def verify_cmd(ctx: click.Context, preset: str, release: bool) -> None:
     """Run a verification preset.
 
     Built-in presets: ``routing-guardrails``, ``packets``, ``entry``,
-    ``inventory``, ``all-local-checks``.
+    ``inventory``, ``all-local-checks``, ``local --release``.
+
+    ``local --release`` is currently scoped to this harness-governance
+    repository's Python package release flow, not a generic derived-project
+    release policy.
     """
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+
+    if preset == "local" and release:
+        _run_release_verification(project_root)
+        return
 
     if preset in _PRESETS:
         runner_name = _PRESETS[preset]
@@ -78,4 +106,47 @@ def verify_cmd(ctx: click.Context, preset: str) -> None:
     )
 
 
-__all__ = ["verify_cmd"]
+def _run_release_verification(project_root: Path) -> None:
+    failures: list[str] = []
+    for command in _RELEASE_COMMANDS:
+        label = " ".join(command)
+        click.echo(f"release: {label}")
+        completed = subprocess.run(command, cwd=project_root, text=True)
+        if completed.returncode != 0:
+            failures.append(label)
+            break
+
+    if not failures and not _verify_wheel_contents(project_root):
+        failures.append("wheel contents")
+
+    if failures:
+        click.echo(bilingual("verify.failed", preset="local --release"))
+        raise click.exceptions.Exit(code=1)
+
+    click.echo(bilingual("verify.passed", preset="local --release"))
+
+
+def _verify_wheel_contents(project_root: Path) -> bool:
+    wheels = glob.glob(str(project_root / "dist" / "*.whl"))
+    if not wheels:
+        click.echo("MISSING wheel: dist/*.whl")
+        return False
+
+    required = (
+        "data/templates/",
+        "data/references/",
+        "data/skills/",
+        "data/role-prompts/",
+    )
+    with zipfile.ZipFile(wheels[0]) as zf:
+        names = zf.namelist()
+        missing = [item for item in required if not any(item in name for name in names)]
+    if missing:
+        click.echo(f"MISSING in wheel: {missing}")
+        return False
+
+    click.echo(f"Wheel OK: {Path(wheels[0]).name}")
+    return True
+
+
+__all__ = ["verify_cmd", "_run_release_verification", "_verify_wheel_contents"]

@@ -8,8 +8,11 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
-from harness_governance.commands.layer import _extract_guide_section
-from harness_governance.session import SessionState, create_session
+from harness_governance.commands.layer import (
+    _extract_author_questions,
+    _extract_guide_section,
+)
+from harness_governance.session import SessionState, create_session, load_session
 from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
 
@@ -47,6 +50,8 @@ def _seed_session(
     *,
     session_id: str = "20260616-test",
     current_layer: HarnessLayer = HarnessLayer.INTAKE_ORIENTATION,
+    layer_qa: tuple[dict[str, str], ...] = _MOCK_INTAKE_QA,
+    rigor_tier: str = "standard",
 ) -> str:
     state = SessionState(
         session_id=session_id,
@@ -54,7 +59,8 @@ def _seed_session(
         description="Test",
         routing_path=RoutingPath.GOVERNED_PATH,
         current_layer=current_layer,
-        layer_qa=_MOCK_INTAKE_QA,
+        rigor_tier=rigor_tier,
+        layer_qa=layer_qa,
     )
     create_session(tmp_path, state)
     return session_id
@@ -70,6 +76,85 @@ class TestLayerAdvance:
         )
         assert result.exit_code == 0, result.output
         assert "idea" in result.output.lower() or "advanced" in result.output.lower()
+
+    def test_answer_records_qa_for_gate(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-answer-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+
+        for idx in range(1, 5):
+            result = runner.invoke(
+                cli,
+                [
+                    "--project-root",
+                    str(tmp_path),
+                    "layer",
+                    "answer",
+                    "intake-orientation",
+                    "--question",
+                    f"Q{idx}",
+                    "--answer",
+                    f"A{idx}",
+                ],
+            )
+            assert result.exit_code == 0, result.output
+
+        state = load_session(tmp_path, session_id)
+        assert len(state.layer_qa) == 4
+        assert all(qa["layer"] == "intake-orientation" for qa in state.layer_qa)
+
+        gate = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "gate", "check", "intake-orientation"],
+        )
+        assert gate.exit_code == 0, gate.output
+
+    def test_ask_records_author_questions_interactively(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-ask-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "ask",
+                "intake-orientation",
+            ],
+            input="A1\nA2\nA3\nA4\n",
+        )
+        assert result.exit_code == 0, result.output
+
+        state = load_session(tmp_path, session_id)
+        assert len(state.layer_qa) == 4
+        assert all(qa["layer"] == "intake-orientation" for qa in state.layer_qa)
+
+    def test_intake_alias_records_author_questions(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-intake-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "intake"],
+            input="A1\nA2\nA3\nA4\n",
+        )
+        assert result.exit_code == 0, result.output
+
+        state = load_session(tmp_path, session_id)
+        assert len(state.layer_qa) == 4
 
     def test_advance_blocked(self, tmp_path: Path) -> None:
         _seed_session(tmp_path, current_layer=HarnessLayer.IDEA)
@@ -224,6 +309,23 @@ class TestLayerGuide:
             ["--project-root", str(tmp_path), "layer", "guide", "not-a-real-layer"],
         )
         assert result.exit_code != 0
+
+    def test_extract_author_questions(self) -> None:
+        section = """
+### Purpose / 目的
+Context.
+
+### Author Questions / 作者问题
+1. What is the task? / 当前任务是什么？
+2. What are the risks? / 风险是什么？
+
+### Interaction Pattern / 交互模式
+One at a time.
+"""
+        assert _extract_author_questions(section) == [
+            "What is the task? / 当前任务是什么？",
+            "What are the risks? / 风险是什么？",
+        ]
 
     def test_guide_all_twelve_layers_have_sections(self) -> None:
         """Every layer's author_guide key should resolve to a section in the guide file."""

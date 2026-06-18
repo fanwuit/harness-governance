@@ -405,9 +405,13 @@ def _mentions_governed_work_keyword(description_lc: str) -> bool:
 def _mentions_file_or_project_target(description_lc: str) -> bool:
     if any(keyword in description_lc for keyword in PROJECT_TARGET_KEYWORDS):
         return True
-    if re.search(r"[\w.-]+\.(?:md|py|toml|json|yaml|yml|txt|rst|mdc)\b", description_lc):
+    if re.search(
+        r"[\w.-]+\.(?:md|py|toml|json|yaml|yml|txt|rst|mdc)\b", description_lc
+    ):
         return True
-    if re.search(r"(?:^|\s)(?:src|tests|docs|\.harness|\.github|\.claude)[\\/]", description_lc):
+    if re.search(
+        r"(?:^|\s)(?:src|tests|docs|\.harness|\.github|\.claude)[\\/]", description_lc
+    ):
         return True
     return False
 

@@ -131,6 +131,29 @@ class TestTechStackCheckCLI:
         result = _invoke(tmp_path, "tech-stack", "check")
         assert result.exit_code == 0, result.output
 
+    def test_check_passes_after_cli_lint_and_docstyle_confirmed(
+        self, tmp_path: Path
+    ) -> None:
+        """CLI lint confirmation must write the schema read by check/gate."""
+        _seed_python_project(tmp_path)
+        _invoke(tmp_path, "tech-stack", "capture")
+        _invoke(
+            tmp_path,
+            "tech-stack",
+            "lint",
+            "Python",
+            "--tool",
+            "ruff",
+            "--version",
+            "0.11.0",
+        )
+        _invoke(
+            tmp_path, "tech-stack", "docstyle", "Python", "--style", "Google docstring"
+        )
+
+        result = _invoke(tmp_path, "tech-stack", "check")
+        assert result.exit_code == 0, result.output
+
 
 # ===========================================================================
 # tech-stack add
@@ -314,6 +337,10 @@ class TestTechStackLintCLI:
         mgr = TechStackManager(tmp_path)
         manifest = mgr.load()
         assert manifest is not None
+        assert any(
+            t.tool_name == "ruff" and t.language == "Python"
+            for t in manifest.lint_tools
+        )
         assert any(
             t.tool_name == "ruff" and t.confirmed for t in manifest.introduced_tools
         )

@@ -304,14 +304,7 @@ def tech_stack_lint(
         return
 
     # --tool specified: confirm lint tool for this language.
-    _intro = mgr.introduce_tool(
-        tool_name=tool,
-        version=version,
-        rationale=f"Lint tool for {language}",
-        tool_category="lint",
-    )
-    # Auto-confirm since the user explicitly selected it.
-    mgr.confirm_tool(tool)
+    mgr.confirm_lint_tool(language=language, tool_name=tool, version=version)
     click.echo(
         bilingual(
             "tech_stack.lint_confirmed",

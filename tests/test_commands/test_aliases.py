@@ -57,7 +57,9 @@ def test_next_alias_reports_active_session(tmp_repo: Path) -> None:
     assert payload["current_layer"] == "intake-orientation"
     assert payload["next_layer"] == "idea"
     assert payload["gate_passed"] is False
-    assert payload["recommended_next_command"] == "harness layer guide intake-orientation"
+    assert (
+        payload["recommended_next_command"] == "harness layer guide intake-orientation"
+    )
 
 
 def test_next_alias_requires_active_session(tmp_repo: Path) -> None:
@@ -80,4 +82,3 @@ def test_ship_alias_does_not_publish_and_fails_without_session(tmp_repo: Path) -
     assert payload["published"] is False
     assert payload["session_id"] is None
     assert payload["passed"] is False
-

@@ -13,6 +13,7 @@ how to present options, and what to confirm before advancing.
 from __future__ import annotations
 
 import json
+import re
 import time
 from datetime import datetime, timezone
 from importlib import resources
@@ -34,7 +35,7 @@ from ..state_machine.gates import (
     LockFileManager,
     is_layer_required,
 )
-from ..state_machine.layers import HarnessLayer, LAYER_MAP
+from ..state_machine.layers import HarnessLayer, LAYER_MAP, resolve_layer
 from ..state_machine.rigor import RigorTier
 from .gate_failure import format_gate_failure_guidance
 
@@ -378,6 +379,183 @@ def layer_advance_cmd(
         )
 
 
+@layer_group.command("answer")
+@click.argument("layer_name")
+@click.option(
+    "--question",
+    required=True,
+    help="Author question text or stable question identifier.",
+)
+@click.option(
+    "--answer",
+    required=True,
+    help="Author's answer to record for this layer.",
+)
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.pass_context
+def layer_answer_cmd(
+    ctx: click.Context,
+    layer_name: str,
+    question: str,
+    answer: str,
+    session_id: str | None,
+) -> None:
+    """Record an author question answer in the active governance session."""
+    project_root: Path = ctx.obj["project_root"]
+
+    try:
+        target = resolve_layer(layer_name)
+    except ValueError as exc:
+        raise click.ClickException(str(exc))
+
+    state = _resolve_session(project_root, session_id)
+    state = _append_layer_answer(state, target, question, answer)
+    save_session(project_root, state)
+
+    answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+    if ctx.obj.get("json_output"):
+        click.echo(
+            json.dumps(
+                {
+                    "session_id": state.session_id,
+                    "layer": target.value,
+                    "questions_answered": answered,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    click.echo(
+        bilingual(
+            "layer.answer_recorded",
+            layer=target.value,
+            count=answered,
+        )
+    )
+
+
+@layer_group.command("ask")
+@click.argument("layer_name", required=False)
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.pass_context
+def layer_ask_cmd(
+    ctx: click.Context,
+    layer_name: str | None,
+    session_id: str | None,
+) -> None:
+    """Ask and record the author questions for a layer."""
+    project_root: Path = ctx.obj["project_root"]
+    state = _resolve_session(project_root, session_id)
+
+    if layer_name:
+        try:
+            target = resolve_layer(layer_name)
+        except ValueError as exc:
+            raise click.ClickException(str(exc))
+    else:
+        current = state.current_layer
+        if current is None:
+            raise click.ClickException(bilingual("layer.no_session"))
+        target = current
+
+    section = _guide_section_for_layer(target)
+    questions = _extract_author_questions(section or "")
+    if not questions:
+        raise click.ClickException(
+            bilingual("layer.ask.no_questions", layer=target.value)
+        )
+
+    already_answered = {
+        str(qa.get("question", ""))
+        for qa in state.layer_qa
+        if qa.get("layer") == target.value
+    }
+    recorded = 0
+    for question in questions:
+        if question in already_answered:
+            continue
+        answer = click.prompt(question, type=str)
+        state = _append_layer_answer(state, target, question, answer)
+        recorded += 1
+
+    save_session(project_root, state)
+    answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+    status = LayerGateEngine().check(state, project_root, target)
+
+    if ctx.obj.get("json_output"):
+        click.echo(
+            json.dumps(
+                {
+                    "session_id": state.session_id,
+                    "layer": target.value,
+                    "questions_recorded": recorded,
+                    "questions_answered": answered,
+                    "gate_passed": status.passed,
+                    "questions_required": status.questions_required,
+                    "artifacts_missing": list(status.artifacts_missing),
+                    "blocking_artifacts_missing": list(
+                        status.blocking_artifacts_missing
+                    ),
+                    "confirmation_items_unmet": list(status.confirmation_items_unmet),
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    click.echo(
+        bilingual(
+            "layer.ask.recorded",
+            layer=target.value,
+            count=recorded,
+            answered=answered,
+        )
+    )
+    gate_state = "PASSED" if status.passed else "FAILED"
+    click.echo(
+        bilingual(
+            "alias.next.gate",
+            state=gate_state,
+            questions=status.questions_answered,
+            required=status.questions_required,
+        )
+    )
+    if status.confirmation_items_unmet:
+        click.echo(bilingual("gate.failure.confirmations_unmet"))
+        for item in status.confirmation_items_unmet:
+            click.echo(f"  - {item}")
+
+
+@layer_group.command("intake")
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.pass_context
+def layer_intake_cmd(ctx: click.Context, session_id: str | None) -> None:
+    """Ask and record intake-orientation author questions."""
+    ctx.invoke(
+        layer_ask_cmd,
+        layer_name=HarnessLayer.INTAKE_ORIENTATION.value,
+        session_id=session_id,
+    )
+
+
 @layer_group.command("show")
 @click.option(
     "--session",
@@ -467,8 +645,6 @@ def layer_guide_cmd(
     # Resolve target layer.
     target: HarnessLayer | None
     if layer_name:
-        from ..state_machine.layers import resolve_layer
-
         try:
             target = resolve_layer(layer_name)
         except ValueError as exc:
@@ -491,16 +667,7 @@ def layer_guide_cmd(
         if target is None:
             raise click.ClickException(bilingual("layer.no_session"))
 
-    # Look up guide key from LAYER_MAP.
-    guide_key = ""
-    for entry in LAYER_MAP:
-        if entry.layer is target:
-            guide_key = entry.author_guide
-            break
-
-    # Load and extract the guide section.
-    guide_text = _load_guide_file()
-    section = _extract_guide_section(guide_text, guide_key) if guide_text else None
+    guide_key, section = _guide_key_and_section_for_layer(target)
 
     if ctx.obj.get("json_output"):
         click.echo(
@@ -542,6 +709,72 @@ def _load_guide_file() -> str | None:
         return None
 
 
+def _resolve_session(project_root: Path, session_id: str | None) -> SessionState:
+    if session_id:
+        try:
+            return load_session(project_root, session_id)
+        except FileNotFoundError:
+            raise click.ClickException(
+                bilingual("session.not_found", session_id=session_id)
+            )
+
+    found = find_active_session(project_root)
+    if found is None:
+        raise click.ClickException(bilingual("session.no_active"))
+    return found
+
+
+def _append_layer_answer(
+    state: SessionState,
+    target: HarnessLayer,
+    question: str,
+    answer: str,
+) -> SessionState:
+    entry = {
+        "layer": target.value,
+        "question": question,
+        "answer": answer,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    return state.model_copy(update={"layer_qa": state.layer_qa + (entry,)})
+
+
+def _guide_key_and_section_for_layer(target: HarnessLayer) -> tuple[str, str | None]:
+    guide_key = ""
+    for entry in LAYER_MAP:
+        if entry.layer is target:
+            guide_key = entry.author_guide
+            break
+
+    guide_text = _load_guide_file()
+    section = _extract_guide_section(guide_text, guide_key) if guide_text else None
+    return guide_key, section
+
+
+def _guide_section_for_layer(target: HarnessLayer) -> str | None:
+    return _guide_key_and_section_for_layer(target)[1]
+
+
+def _extract_author_questions(section: str) -> list[str]:
+    """Extract numbered author questions from a guide section."""
+    lines = section.splitlines()
+    in_questions = False
+    questions: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("### "):
+            if in_questions:
+                break
+            in_questions = "Author Questions" in stripped or "作者问题" in stripped
+            continue
+        if not in_questions:
+            continue
+        match = re.match(r"^\d+\.\s+(.*\S)\s*$", stripped)
+        if match:
+            questions.append(match.group(1))
+    return questions
+
+
 def _extract_guide_section(guide_text: str, section_key: str) -> str | None:
     """Extract the section between ``## <section_key>`` and the next ``## `` heading."""
     target_heading = f"## {section_key}"
@@ -572,7 +805,11 @@ def _guide_fallback(layer: HarnessLayer) -> str:
 __all__ = [
     "layer_group",
     "layer_advance_cmd",
+    "layer_answer_cmd",
+    "layer_ask_cmd",
+    "layer_intake_cmd",
     "layer_show_cmd",
     "layer_guide_cmd",
+    "_extract_author_questions",
     "_extract_guide_section",
 ]

@@ -5,6 +5,7 @@ from . import (
     config_cmd,
     entry,
     governed_start,
+    hook,
     init,
     layer,
     packet,
@@ -13,6 +14,7 @@ from . import (
     runner,
     session_cmd,
     status,
+    state_contract,
     verify,
 )
 from .check import (
@@ -38,8 +40,17 @@ from .entry import (
     entry_record_cmd,
 )
 from .governed_start import governed_start_cmd
+from .hook import hook_group, hook_install_cmd
 from .init import InitResult, detect_platform, init_cmd, write_skill_file
-from .layer import layer_advance_cmd, layer_group, layer_guide_cmd, layer_show_cmd
+from .layer import (
+    layer_advance_cmd,
+    layer_answer_cmd,
+    layer_ask_cmd,
+    layer_group,
+    layer_guide_cmd,
+    layer_intake_cmd,
+    layer_show_cmd,
+)
 from .packet import packet_check_cmd, packet_group, packet_init_cmd
 from .plan import (
     plan_attest_cmd,
@@ -62,6 +73,7 @@ from .session_cmd import (
     session_list_cmd,
     session_show_cmd,
 )
+from .state_contract import state_contract_check_cmd, state_contract_group
 from .status import build_status, format_markdown, format_text, status_cmd
 from .verify import verify_cmd
 
@@ -71,6 +83,8 @@ __all__ = [
     "detect_platform",
     "write_skill_file",
     "governed_start_cmd",
+    "hook_group",
+    "hook_install_cmd",
     "packet_group",
     "packet_init_cmd",
     "packet_check_cmd",
@@ -112,16 +126,22 @@ __all__ = [
     "runner_parse_result_cmd",
     "layer_group",
     "layer_advance_cmd",
+    "layer_answer_cmd",
+    "layer_ask_cmd",
+    "layer_intake_cmd",
     "layer_guide_cmd",
     "layer_show_cmd",
     "session_group",
     "session_show_cmd",
     "session_list_cmd",
     "session_close_cmd",
+    "state_contract_group",
+    "state_contract_check_cmd",
     "check",
     "config_cmd",
     "entry",
     "governed_start",
+    "hook",
     "init",
     "layer",
     "packet",
@@ -130,5 +150,6 @@ __all__ = [
     "runner",
     "session_cmd",
     "status",
+    "state_contract",
     "verify",
 ]

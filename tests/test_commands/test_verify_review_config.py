@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from harness_governance.commands import verify as verify_module
 
 
 def test_verify_routing_preset_passes(tmp_repo: Path) -> None:
@@ -39,6 +41,45 @@ def test_verify_all_local_checks_passes(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "verify", "all-local-checks"],
     )
     assert result.exit_code == 0, result.output
+
+
+def test_verify_local_release_runs_release_steps(
+    tmp_repo: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        verify_module,
+        "_RELEASE_COMMANDS",
+        ((sys.executable, "-c", "print('release step ok')"),),
+    )
+    monkeypatch.setattr(verify_module, "_verify_wheel_contents", lambda root: True)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "verify", "local", "--release"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "verify local --release: passed" in result.output
+
+
+def test_verify_local_release_fails_on_step(
+    tmp_repo: Path,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        verify_module,
+        "_RELEASE_COMMANDS",
+        ((sys.executable, "-c", "raise SystemExit(3)"),),
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "verify", "local", "--release"],
+    )
+    assert result.exit_code == 1, result.output
+    assert "verify local --release: failed" in result.output
 
 
 def test_review_close_writes_checkpoint(tmp_repo: Path) -> None:

@@ -42,6 +42,7 @@ from .commands.drift import drift_group
 from .commands.entry import entry_group
 from .commands.gate import gate_group
 from .commands.governed_start import governed_start_cmd
+from .commands.hook import hook_group
 from .commands.init import init_cmd
 from .commands.isolation import isolation_group
 from .commands.layer import layer_group
@@ -51,6 +52,7 @@ from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.session_cmd import session_group
 from .commands.skill_chain import skill_chain_group
+from .commands.state_contract import state_contract_group
 from .commands.status import status_cmd
 from .commands.tech_stack import tech_stack_group
 from .commands.verify import verify_cmd
@@ -111,6 +113,7 @@ def cli(
 cli.add_command(init_cmd)
 cli.add_command(start_cmd)
 cli.add_command(governed_start_cmd)
+cli.add_command(hook_group)
 cli.add_command(next_cmd)
 cli.add_command(ship_cmd)
 cli.add_command(packet_group)
@@ -125,6 +128,7 @@ cli.add_command(runner_group)
 cli.add_command(layer_group)
 cli.add_command(gate_group)
 cli.add_command(session_group)
+cli.add_command(state_contract_group)
 cli.add_command(tech_stack_group)
 cli.add_command(isolation_group)
 cli.add_command(drift_group)
