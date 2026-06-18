@@ -327,11 +327,11 @@ P1 第一版已实现。普通 commit / 普通 push 不拦截；安装 tag-relea
 ```bash
 harness governed-start "记录 tag-only hook 到 upgrade.md" \
   --files upgrade.md \
-  --contracts=false \
-  --external=false \
-  --unclear=false \
+  --no-contracts \
+  --no-external \
   --change-kind docs-tracking \
-  --risk low
+  --risk low \
+  --recommended-route trivial-safe-change
 ```
 
 或：
@@ -353,7 +353,9 @@ assessment 示例：
   "has_external_side_effects": false,
   "scope_unclear": false,
   "risk": "low",
-  "recommended_route": "trivial-safe-change"
+  "recommended_route": "trivial-safe-change",
+  "recommended_rigor": "light",
+  "change_kind": "docs-tracking"
 }
 ```
 
@@ -364,11 +366,14 @@ assessment 示例：
 - 关键词检测退为兜底，而不是主路径。
 
 **实现位置**：
-- 后续扩展 `src/harness_governance/models/schemas.py`：新增 `AgentAssessment` schema。
-- 后续扩展 `src/harness_governance/commands/governed_start.py`：支持 `--assessment`、`--change-kind`、`--risk` 等结构化输入。
-- 后续扩展 `src/harness_governance/state_machine/classification.py`：把 assessment 作为主要路由信号，关键词作为 fallback。
-- 后续补 `tests/test_state_machine/test_classification.py` 和 `tests/test_commands/test_governed_start.py`。
-- 后续更新 AGENTS/skill 文档：agent 必须先做 preflight，再调用 governed-start。
+- `src/harness_governance/models/schemas.py`：已新增 `AgentAssessment` schema。
+- `src/harness_governance/commands/governed_start.py`：已支持 `--assessment`、`--change-kind`、`--risk`、`--recommended-route` 等结构化输入。
+- `src/harness_governance/state_machine/classification.py`：已把 assessment 作为主要路由信号，关键词作为 fallback。
+- `tests/test_state_machine/test_classification.py` 和 `tests/test_commands/test_governed_start.py`：已覆盖 assessment 优先、冲突升级、JSON 输入。
+- `src/harness_governance/commands/init.py` 和 `src/harness_governance/data/skills/*`：已同步 AGENTS/skill 入口规则，要求 agent 优先传 structured preflight flags 或 `--assessment`。
+
+**当前状态**：
+P1 第一版已实现。agent 可通过 assessment 文件或 CLI 结构化参数把“单文件低风险文档/本地修改”等判断传给 `governed-start`；harness 保留最终裁决权，遇到 public contract、external side effects、unclear/high risk 会升级到 governed-path。初始化生成的 AGENTS/skill 模板已要求 agent 不要只传原始用户措辞。
 
 **优先级判断**：
 P1。原因是它解决的是治理入口架构问题：没有 agent preflight，harness 会继续变成关键词分类器，并且 dogfood 过程中会反复出现“任务实际很简单但路由过重”的问题。该项优先级高于 P2 规格/安装能力，但低于已经完成的状态闭环和 release hook 第一版。
@@ -531,7 +536,7 @@ Need help? Run: harness guide quickstart
 | **P1** | 完整场景示例 | GStack | 中 | 已完成（文档） |
 | **P1** | State Contract Closure / 状态契约闭环 | 事故复盘 | 中 | 第一版已完成 — 文档、E2E smoke、`state-contract check`、`layer ask/intake` |
 | **P1** | Tag-only Release Verification Hook | CI 复盘 | 中 | 第一版已完成 — `verify local --release`、tag-only hook install |
-| **P1** | Agent Preflight Assessment / 代理侧预评估路由 | Dogfood | 中 | 高 — 避免 governed-start 退化为关键词分类器 |
+| **P1** | Agent Preflight Assessment / 代理侧预评估路由 | Dogfood | 中 | 第一版已完成 — assessment schema、CLI 输入、分类器优先级 |
 | **P2** | 轻量规格模式 | OpenSpec | 中 | 中 — 简单任务不需要 5 个文件 |
 | **P2** | 渐进式安装 | Superpowers | 低 | 中 — 降低试用门槛 |
 | **P3** | Skill 组合灵活性 | Superpowers | 高 | 低 — 适合 skill 市场模式 |
@@ -541,13 +546,12 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P1 设计**：实现 Agent Preflight Assessment schema 与 `governed-start --assessment` 输入协议。
-2. **P1 增强**：评估是否将 `harness state-contract check` 接入 `verification` gate / `harness check`。
-3. **P1 增强**：在 `harness init` 中生成派生项目 state-contract 测试骨架。
-4. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证。
-5. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
-6. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
-7. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
+1. **P1 增强**：评估是否将 `harness state-contract check` 接入 `verification` gate / `harness check`。
+2. **P1 增强**：在 `harness init` 中生成派生项目 state-contract 测试骨架。
+3. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证。
+4. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
+5. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
+6. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
 
 ---
 

@@ -230,6 +230,51 @@ def test_cli_classifier_and_tests_work_is_governed() -> None:
     assert decision.path is RoutingPath.GOVERNED_PATH
 
 
+def test_agent_preflight_trivial_overrides_governed_keywords() -> None:
+    decision = classify(
+        "Implement the P1 Agent Preflight Assessment note in upgrade.md",
+        has_file_changes=True,
+        is_public_contract=False,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+        agent_recommended_route=RoutingPath.TRIVIAL_SAFE_CHANGE,
+        agent_risk="low",
+        agent_change_kind="single-file-doc",
+    )
+    assert decision.path is RoutingPath.TRIVIAL_SAFE_CHANGE
+    assert "Agent preflight recommended trivial-safe-change" in decision.rationale
+
+
+def test_agent_preflight_fast_upgrades_on_external_side_effect() -> None:
+    decision = classify(
+        "Read deployment status",
+        has_file_changes=False,
+        is_public_contract=False,
+        has_external_side_effect=True,
+        is_unclear_or_high_risk=False,
+        agent_recommended_route=RoutingPath.FAST_PATH,
+        agent_risk="low",
+        agent_change_kind="read-only",
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+    assert "external side effects" in decision.rationale
+
+
+def test_agent_preflight_governed_is_respected() -> None:
+    decision = classify(
+        "Change authentication flow",
+        has_file_changes=True,
+        is_public_contract=True,
+        has_external_side_effect=False,
+        is_unclear_or_high_risk=False,
+        agent_recommended_route=RoutingPath.GOVERNED_PATH,
+        agent_risk="medium",
+        agent_change_kind="public-contract",
+    )
+    assert decision.path is RoutingPath.GOVERNED_PATH
+    assert decision.current_layer is not None
+
+
 def test_english_implement_keyword_upgrades_from_fast_path() -> None:
     """English 'implement' should NOT be fast path even without flags."""
     decision = classify(

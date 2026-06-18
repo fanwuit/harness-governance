@@ -1,4 +1,4 @@
----
+﻿---
 name: harness-governance-light
 description: 轻量治理模式 — 修 bug、小改动、配置调整。仅 6 层快速通道。 / Light governance for bug fixes, small changes, config adjustments. Fast-track 6 layers.
 paths:
@@ -60,10 +60,10 @@ Use the `harness` CLI for all engineering work in this project. It encodes the l
 Before any work, classify and disclose:
 
 ```bash
-harness governed-start "<task description>" [--files a.py,b.py] [--contracts] [--external] [--unclear] [--rigor light|standard|strict]
+harness governed-start "<task description>" [--files a.py,b.py] [--no-contracts|--contracts] [--no-external|--external] [--unclear] [--risk low|medium|high] [--change-kind <kind>] [--recommended-route fast-path|trivial-safe-change|governed-path] [--rigor light|standard|strict]
 ```
 
-Do not skip this step. Fast path returns briefly; trivial / governed must output the disclosure block.
+Do not skip this step. Fast path returns briefly; trivial / governed must output the disclosure block. Do not pass raw user wording alone when you can identify scope, risk, files, or route; pass structured preflight flags or `--assessment`.
 
 ### Flag decision table / Flag 决策表
 

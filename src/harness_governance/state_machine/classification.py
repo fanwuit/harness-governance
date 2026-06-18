@@ -248,6 +248,10 @@ def classify(
     has_external_side_effect: bool,
     is_unclear_or_high_risk: bool,
     rigor: str | None = None,
+    agent_recommended_route: RoutingPath | None = None,
+    agent_risk: str | None = None,
+    agent_change_kind: str = "",
+    agent_recommended_rigor: str | None = None,
 ) -> RoutingDecision:
     """Classify a request into Fast/Trivial/Governed.
 
@@ -278,8 +282,19 @@ def classify(
       contract impact, clear verification.
     * Governed path: everything else.
     """
-    resolved_rigor = resolve_rigor(rigor, description)
+    resolved_rigor = resolve_rigor(agent_recommended_rigor or rigor, description)
     description_lc = description.lower()
+
+    if agent_recommended_route is not None:
+        return _classify_from_agent_assessment(
+            agent_recommended_route=agent_recommended_route,
+            agent_risk=agent_risk,
+            agent_change_kind=agent_change_kind,
+            is_public_contract=is_public_contract,
+            has_external_side_effect=has_external_side_effect,
+            is_unclear_or_high_risk=is_unclear_or_high_risk,
+            rigor_tier=resolved_rigor,
+        )
 
     mentions_edit_intent = _mentions_edit_intent(description_lc)
     mentions_project_target = _mentions_file_or_project_target(description_lc)
@@ -387,6 +402,83 @@ def classify(
         current_layer=HarnessLayer.INTAKE_ORIENTATION,
         primary_skill="harness-engineering",
         rigor_tier=resolved_rigor,
+    )
+
+
+def _classify_from_agent_assessment(
+    *,
+    agent_recommended_route: RoutingPath,
+    agent_risk: str | None,
+    agent_change_kind: str,
+    is_public_contract: bool,
+    has_external_side_effect: bool,
+    is_unclear_or_high_risk: bool,
+    rigor_tier: RigorTier,
+) -> RoutingDecision:
+    """Classify using an explicit agent assessment before keyword fallback."""
+    conflicts: list[str] = []
+    if is_public_contract:
+        conflicts.append("public contract impact")
+    if has_external_side_effect:
+        conflicts.append("external side effects or persisted data")
+    if is_unclear_or_high_risk:
+        conflicts.append("unclear scope or high-risk marker")
+    if agent_risk == "high":
+        conflicts.append("agent assessed high risk")
+
+    detail = f" ({agent_change_kind})" if agent_change_kind else ""
+    if conflicts:
+        logger.info(
+            "agent preflight upgraded %s to governed-path: %s",
+            agent_recommended_route.value,
+            ", ".join(conflicts),
+        )
+        return RoutingDecision(
+            path=RoutingPath.GOVERNED_PATH,
+            rationale=(
+                "Agent preflight recommended "
+                f"{agent_recommended_route.value}{detail}, but "
+                f"{'; '.join(conflicts)} require governed-path."
+            ),
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            primary_skill="harness-engineering",
+            rigor_tier=rigor_tier,
+        )
+
+    if agent_recommended_route is RoutingPath.GOVERNED_PATH:
+        logger.info("agent preflight selected governed-path")
+        return RoutingDecision(
+            path=RoutingPath.GOVERNED_PATH,
+            rationale=(
+                "Agent preflight recommended governed-path"
+                f"{detail}; use the governed workflow."
+            ),
+            current_layer=HarnessLayer.INTAKE_ORIENTATION,
+            primary_skill="harness-engineering",
+            rigor_tier=rigor_tier,
+        )
+
+    if agent_recommended_route is RoutingPath.TRIVIAL_SAFE_CHANGE:
+        logger.info("agent preflight selected trivial-safe-change")
+        return RoutingDecision(
+            path=RoutingPath.TRIVIAL_SAFE_CHANGE,
+            rationale=(
+                "Agent preflight recommended trivial-safe-change"
+                f"{detail}: bounded local change with no public contract, "
+                "external side-effect, or unclear-risk signal."
+            ),
+            rigor_tier=rigor_tier,
+        )
+
+    logger.info("agent preflight selected fast-path")
+    return RoutingDecision(
+        path=RoutingPath.FAST_PATH,
+        rationale=(
+            "Agent preflight recommended fast-path"
+            f"{detail}: no file-writing, public contract, external side-effect, "
+            "or unclear-risk signal."
+        ),
+        rigor_tier=rigor_tier,
     )
 
 

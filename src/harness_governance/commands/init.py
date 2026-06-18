@@ -94,7 +94,11 @@ def _build_agents_triggers_block(skill_ref: str) -> str:
 - 用户请求开发、调试、验证相关工作 / development, debugging, verification work
 
 ```bash
-harness governed-start "<任务描述>"
+# Prefer structured agent preflight over raw user wording.
+harness governed-start "<任务描述>" --risk low|medium|high --change-kind <kind> --recommended-route fast-path|trivial-safe-change|governed-path
+
+# Or pass the full preflight JSON.
+harness governed-start --assessment .harness/tmp/agent-assessment.json
 ```
 
 根据输出的 disclosure 决定后续流程。不要跳过此步骤。{ref_line}

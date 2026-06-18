@@ -6,12 +6,14 @@ canonical disclosure block for the governed path.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import Literal, cast
 
 import click
 
 from ..messages import bilingual
-from ..models.schemas import RoutingInput, RoutingResult
+from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import (
     classify,
@@ -192,6 +194,7 @@ def _check_skill_freshness(project_root: Path) -> str | None:
 
 
 def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
+    assessment = input_model.agent_assessment
     decision = classify(
         input_model.description,
         has_file_changes=input_model.has_file_changes,
@@ -199,6 +202,10 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
         has_external_side_effect=input_model.has_external_side_effect,
         is_unclear_or_high_risk=input_model.is_unclear_or_high_risk,
         rigor=input_model.rigor_tier,
+        agent_recommended_route=assessment.recommended_route if assessment else None,
+        agent_risk=assessment.risk if assessment else None,
+        agent_change_kind=assessment.change_kind if assessment else "",
+        agent_recommended_rigor=assessment.recommended_rigor if assessment else None,
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
     rec_key = _build_recommendation(decision.path)
@@ -215,8 +222,21 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
     )
 
 
+def _load_agent_assessment(path: Path) -> AgentAssessment:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise click.ClickException(f"Failed to read assessment file: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Invalid assessment JSON: {exc}") from exc
+    try:
+        return AgentAssessment.model_validate(data)
+    except Exception as exc:
+        raise click.ClickException(f"Invalid assessment schema: {exc}") from exc
+
+
 @click.command("governed-start")
-@click.argument("description")
+@click.argument("description", required=False)
 @click.option(
     "--files",
     "files",
@@ -251,50 +271,154 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
     multiple=True,
     help="Companion workflow skills (may be passed multiple times).",
 )
+@click.option(
+    "--assessment",
+    "assessment_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="JSON file containing an agent preflight assessment.",
+)
+@click.option(
+    "--recommended-route",
+    type=click.Choice([path.value for path in RoutingPath]),
+    default=None,
+    help="Agent-recommended route from preflight assessment.",
+)
+@click.option(
+    "--risk",
+    type=click.Choice(["low", "medium", "high"]),
+    default=None,
+    help="Agent-assessed task risk.",
+)
+@click.option(
+    "--change-kind",
+    default="",
+    help="Agent-assessed change kind, for example single-file-doc or local-test.",
+)
 @click.pass_context
 def governed_start_cmd(
     ctx: click.Context,
-    description: str,
+    description: str | None,
     files: str,
     contracts: bool | None,
     external: bool | None,
     unclear: bool,
     rigor_override: str | None,
     companions: tuple[str, ...],
+    assessment_path: Path | None,
+    recommended_route: str | None,
+    risk: str | None,
+    change_kind: str,
 ) -> None:
     """Classify an incoming task and produce the canonical disclosure."""
+    loaded_assessment = (
+        _load_agent_assessment(assessment_path) if assessment_path is not None else None
+    )
+    assessment_route = (
+        RoutingPath(recommended_route)
+        if recommended_route is not None
+        else loaded_assessment.recommended_route
+        if loaded_assessment is not None
+        else None
+    )
+    assessment_risk = (
+        risk
+        if risk is not None
+        else loaded_assessment.risk
+        if loaded_assessment is not None
+        else "medium"
+    )
+    assessment_change_kind = change_kind or (
+        loaded_assessment.change_kind if loaded_assessment is not None else ""
+    )
+    assessment = loaded_assessment
+    if assessment is None and (
+        assessment_route is not None or risk is not None or assessment_change_kind
+    ):
+        assessment = AgentAssessment(
+            user_request=description or "",
+            change_kind=assessment_change_kind,
+            risk=cast(Literal["low", "medium", "high"], assessment_risk),
+            recommended_route=assessment_route,
+            recommended_rigor=cast(
+                Literal["light", "standard", "strict"] | None, rigor_override
+            ),
+        )
+    elif assessment is not None and (
+        recommended_route is not None or risk is not None or change_kind
+    ):
+        assessment = assessment.model_copy(
+            update={
+                "recommended_route": assessment_route,
+                "risk": assessment_risk,
+                "change_kind": assessment_change_kind,
+            }
+        )
+
+    resolved_description = description
+    if not resolved_description and assessment is not None:
+        resolved_description = (
+            assessment.user_request or assessment.agent_interpretation
+        )
+    if not resolved_description:
+        raise click.UsageError("Missing DESCRIPTION or --assessment user_request.")
+
     # Auto-infer --contracts and --external from description when not
     # explicitly passed.  This prevents misrouting when agents omit flags.
-    inferred_contracts, inferred_external = _infer_flags(description)
-    resolved_contracts = contracts if contracts is not None else inferred_contracts
-    resolved_external = external if external is not None else inferred_external
+    inferred_contracts, inferred_external = _infer_flags(resolved_description)
+    resolved_contracts = (
+        contracts
+        if contracts is not None
+        else assessment.touches_public_contract
+        if assessment is not None
+        else inferred_contracts
+    )
+    resolved_external = (
+        external
+        if external is not None
+        else assessment.has_external_side_effects
+        if assessment is not None
+        else inferred_external
+    )
+    resolved_unclear = unclear or (assessment.scope_unclear if assessment else False)
+    effective_rigor = rigor_override or (
+        assessment.recommended_rigor if assessment is not None else None
+    )
 
-    has_file_changes = bool(files.strip()) or resolved_contracts or resolved_external
+    assessed_files = assessment.intended_files if assessment is not None else ()
+    has_file_changes = (
+        bool(files.strip())
+        or bool(assessed_files)
+        or (assessment.writes_files if assessment is not None else False)
+        or resolved_contracts
+        or resolved_external
+    )
     payload = RoutingInput(
-        description=description,
+        description=resolved_description,
         has_file_changes=has_file_changes,
         is_public_contract=resolved_contracts,
         has_external_side_effect=resolved_external,
-        is_unclear_or_high_risk=unclear,
+        is_unclear_or_high_risk=resolved_unclear,
         companion_skills=tuple(companions),
-        rigor_tier=rigor_override,
+        rigor_tier=effective_rigor,
+        agent_assessment=assessment,
     )
     project_root: Path = ctx.obj["project_root"]
     result = _evaluate(payload, project_root)
 
     # Resolve rigor tier for session storage.
-    resolved_rigor = resolve_rigor(rigor_override, description)
+    resolved_rigor = resolve_rigor(effective_rigor, resolved_description)
 
     # Create a governance session for governed-path tasks.
     session_id: str | None = None
     if result.path is RoutingPath.GOVERNED_PATH:
         from datetime import datetime, timezone
 
-        session_id = generate_session_id(description)
+        session_id = generate_session_id(resolved_description)
         session = SessionState(
             session_id=session_id,
             created_at=datetime.now(timezone.utc).isoformat(),
-            description=description,
+            description=resolved_description,
             routing_path=result.path,
             current_layer=result.current_layer,
             companion_skills=payload.companion_skills,
@@ -324,8 +448,6 @@ def governed_start_cmd(
         pass  # priority scan must never block governed-start
 
     if ctx.obj.get("json_output"):
-        import json
-
         click.echo(
             json.dumps(
                 {
@@ -360,6 +482,9 @@ def governed_start_cmd(
                     "session_id": session_id,
                     "skill_version_warning": result.skill_version_warning,
                     "rigor_tier": result.rigor_tier,
+                    "agent_assessment": (
+                        assessment.model_dump(mode="json") if assessment else None
+                    ),
                 },
                 indent=2,
                 ensure_ascii=False,

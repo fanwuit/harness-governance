@@ -56,6 +56,38 @@ class HarnessConfig(BaseModel):
         return value if value.is_absolute() else Path.cwd() / value
 
 
+class AgentAssessment(BaseModel):
+    """Structured agent-side task assessment for routing.
+
+    Agents see the user request before ``governed-start`` does.  This
+    schema lets them pass that judgment as data instead of relying on
+    keyword inference alone.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    user_request: str = ""
+    agent_interpretation: str = ""
+    intended_files: tuple[str, ...] = ()
+    operation: Literal[
+        "question",
+        "read_only",
+        "documentation_update",
+        "code_change",
+        "test_change",
+        "release",
+        "other",
+    ] = "other"
+    writes_files: bool = False
+    touches_public_contract: bool = False
+    has_external_side_effects: bool = False
+    scope_unclear: bool = False
+    risk: Literal["low", "medium", "high"] = "medium"
+    recommended_route: RoutingPath | None = None
+    recommended_rigor: Literal["light", "standard", "strict"] | None = None
+    change_kind: str = ""
+
+
 class RoutingInput(BaseModel):
     """Inputs to :func:`state_machine.classify` exposed as a CLI flag bag."""
 
@@ -68,6 +100,7 @@ class RoutingInput(BaseModel):
     is_unclear_or_high_risk: bool = False
     companion_skills: tuple[str, ...] = ()
     rigor_tier: str | None = None  # explicit --rigor override (light/standard/strict)
+    agent_assessment: AgentAssessment | None = None
 
 
 class RoutingResult(BaseModel):

@@ -179,6 +179,120 @@ def test_governed_start_includes_companions(tmp_repo: Path) -> None:
     assert "superpowers:subagent-driven-development" in payload["disclosure"]
 
 
+def test_governed_start_assessment_file_routes_trivial(tmp_repo: Path) -> None:
+    assessment_path = tmp_repo / "assessment.json"
+    assessment_path.write_text(
+        json.dumps(
+            {
+                "user_request": "Implement the P1 note in upgrade.md",
+                "agent_interpretation": "Update one tracking document only.",
+                "intended_files": ["upgrade.md"],
+                "operation": "documentation_update",
+                "writes_files": True,
+                "touches_public_contract": False,
+                "has_external_side_effects": False,
+                "scope_unclear": False,
+                "risk": "low",
+                "recommended_route": "trivial-safe-change",
+                "recommended_rigor": "light",
+                "change_kind": "single-file-doc",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "--assessment",
+            str(assessment_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["path"] == "trivial-safe-change"
+    assert payload["session_id"] is None
+    assert payload["agent_assessment"]["change_kind"] == "single-file-doc"
+
+
+def test_governed_start_cli_preflight_route_overrides_keywords(
+    tmp_repo: Path,
+) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "Implement a small note in upgrade.md",
+            "--files",
+            "upgrade.md",
+            "--no-contracts",
+            "--no-external",
+            "--risk",
+            "low",
+            "--change-kind",
+            "single-file-doc",
+            "--recommended-route",
+            "trivial-safe-change",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["path"] == "trivial-safe-change"
+    assert "Agent preflight recommended" in payload["rationale"]
+
+
+def test_governed_start_assessment_external_upgrades_to_governed(
+    tmp_repo: Path,
+) -> None:
+    assessment_path = tmp_repo / "assessment.json"
+    assessment_path.write_text(
+        json.dumps(
+            {
+                "user_request": "Check release pipeline",
+                "operation": "read_only",
+                "writes_files": False,
+                "touches_public_contract": False,
+                "has_external_side_effects": True,
+                "scope_unclear": False,
+                "risk": "low",
+                "recommended_route": "fast-path",
+                "change_kind": "external-status-check",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "--json",
+            "governed-start",
+            "--assessment",
+            str(assessment_path),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["path"] == "governed-path"
+    assert payload["session_id"] is not None
+    assert "external side effects" in payload["rationale"]
+
+
 # ---------------------------------------------------------------------------
 # Friction reduction: fast-path and trivial lightweight output
 # ---------------------------------------------------------------------------

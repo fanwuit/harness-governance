@@ -1,6 +1,7 @@
 """Public re-exports for the models subpackage."""
 
 from .schemas import (
+    AgentAssessment,
     ChangePacketInitResult,
     ChangePacketSummary,
     CheckFinding,
@@ -24,6 +25,7 @@ from .schemas import (
 
 __all__ = [
     "ChangePacketInitResult",
+    "AgentAssessment",
     "ChangePacketSummary",
     "CheckFinding",
     "CheckResult",

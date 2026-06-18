@@ -564,6 +564,8 @@ def test_init_codex_creates_agents_md_triggers(tmp_repo: Path) -> None:
     content = agents_md.read_text(encoding="utf-8")
     assert "harness-governance: triggers" in content
     assert "governed-start" in content
+    assert "--recommended-route" in content
+    assert "--assessment" in content
     # Should reference the codex skill file (normalize path separators)
     content_normalized = content.replace("\\", "/")
     assert ".agents/skills/harness-governance-standard/SKILL.md" in content_normalized
@@ -634,6 +636,7 @@ def test_init_all_platforms_creates_agents_md_triggers(tmp_repo: Path) -> None:
     content = agents_md.read_text(encoding="utf-8")
     assert "harness-governance: triggers" in content
     assert "governed-start" in content
+    assert "--recommended-route" in content
 
 
 def test_init_minimal_skips_agents_md_triggers(tmp_repo: Path) -> None:
@@ -659,6 +662,7 @@ def test_init_generic_agents_md_has_triggers(tmp_repo: Path) -> None:
     # Full skill content
     assert "Harness Governance" in content
     assert "governed-start" in content
+    assert "--recommended-route" in content
     # Trigger block (no external ref since AGENTS.md is the skill file)
     assert "harness-governance: triggers" in content
 
