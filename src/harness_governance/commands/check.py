@@ -471,12 +471,33 @@ def _rel(repo_root: Path, path: Path) -> str:
         return str(path)
 
 
+def _scan_evidence_artifacts_safe(repo_root: Path, evidence_doc: Path) -> list[str]:
+    """Scan test artifacts for forbidden patterns; graceful on any error."""
+    try:
+        from .evidence_scanner import scan_evidence_artifacts
+
+        return scan_evidence_artifacts(repo_root, evidence_doc)
+    except Exception:
+        return []
+
+
 def _validate_user_evidence_file(repo_root: Path, path: Path) -> list[CheckFinding]:
     text = path.read_text(encoding="utf-8")
     rel = _rel(repo_root, path)
     findings: list[CheckFinding] = []
     evidence = _section_body(text, _USER_EVIDENCE_SECTION)
     not_applicable = _section_body(text, _USER_EVIDENCE_NA_SECTION)
+
+    artifact_findings = _scan_evidence_artifacts_safe(repo_root, path)
+    for msg in artifact_findings:
+        findings.append(
+            CheckFinding(
+                check="user-evidence",
+                target=rel,
+                level="error",
+                message=msg,
+            )
+        )
 
     if evidence is None and not_applicable is None:
         if _has_user_evidence_trigger(text):
