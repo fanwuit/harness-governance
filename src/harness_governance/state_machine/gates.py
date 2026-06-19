@@ -452,7 +452,20 @@ def _gate_hook_user_evidence(_session: "SessionState", project_root: Path) -> li
     return [f"{finding.target}: {finding.message}" for finding in result.findings]
 
 
+def _gate_hook_state_contract(
+    _session: "SessionState", project_root: Path
+) -> list[str]:
+    """Require state-contract closure evidence before verification closes."""
+    from ..commands.check import check_state_contract
+
+    result = check_state_contract(project_root)
+    if result.passed:
+        return []
+    return [f"{finding.target}: {finding.message}" for finding in result.findings]
+
+
 register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_user_evidence)
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_state_contract)
 
 
 # ---------------------------------------------------------------------------

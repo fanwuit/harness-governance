@@ -481,6 +481,24 @@ def test_check_all_includes_priority(tmp_path: Path):
     from tests.conftest import write_permissive_config
 
     write_permissive_config(tmp_path)
+    state_contract_files = {
+        "tests/test_commands/test_layer_cmd.py": (
+            "test_answer_records_qa_for_gate",
+            "test_ask_records",
+        ),
+        "tests/test_commands/test_tech_stack_cmd.py": (
+            "test_check_passes_after_cli_lint",
+            "manifest.lint_tools",
+        ),
+        "tests/test_e2e/test_governed_path_smoke.py": (
+            "test_strict_governed_path_minimum_smoke",
+        ),
+        "tests/STATE_CONTRACTS.md": ("State Contract Closure",),
+    }
+    for rel, terms in state_contract_files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(terms), encoding="utf-8")
 
     runner = CliRunner()
     result = runner.invoke(cli, ["--project-root", str(tmp_path), "check", "all"])

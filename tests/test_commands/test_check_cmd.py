@@ -12,6 +12,7 @@ from harness_governance.commands.check import (
     _check_self_docs,
     check_inventory,
     check_routing,
+    check_state_contract,
     check_subagent_separation,
     check_user_evidence,
 )
@@ -74,6 +75,7 @@ def test_check_all_cli(tmp_repo: Path) -> None:
         "# README\n\n| x | x | x | x | 是 | x |\n\n启用的非 system skills：0 个\n",
         encoding="utf-8",
     )
+    _write_state_contract_evidence(tmp_repo)
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -82,6 +84,67 @@ def test_check_all_cli(tmp_repo: Path) -> None:
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["check"] == "all"
+
+
+def _write_state_contract_evidence(repo_root: Path) -> None:
+    files = {
+        "tests/test_commands/test_layer_cmd.py": (
+            "test_answer_records_qa_for_gate",
+            "test_ask_records",
+        ),
+        "tests/test_commands/test_tech_stack_cmd.py": (
+            "test_check_passes_after_cli_lint",
+            "manifest.lint_tools",
+        ),
+        "tests/test_e2e/test_governed_path_smoke.py": (
+            "test_strict_governed_path_minimum_smoke",
+        ),
+        "tests/STATE_CONTRACTS.md": ("State Contract Closure",),
+    }
+    for rel, terms in files.items():
+        path = repo_root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("\n".join(terms), encoding="utf-8")
+
+
+def test_check_state_contract_passes_with_required_evidence(tmp_repo: Path) -> None:
+    _write_state_contract_evidence(tmp_repo)
+
+    result = check_state_contract(tmp_repo)
+
+    assert result.passed
+    assert result.check == "state-contract"
+    assert result.inspected == 4
+
+
+def test_check_state_contract_cli_fails_when_evidence_missing(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "check", "state-contract"],
+    )
+
+    assert result.exit_code == 1
+    assert "state-contract" in result.output
+    assert "failed" in result.output or "检查未通过" in result.output
+    assert "tests/test_commands/test_layer_cmd.py" in result.output
+
+
+def test_check_all_includes_state_contract(tmp_repo: Path) -> None:
+    (tmp_repo / "README.md").write_text(
+        "# README\n\n| x | x | x | x | 是 | x |\n\n启用的非 system skills：0 个\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "--json", "check", "all"],
+    )
+
+    assert result.exit_code == 1
+    payload = json.loads(result.output)
+    assert any(f["check"] == "state-contract" for f in payload["findings"])
 
 
 def test_check_user_evidence_passes_real_user_acceptance(tmp_repo: Path) -> None:

@@ -293,11 +293,13 @@ harness layer intake
 - `src/harness_governance/commands/state_contract.py`：已新增 `harness state-contract check` 第一版显式证据检查。
 - `src/harness_governance/commands/layer.py`：已新增 `harness layer ask <layer>` 和 `harness layer intake`。
 - `tests/test_commands/test_layer_cmd.py`、`tests/test_commands/test_state_contract_cmd.py`：已覆盖交互式问答和 state-contract check。
-- 后续可在 `harness init` 中生成派生项目测试骨架。
-- 后续可在 `verification` gate 或 `harness check` 中要求 state-contract 证据。
+- `src/harness_governance/commands/check.py`：已新增 `harness check state-contract` 并接入 `harness check all`。
+- `src/harness_governance/state_machine/gates.py`：verification gate 已要求 state-contract 证据。
+- `src/harness_governance/commands/init.py`：已在非 minimal 初始化中生成派生项目 state-contract 测试骨架。
+- `docs/verification/state-contract-p1.md`：已记录本次 P1 增强验证证据。
 
 **完成状态**：
-P1 第一版已实现。已具备正式问答入口、状态契约文档、最小 E2E smoke 和 `harness state-contract check`。剩余增强是派生项目模板生成、接入 verification gate / harness check，以及更自动化的 writer/consumer 扫描。
+P1 第二版已实现。已具备正式问答入口、状态契约文档、最小 E2E smoke、`harness state-contract check`、`harness check state-contract`、`check all` 集成、verification gate 集成，以及 `harness init` 派生项目测试骨架。剩余增强是更自动化的 writer/consumer 扫描。
 
 ---
 
@@ -758,7 +760,7 @@ Need help? Run: harness guide quickstart
 | **P0** | 红旗清单 + 拒绝理由提示 | Superpowers | 低 | 高 — 直接提升 agent 遵循率 |
 | **P1** | Slash 命令 Alias 层 | GStack | 中 | 已完成（CLI alias v1；slash 暂缓） |
 | **P1** | 完整场景示例 | GStack | 中 | 已完成（文档） |
-| **P1** | State Contract Closure / 状态契约闭环 | 事故复盘 | 中 | 第一版已完成 — 文档、E2E smoke、`state-contract check`、`layer ask/intake` |
+| **P1** | State Contract Closure / 状态契约闭环 | 事故复盘 | 中 | 第二版已完成 — 接入 `check state-contract`、`check all`、verification gate、init 测试骨架 |
 | **P1** | Tag-only Release Verification Hook | CI 复盘 | 中 | 第一版已完成 — `verify local --release`、tag-only hook install |
 | **P1** | Agent Preflight Assessment / 代理侧预评估路由 | Dogfood | 中 | 第一版已完成 — assessment schema、CLI 输入、分类器优先级 |
 | **P1** | NEXT.md Queue Closure / 队列闭环 | Dogfood | 中 | 第一版已完成 — `governed-start` 写 `[active]`，`review close` 更新 `[done]` |

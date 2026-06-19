@@ -281,6 +281,27 @@ def test_init_creates_user_evidence_template(tmp_repo: Path) -> None:
     assert "Anti-Self-Proof Assertion" in text
 
 
+def test_init_creates_state_contract_test_scaffold(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    scaffold = tmp_repo / "tests" / "test_state_contract_scaffold.py"
+    assert scaffold.is_file()
+    text = scaffold.read_text(encoding="utf-8")
+    assert "State Contract Closure" in text
+    assert "writer -> consumer" in text
+    assert "harness state-contract check" in text
+
+
+def test_init_minimal_skips_state_contract_test_scaffold(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+
+    assert not (tmp_repo / "tests" / "test_state_contract_scaffold.py").exists()
+
+
 def test_init_cursor_config_valid(tmp_repo: Path) -> None:
     """Cursor config must be loadable by Pydantic without validation error."""
     runner = CliRunner()

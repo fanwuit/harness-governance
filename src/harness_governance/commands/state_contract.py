@@ -50,16 +50,8 @@ _REQUIREMENTS: tuple[StateContractRequirement, ...] = (
 )
 
 
-@click.group("state-contract")
-def state_contract_group() -> None:
-    """Check persisted-state writer/consumer test closure."""
-
-
-@state_contract_group.command("check")
-@click.pass_context
-def state_contract_check_cmd(ctx: click.Context) -> None:
-    """Check required state-contract evidence exists."""
-    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+def evaluate_state_contract(project_root: Path) -> tuple[bool, list[dict[str, object]]]:
+    """Evaluate required state-contract evidence for *project_root*."""
     rows: list[dict[str, object]] = []
     passed = True
 
@@ -91,6 +83,21 @@ def state_contract_check_cmd(ctx: click.Context) -> None:
             }
         )
 
+    return passed, rows
+
+
+@click.group("state-contract")
+def state_contract_group() -> None:
+    """Check persisted-state writer/consumer test closure."""
+
+
+@state_contract_group.command("check")
+@click.pass_context
+def state_contract_check_cmd(ctx: click.Context) -> None:
+    """Check required state-contract evidence exists."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    passed, rows = evaluate_state_contract(project_root)
+
     if ctx.obj.get("json_output"):
         click.echo(
             json.dumps(
@@ -119,4 +126,5 @@ __all__ = [
     "state_contract_group",
     "state_contract_check_cmd",
     "StateContractRequirement",
+    "evaluate_state_contract",
 ]

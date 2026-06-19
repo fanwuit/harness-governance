@@ -875,6 +875,42 @@ def check_inventory(repo_root: Path) -> CheckResult:
     )
 
 
+def check_state_contract(repo_root: Path) -> CheckResult:
+    """Check persisted-state writer/consumer closure evidence."""
+    from .state_contract import evaluate_state_contract
+
+    passed, rows = evaluate_state_contract(repo_root)
+    findings: list[CheckFinding] = []
+    for row in rows:
+        if row["passed"]:
+            continue
+        evidence_path = str(row["evidence_path"])
+        missing_terms = row["missing_terms"]
+        if isinstance(missing_terms, list) and missing_terms:
+            detail = "missing required terms: " + ", ".join(
+                str(term) for term in missing_terms
+            )
+        else:
+            detail = "missing required evidence file"
+        findings.append(
+            CheckFinding(
+                check="state-contract",
+                target=evidence_path,
+                level="error",
+                message=(
+                    f"state-contract requirement '{row['name']}' failed: {detail}"
+                ),
+            )
+        )
+
+    return CheckResult(
+        check="state-contract",
+        passed=passed,
+        findings=tuple(findings),
+        inspected=len(rows),
+    )
+
+
 def _extract_table_skills(readme_text: str) -> list[str]:
     """Extract skill names from the README markdown table."""
     names: list[str] = []
@@ -1470,6 +1506,14 @@ def check_subagent_separation_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_subagent_separation(project_root))
 
 
+@check_group.command("state-contract")
+@click.pass_context
+def check_state_contract_cmd(ctx: click.Context) -> None:
+    """Persisted-state writer/consumer closure check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_state_contract(project_root))
+
+
 @check_group.command("docs")
 @click.option(
     "--stale-days",
@@ -1560,6 +1604,7 @@ def check_all_cmd(ctx: click.Context) -> None:
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
+        check_state_contract(project_root),
         check_user_evidence(project_root),
         check_subagent_separation(project_root),
         check_docs(project_root),
@@ -1581,6 +1626,7 @@ __all__ = [
     "check_inventory_cmd",
     "check_user_evidence_cmd",
     "check_subagent_separation_cmd",
+    "check_state_contract_cmd",
     "check_docs_cmd",
     "check_priority_cmd",
     "check_all_cmd",
@@ -1590,6 +1636,7 @@ __all__ = [
     "check_inventory",
     "check_user_evidence",
     "check_subagent_separation",
+    "check_state_contract",
     "check_docs",
     "check_priority",
 ]
