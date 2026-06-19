@@ -8,6 +8,8 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from harness_governance.commands.gate_failure import format_gate_failure_guidance
+from harness_governance.models.schemas import GateStatus
 from harness_governance.session import SessionState, create_session
 from harness_governance.state_machine.classification import RoutingPath
 from harness_governance.state_machine.layers import HarnessLayer
@@ -81,6 +83,7 @@ class TestGateCheck:
         assert "Required actions" in result.output
         assert "harness layer guide intake-orientation" in result.output
         assert "harness gate check intake-orientation" in result.output
+        assert "Choices:" in result.output
 
     def test_check_no_session(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -139,6 +142,25 @@ class TestGateCheck:
         assert data["layer"] == "intake-orientation"
         assert "Red flags we do not accept" not in result.output
         assert "Required actions" not in result.output
+
+    def test_gate_failure_guidance_deduplicates_repeated_items(self) -> None:
+        status = GateStatus(
+            layer=HarnessLayer.CONTRACT,
+            passed=False,
+            questions_answered=4,
+            questions_required=4,
+            artifacts_found=(),
+            artifacts_missing=("docs/contracts/*.md", "docs/contracts/*.md"),
+            confirmation_items_unmet=("Missing schema", "Missing schema"),
+            blocking_artifacts_missing=("contract.lock", "contract.lock"),
+        )
+
+        output = "\n".join(format_gate_failure_guidance("contract", status))
+
+        assert output.count("docs/contracts/*.md") == 1
+        assert output.count("Missing schema") == 1
+        assert output.count("contract.lock") == 1
+        assert "Choices:" in output
 
     def test_check_writes_lock_file(self, tmp_path: Path) -> None:
         _seed_gate_session(tmp_path)

@@ -113,6 +113,52 @@ class TestLayerAdvance:
         )
         assert gate.exit_code == 0, gate.output
 
+    def test_answer_replaces_existing_layer_question(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-answer-replace-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+
+        first = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "answer",
+                "idea",
+                "--question",
+                "Core problem?",
+                "--answer",
+                "First answer",
+            ],
+        )
+        assert first.exit_code == 0, first.output
+        second = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "answer",
+                "idea",
+                "--question",
+                "Core problem?",
+                "--answer",
+                "Updated answer",
+            ],
+        )
+        assert second.exit_code == 0, second.output
+        assert "1 answer" in second.output or "1 answer(s)" in second.output
+
+        state = load_session(tmp_path, session_id)
+        idea_answers = [qa for qa in state.layer_qa if qa["layer"] == "idea"]
+        assert len(idea_answers) == 1
+        assert idea_answers[0]["answer"] == "Updated answer"
+
     def test_ask_records_author_questions_interactively(self, tmp_path: Path) -> None:
         session_id = _seed_session(
             tmp_path,
@@ -137,6 +183,35 @@ class TestLayerAdvance:
         state = load_session(tmp_path, session_id)
         assert len(state.layer_qa) == 4
         assert all(qa["layer"] == "intake-orientation" for qa in state.layer_qa)
+
+    def test_ask_skips_already_answered_questions(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-ask-skip-test",
+            layer_qa=(
+                {
+                    "layer": "idea",
+                    "question": "Can you state the core problem in one sentence? / 你能用一句话描述核心问题或意图吗？",
+                    "answer": "Existing",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
+            ),
+            current_layer=HarnessLayer.IDEA,
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "ask", "idea"],
+            input="Feature\n",
+        )
+        assert result.exit_code == 0, result.output
+
+        state = load_session(tmp_path, session_id)
+        idea_answers = [qa for qa in state.layer_qa if qa["layer"] == "idea"]
+        assert len(idea_answers) == 2
+        assert idea_answers[0]["answer"] == "Existing"
+        assert idea_answers[1]["answer"] == "Feature"
 
     def test_intake_alias_records_author_questions(self, tmp_path: Path) -> None:
         session_id = _seed_session(

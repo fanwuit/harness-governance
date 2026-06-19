@@ -776,14 +776,13 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P1 新增**：Governance UX Friction Reduction。把 layer 问答从纯文本确认升级为可选择交互：默认选项支持方向键 + Enter，最后一个选项保留手动输入；允许 agent 预填答案和批量摘要确认；只在 scope、non-goals、风险未知、边界外改动、readiness 授权、verification 失败处理、archive / next queue 等关键点强制逐项确认；`是否推进到下一层` 这类推进确认必须提供 `是` / `否` / `返回上一步重新确认` 等明确选项；当 architecture 已判断 `不需要 standalone ADR` 时，ADR 层应支持自动生成 `ADR not required` 记录并进入单次选项式确认，而不是继续要求完整 ADR 四问；创建 isolation workspace 前必须解释它是什么、会写入哪里、是否影响源码、为什么当前 gate 需要它，并提供继续/跳过并记录风险/返回上一步等选项；修复 intake 等层同一个问题在窗口/聊天中重复出现的问题，问答渲染和记录反馈需要去重。
-2. **P1 增强**：评估是否将 `harness state-contract check` 接入 `verification` gate / `harness check`。
-3. **P1 增强**：在 `harness init` 中生成派生项目 state-contract 测试骨架。
-4. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证（仅本仓库）。
-5. **P1 增强**：将 user-evidence 从文档级检查增强到 Playwright trace / request payload / selector 扫描。
-6. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
-7. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
-8. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
+1. **P1 已完成第一版**：Governance UX Friction Reduction。已实现 dependency-free CLI 切片：`harness layer answer` 对同层同问题去重并保留最新答案，`harness layer ask` 跳过已回答问题，gate failure guidance 去重重复缺失项并提供 `yes` / `no` / `back` 明确选择。暂缓：方向键 selector、完整 wizard、平台 slash UX。
+2. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证（仅本仓库）。
+3. **P1 增强**：将 user-evidence 从文档级检查增强到 Playwright trace / request payload / selector 扫描。
+4. **P1 后续增强**：将 state-contract 从显式要求列表增强为更自动化的 writer/consumer 扫描。
+5. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
+6. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
+7. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
 
 ---
 

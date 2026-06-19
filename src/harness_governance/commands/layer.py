@@ -730,13 +730,18 @@ def _append_layer_answer(
     question: str,
     answer: str,
 ) -> SessionState:
+    existing = tuple(
+        qa
+        for qa in state.layer_qa
+        if not (qa.get("layer") == target.value and qa.get("question") == question)
+    )
     entry = {
         "layer": target.value,
         "question": question,
         "answer": answer,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
-    return state.model_copy(update={"layer_qa": state.layer_qa + (entry,)})
+    return state.model_copy(update={"layer_qa": existing + (entry,)})
 
 
 def _guide_key_and_section_for_layer(target: HarnessLayer) -> tuple[str, str | None]:
