@@ -776,7 +776,7 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P1 已完成第一版**：Governance UX Friction Reduction。已实现 dependency-free CLI 切片：`harness layer answer` 对同层同问题去重并保留最新答案，`harness layer ask` 跳过已回答问题，gate failure guidance 去重重复缺失项并提供 `yes` / `no` / `back` 明确选择。暂缓：方向键 selector、完整 wizard、平台 slash UX。
+1. **P1 已完成后续版**：Governance UX Friction Reduction。已实现 dependency-free CLI 切片：`harness layer answer` 对同层同问题去重并保留最新答案，`harness layer ask` 跳过已回答问题，gate failure guidance 去重重复缺失项并提供 `yes` / `no` / `back` 明确选择；后续版已增加 `harness layer wizard`、TTY 方向键/`j`/`k` 选择与编号 fallback、非交互 abort guidance、Codex 平台 `/harness ...` slash 触发方式文档。
 2. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证（仅本仓库）。
 3. **P1 增强**：将 user-evidence 从文档级检查增强到 Playwright trace / request payload / selector 扫描。
 4. **P1 后续增强**：将 state-contract 从显式要求列表增强为更自动化的 writer/consumer 扫描。

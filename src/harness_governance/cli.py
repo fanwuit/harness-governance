@@ -17,7 +17,7 @@ Wires the :mod:`click` groups together.  v0.8.0 ships 19 command groups:
 * ``harness config init``
 * ``harness runner start``
 * ``harness gate {check,status,reset,timing}``
-* ``harness layer {advance,show,guide}``
+* ``harness layer {advance,show,guide,ask,wizard}``
 * ``harness session {show,list,archive}``
 * ``harness tech-stack {capture,check,add,show,lint,docstyle}``
 * ``harness isolation`` — role isolation workspace inspection

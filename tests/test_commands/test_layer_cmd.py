@@ -213,6 +213,96 @@ class TestLayerAdvance:
         assert idea_answers[0]["answer"] == "Existing"
         assert idea_answers[1]["answer"] == "Feature"
 
+    def test_ask_reports_abort_guidance_for_noninteractive_input(
+        self, tmp_path: Path
+    ) -> None:
+        _seed_session(
+            tmp_path,
+            session_id="20260616-ask-abort-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "ask", "intake-orientation"],
+            input="",
+        )
+
+        assert result.exit_code != 0
+        assert "Question prompt aborted" in result.output
+        assert "harness layer answer" in result.output
+
+    def test_wizard_json_reports_state_without_prompting(self, tmp_path: Path) -> None:
+        _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-json-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "wizard",
+                "intake-orientation",
+            ],
+            input="",
+        )
+
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["layer"] == "intake-orientation"
+        assert payload["questions_recorded"] == 0
+        assert payload["gate_passed"] is False
+
+    def test_wizard_can_record_answers_and_advance(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-advance-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
+            input="A1\nA2\nA3\nA4\n1\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Gate passed" in result.output
+        assert "Layer advanced" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 4
+
+    def test_wizard_defaults_to_stop_when_selection_input_ends(
+        self, tmp_path: Path
+    ) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-no-choice-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
+            input="A1\nA2\nA3\nA4\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "harness layer advance idea --confirmed" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.INTAKE_ORIENTATION
+        assert len(state.layer_qa) == 4
+
     def test_intake_alias_records_author_questions(self, tmp_path: Path) -> None:
         session_id = _seed_session(
             tmp_path,

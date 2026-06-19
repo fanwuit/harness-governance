@@ -93,6 +93,19 @@ Do not skip this step. Fast path returns briefly; trivial / governed must output
 When omitted, `--contracts` and `--external` are auto-inferred from the description. Prefer explicit flags when you know them.
 省略时 `--contracts` 和 `--external` 会从描述自动推断。已知时优先显式传参。
 
+## Platform Slash UX
+
+Codex slash-style requests should map to the same CLI commands; slash text is
+only a user-facing trigger, not a separate governance path.
+
+| User request | Command |
+|---|---|
+| `/harness start <task>` | `harness governed-start "<task>"` |
+| `/harness next` | `harness next` |
+| `/harness wizard` | `harness layer wizard` |
+| `/harness ship` | `harness ship` |
+| `/harness status` | `harness status` |
+
 ## Change packets
 
 ```bash

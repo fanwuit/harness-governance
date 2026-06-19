@@ -34,6 +34,7 @@ from ..state_machine.gates import (
     LayerGateEngine,
     LockFileManager,
     is_layer_required,
+    layers_for_tier,
 )
 from ..state_machine.layers import HarnessLayer, LAYER_MAP, resolve_layer
 from ..state_machine.rigor import RigorTier
@@ -482,11 +483,32 @@ def layer_ask_cmd(
         for qa in state.layer_qa
         if qa.get("layer") == target.value
     }
+    if ctx.obj.get("json_output"):
+        status = LayerGateEngine().check(state, project_root, target)
+        next_layer = _next_layer_for_state(state, target)
+        answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+        click.echo(
+            json.dumps(
+                {
+                    "session_id": state.session_id,
+                    "layer": target.value,
+                    "questions_recorded": 0,
+                    "questions_answered": answered,
+                    "gate_passed": status.passed,
+                    "questions_required": status.questions_required,
+                    "next_layer": next_layer.value if next_layer else None,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+
     recorded = 0
     for question in questions:
         if question in already_answered:
             continue
-        answer = click.prompt(question, type=str)
+        answer = _prompt_author_answer(question, target)
         state = _append_layer_answer(state, target, question, answer)
         recorded += 1
 
@@ -537,6 +559,146 @@ def layer_ask_cmd(
         click.echo(bilingual("gate.failure.confirmations_unmet"))
         for item in status.confirmation_items_unmet:
             click.echo(f"  - {item}")
+
+
+@layer_group.command("wizard")
+@click.argument("layer_name", required=False)
+@click.option(
+    "--session",
+    "session_id",
+    default=None,
+    help="Session ID (defaults to active session).",
+)
+@click.pass_context
+def layer_wizard_cmd(
+    ctx: click.Context,
+    layer_name: str | None,
+    session_id: str | None,
+) -> None:
+    """Run the guided ask/check/advance flow for one governance layer."""
+    project_root: Path = ctx.obj["project_root"]
+    state = _resolve_session(project_root, session_id)
+    target = _resolve_layer_or_current(state, layer_name)
+    section = _guide_section_for_layer(target)
+    questions = _extract_author_questions(section or "")
+    if not questions:
+        raise click.ClickException(
+            bilingual("layer.ask.no_questions", layer=target.value)
+        )
+
+    already_answered = {
+        str(qa.get("question", ""))
+        for qa in state.layer_qa
+        if qa.get("layer") == target.value
+    }
+    if ctx.obj.get("json_output"):
+        status = LayerGateEngine().check(state, project_root, target)
+        next_layer = _next_layer_for_state(state, target)
+        answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+        click.echo(
+            json.dumps(
+                {
+                    "session_id": state.session_id,
+                    "layer": target.value,
+                    "questions_recorded": 0,
+                    "questions_answered": answered,
+                    "gate_passed": status.passed,
+                    "questions_required": status.questions_required,
+                    "next_layer": next_layer.value if next_layer else None,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+        return
+
+    recorded = 0
+    for question in questions:
+        if question in already_answered:
+            continue
+        answer = _prompt_author_answer(question, target)
+        state = _append_layer_answer(state, target, question, answer)
+        already_answered.add(question)
+        recorded += 1
+
+    save_session(project_root, state)
+    answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+    status = LayerGateEngine().check(state, project_root, target)
+    next_layer = _next_layer_for_state(state, target)
+
+    payload = {
+        "session_id": state.session_id,
+        "layer": target.value,
+        "questions_recorded": recorded,
+        "questions_answered": answered,
+        "gate_passed": status.passed,
+        "questions_required": status.questions_required,
+        "next_layer": next_layer.value if next_layer else None,
+    }
+    if ctx.obj.get("json_output"):
+        click.echo(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+
+    click.echo(
+        bilingual(
+            "layer.ask.recorded",
+            layer=target.value,
+            count=recorded,
+            answered=answered,
+        )
+    )
+    gate_state = "PASSED" if status.passed else "FAILED"
+    click.echo(
+        bilingual(
+            "alias.next.gate",
+            state=gate_state,
+            questions=status.questions_answered,
+            required=status.questions_required,
+        )
+    )
+    if not status.passed:
+        for line in format_gate_failure_guidance(target.value, status):
+            click.echo(line)
+        return
+    if next_layer is None:
+        click.echo(bilingual("layer.wizard.no_next"))
+        return
+
+    choice = _select_choice(
+        bilingual("layer.wizard.advance_prompt", layer=next_layer.value),
+        (
+            ("yes", bilingual("layer.wizard.choice.yes")),
+            ("no", bilingual("layer.wizard.choice.no")),
+            ("back", bilingual("layer.wizard.choice.back")),
+        ),
+    )
+    if choice == "yes":
+        ctx.invoke(
+            layer_advance_cmd,
+            target_layer=next_layer.value,
+            session_id=state.session_id,
+            prototype=False,
+            side_effects=False,
+            chat_only=False,
+            boundary_touch=False,
+            material_unknown=False,
+            uncontracted=False,
+            verification_failed=False,
+            work_paused=False,
+            contract_stalling=False,
+            confirmed=True,
+            skip_gate=False,
+            rigor_override=None,
+        )
+    elif choice == "back":
+        click.echo(bilingual("layer.wizard.back"))
+    else:
+        click.echo(
+            bilingual(
+                "governed_start.next",
+                cmd=f"harness layer advance {next_layer.value} --confirmed",
+            )
+        )
 
 
 @layer_group.command("intake")
@@ -724,6 +886,20 @@ def _resolve_session(project_root: Path, session_id: str | None) -> SessionState
     return found
 
 
+def _resolve_layer_or_current(
+    state: SessionState, layer_name: str | None
+) -> HarnessLayer:
+    if layer_name:
+        try:
+            return resolve_layer(layer_name)
+        except ValueError as exc:
+            raise click.ClickException(str(exc))
+    current = state.current_layer
+    if current is None:
+        raise click.ClickException(bilingual("layer.no_session"))
+    return current
+
+
 def _append_layer_answer(
     state: SessionState,
     target: HarnessLayer,
@@ -742,6 +918,79 @@ def _append_layer_answer(
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     return state.model_copy(update={"layer_qa": existing + (entry,)})
+
+
+def _next_layer_for_state(
+    state: SessionState, current: HarnessLayer
+) -> HarnessLayer | None:
+    path = layers_for_tier(RigorTier(state.rigor_tier))
+    try:
+        idx = path.index(current)
+    except ValueError:
+        return None
+    if idx + 1 >= len(path):
+        return None
+    return path[idx + 1]
+
+
+def _prompt_author_answer(question: str, target: HarnessLayer) -> str:
+    stdin = click.get_text_stream("stdin")
+    if stdin.isatty():
+        try:
+            return str(click.prompt(question, type=str))
+        except click.Abort:
+            raise click.ClickException(
+                bilingual("layer.ask.aborted", layer=target.value)
+            )
+
+    click.echo(f"{question}: ", nl=False)
+    answer = stdin.readline()
+    if answer == "":
+        raise click.ClickException(
+            bilingual("layer.ask.aborted", layer=target.value)
+        )
+    click.echo(answer.rstrip("\n"))
+    return answer.rstrip("\n")
+
+
+def _select_choice(prompt: str, choices: tuple[tuple[str, str], ...]) -> str:
+    """Return a choice key using arrow keys on a TTY or numbers otherwise."""
+    click.echo(prompt)
+    for idx, (_key, label) in enumerate(choices, 1):
+        click.echo(f"  {idx}. {label}")
+
+    if (
+        click.get_text_stream("stdin").isatty()
+        and click.get_text_stream("stdout").isatty()
+    ):
+        click.echo(bilingual("layer.selector.hint"))
+        index = 0
+        while True:
+            char = click.getchar()
+            if char in ("\r", "\n"):
+                return choices[index][0]
+            if char in ("1", "2", "3") and int(char) <= len(choices):
+                return choices[int(char) - 1][0]
+            if char in ("\x1b[B", "\t", "j"):
+                index = (index + 1) % len(choices)
+                click.echo(f"> {choices[index][1]}")
+            elif char in ("\x1b[A", "k"):
+                index = (index - 1) % len(choices)
+                click.echo(f"> {choices[index][1]}")
+
+    stdin = click.get_text_stream("stdin")
+    click.echo("> ", nl=False)
+    raw_text = stdin.readline()
+    if raw_text == "":
+        return "no"
+    click.echo(raw_text.rstrip("\n"))
+    try:
+        raw = int(raw_text.strip())
+    except ValueError:
+        return "no"
+    if raw < 1 or raw > len(choices):
+        return "no"
+    return choices[raw - 1][0]
 
 
 def _guide_key_and_section_for_layer(target: HarnessLayer) -> tuple[str, str | None]:
@@ -812,6 +1061,7 @@ __all__ = [
     "layer_advance_cmd",
     "layer_answer_cmd",
     "layer_ask_cmd",
+    "layer_wizard_cmd",
     "layer_intake_cmd",
     "layer_show_cmd",
     "layer_guide_cmd",

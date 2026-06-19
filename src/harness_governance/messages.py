@@ -856,6 +856,38 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "No author questions found for layer: {layer}.",
         "zh-CN": "未找到 {layer} 的作者问题。",
     },
+    "layer.ask.aborted": {
+        "en": "Question prompt aborted for {layer}. In non-interactive runs, use `harness layer answer` or `harness layer wizard --json`.",
+        "zh-CN": "{layer} 的问题提示已中断。非交互运行请使用 `harness layer answer` 或 `harness layer wizard --json`。",
+    },
+    "layer.selector.hint": {
+        "en": "Use Up/Down or j/k, then Enter. Number keys also work.",
+        "zh-CN": "使用 ↑/↓ 或 j/k 后按 Enter；也可以直接按数字。",
+    },
+    "layer.wizard.advance_prompt": {
+        "en": "Gate passed. Advance to {layer}?",
+        "zh-CN": "门控已通过。推进到 {layer} 吗？",
+    },
+    "layer.wizard.choice.yes": {
+        "en": "yes - advance now",
+        "zh-CN": "yes — 现在推进",
+    },
+    "layer.wizard.choice.no": {
+        "en": "no - stop here",
+        "zh-CN": "no — 停在这里",
+    },
+    "layer.wizard.choice.back": {
+        "en": "back - revise answers",
+        "zh-CN": "back — 返回修改回答",
+    },
+    "layer.wizard.back": {
+        "en": "Revise answers with `harness layer answer`, then rerun `harness layer wizard`.",
+        "zh-CN": "使用 `harness layer answer` 修改回答，然后重新运行 `harness layer wizard`。",
+    },
+    "layer.wizard.no_next": {
+        "en": "No next layer for this session path.",
+        "zh-CN": "此会话路径没有下一层。",
+    },
     "layer.skip_gate_requires_confirmed": {
         "en": "--skip-gate requires --confirmed (safety interlock).",
         "zh-CN": "--skip-gate 必须配合 --confirmed 使用（安全联动）。",
