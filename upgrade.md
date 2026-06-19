@@ -763,7 +763,8 @@ Need help? Run: harness guide quickstart
 | **P1** | Agent Preflight Assessment / 代理侧预评估路由 | Dogfood | 中 | 第一版已完成 — assessment schema、CLI 输入、分类器优先级 |
 | **P1** | NEXT.md Queue Closure / 队列闭环 | Dogfood | 中 | 第一版已完成 — `governed-start` 写 `[active]`，`review close` 更新 `[done]` |
 | **P0** | User-Perceived Integration Evidence Gate / 用户感知集成证据门禁 | Dogfood | 中 | 第一版已完成 — `check user-evidence`、`check all`、`ship`、verification gate、init 模板 |
-| **P0** | Subagent Separation Gate / 子代理责任隔离门禁 | Dogfood | 中 | 新增 P0 — 约束角色独立性、文件所有权和交付收口权限 |
+| **P0** | Subagent Separation Gate / 子代理责任隔离门禁 | Dogfood | 中 | 第一版已完成 — `check subagent-separation`、`check all`、`ship`、文档级证据检查 |
+| **P1** | Governance UX Friction Reduction / 治理交互降噪 | Dogfood | 中 | 新增 P1 — 选择式问答、agent 预填、批量摘要确认、关键风险点强确认 |
 | **P2** | 轻量规格模式 | OpenSpec | 中 | 中 — 简单任务不需要 5 个文件 |
 | **P2** | 渐进式安装 | Superpowers | 低 | 中 — 降低试用门槛 |
 | **P3** | Skill 组合灵活性 | Superpowers | 高 | 低 — 适合 skill 市场模式 |
@@ -773,7 +774,7 @@ Need help? Run: harness guide quickstart
 
 ## 下一步行动
 
-1. **P0 新增**：实现 `harness check subagent-separation`，先做角色矩阵、invocation 证据、文件所有权和收口权限的文档级检查。
+1. **P1 新增**：Governance UX Friction Reduction。把 layer 问答从纯文本确认升级为可选择交互：默认选项支持方向键 + Enter，最后一个选项保留手动输入；允许 agent 预填答案和批量摘要确认；只在 scope、non-goals、风险未知、边界外改动、readiness 授权、verification 失败处理、archive / next queue 等关键点强制逐项确认；`是否推进到下一层` 这类推进确认必须提供 `是` / `否` / `返回上一步重新确认` 等明确选项；当 architecture 已判断 `不需要 standalone ADR` 时，ADR 层应支持自动生成 `ADR not required` 记录并进入单次选项式确认，而不是继续要求完整 ADR 四问；创建 isolation workspace 前必须解释它是什么、会写入哪里、是否影响源码、为什么当前 gate 需要它，并提供继续/跳过并记录风险/返回上一步等选项；修复 intake 等层同一个问题在窗口/聊天中重复出现的问题，问答渲染和记录反馈需要去重。
 2. **P1 增强**：评估是否将 `harness state-contract check` 接入 `verification` gate / `harness check`。
 3. **P1 增强**：在 `harness init` 中生成派生项目 state-contract 测试骨架。
 4. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证（仅本仓库）。

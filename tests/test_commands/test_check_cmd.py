@@ -12,6 +12,7 @@ from harness_governance.commands.check import (
     _check_self_docs,
     check_inventory,
     check_routing,
+    check_subagent_separation,
     check_user_evidence,
 )
 from harness_governance import __version__ as _current_version
@@ -197,6 +198,226 @@ def test_check_user_evidence_requires_change_packet_verification(
 
     assert not result.passed
     assert any("verification.md" in f.target for f in result.findings)
+
+
+def test_check_subagent_separation_passes_required_with_role_invocations(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "subagent.md").write_text(
+        """# Governed feature
+
+ship ready by verifier.
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: fact-finder-reviewer invocation evidence-1
+- Implementer: implementer invocation impl-1
+- Verifier: reviewer invocation verify-1
+- Waiver:
+""",
+        encoding="utf-8",
+    )
+    invocation_log = tmp_repo / ".harness" / "invocations.ndjson"
+    invocation_log.parent.mkdir()
+    invocation_log.write_text(
+        "\n".join(
+            [
+                '{"role":"contract-writer","invocation_id":"contract-1"}',
+                '{"role":"fact-finder-reviewer","invocation_id":"evidence-1"}',
+                '{"role":"implementer","invocation_id":"impl-1"}',
+                '{"role":"reviewer","invocation_id":"verify-1"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert result.passed, [f.message for f in result.findings]
+    assert result.check == "subagent-separation"
+
+
+def test_check_subagent_separation_requires_section_for_trigger(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "missing.md").write_text(
+        "# P0 work\n\nThis P0 task changes a CLI contract and is ship ready.\n",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("Subagent Separation" in f.message for f in result.findings)
+
+
+def test_check_subagent_separation_requires_role_fields(tmp_repo: Path) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "missing-role.md").write_text(
+        """# P1 governed work
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: fact-finder-reviewer invocation evidence-1
+- Implementer:
+- Verifier: reviewer invocation verify-1
+- Waiver:
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("Implementer" in f.message for f in result.findings)
+
+
+def test_check_subagent_separation_requires_invocation_evidence(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "no-log.md").write_text(
+        """# P0 governed work
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: fact-finder-reviewer invocation evidence-1
+- Implementer: implementer invocation impl-1
+- Verifier: reviewer invocation verify-1
+- Waiver:
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("invocation" in f.message.lower() for f in result.findings)
+
+
+def test_check_subagent_separation_requires_waiver_details(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "waiver.md").write_text(
+        """# P1 governed work
+
+## Subagent Separation
+- Required: no
+- Waiver: documentation-only change
+- Replacement Verification:
+- Residual Risk:
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("Replacement Verification" in f.message for f in result.findings)
+    assert any("Residual Risk" in f.message for f in result.findings)
+
+
+def test_check_subagent_separation_rejects_ownership_violation(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "ownership.md").write_text(
+        """# P0 governed work
+
+implementer modified contract files.
+
+## Subagent Separation
+- Required: no
+- Waiver: emergency repair
+- Replacement Verification: reviewer inspected docs
+- Residual Risk: medium
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("ownership" in f.message.lower() for f in result.findings)
+
+
+def test_check_subagent_separation_rejects_same_implementer_verifier(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "same-role.md").write_text(
+        """# P0 governed work
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: fact-finder-reviewer invocation evidence-1
+- Implementer: implementer invocation same-1
+- Verifier: reviewer invocation same-1
+- Waiver:
+""",
+        encoding="utf-8",
+    )
+    invocation_log = tmp_repo / ".harness" / "invocations.ndjson"
+    invocation_log.parent.mkdir()
+    invocation_log.write_text(
+        "\n".join(
+            [
+                '{"role":"contract-writer","invocation_id":"contract-1"}',
+                '{"role":"fact-finder-reviewer","invocation_id":"evidence-1"}',
+                '{"role":"implementer","invocation_id":"same-1"}',
+                '{"role":"reviewer","invocation_id":"same-1"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("same invocation" in f.message.lower() for f in result.findings)
+
+
+def test_check_subagent_separation_cli_and_check_all(tmp_repo: Path) -> None:
+    (tmp_repo / "README.md").write_text(
+        "# README\n\n| x | x | x | x | 是 | x |\n\n启用的非 system skills：0 个\n",
+        encoding="utf-8",
+    )
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "bad.md").write_text(
+        "# Bad governed work\n\nP0 task is ship ready without separation evidence.\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "check", "subagent-separation"],
+    )
+    assert result.exit_code == 1
+    assert "subagent-separation check failed" in result.output
+
+    all_result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "--json", "check", "all"],
+    )
+    assert all_result.exit_code == 1
+    payload = json.loads(all_result.output)
+    assert any(f["check"] == "subagent-separation" for f in payload["findings"])
 
 
 def test_check_user_evidence_cli(tmp_repo: Path) -> None:

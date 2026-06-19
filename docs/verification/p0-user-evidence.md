@@ -36,3 +36,9 @@ report a `user-evidence` failure.
 - Persisted/readback state: tests read generated template and Markdown evidence files back from disk
 - External systems mocked: none
 - Why acceptable: the feature is local filesystem and CLI behavior only
+
+## Subagent Separation
+- Required: no
+- Waiver: historical P0 verification record created before the subagent-separation gate existed
+- Replacement Verification: focused pytest, CLI aggregation tests, and `harness check user-evidence`
+- Residual Risk: no independent verifier invocation is recorded for this historical evidence
