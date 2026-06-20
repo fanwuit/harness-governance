@@ -7,7 +7,7 @@ notes are archived in [docs/upgrade-archive.md](docs/upgrade-archive.md).
 
 ### P0. Capability-Tiered Subagent Routing
 
-**Status:** planned, not implemented.
+**Status:** first version done.
 
 **Goal:** make subagent execution platform-neutral while allowing cheaper or
 weaker execution agents to work only inside explicit boundaries and requiring

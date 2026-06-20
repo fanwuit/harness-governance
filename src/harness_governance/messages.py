@@ -656,6 +656,26 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Recorded review/next state for {task_id} in {path}",
         "zh-CN": "已将 {task_id} 的 review/next 状态写入 {path}",
     },
+    "review.auto_close.summary": {
+        "en": "Auto-close: {active} active, {closed} closed",
+        "zh-CN": "自动收口: {active} 个 active, {closed} 个已关闭",
+    },
+    "review.auto_close.closed": {
+        "en": "  ✓ closed: {description}",
+        "zh-CN": "  ✓ 已关闭: {description}",
+    },
+    "review.auto_close.dry_run": {
+        "en": "  would close: {description}",
+        "zh-CN": "  将关闭: {description}",
+    },
+    "review.auto_close.none": {
+        "en": "No tasks to auto-close.",
+        "zh-CN": "没有可自动关闭的任务。",
+    },
+    "review.auto_close.no_active": {
+        "en": "No active tasks found.",
+        "zh-CN": "未找到 active 任务。",
+    },
     # config ---------------------------------------------------------------
     "config.created": {
         "en": "Created: {path}",

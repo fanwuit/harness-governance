@@ -1,7 +1,10 @@
-"""``harness review close <task-id>`` command."""
+"""``harness review {close,auto-close}`` commands."""
 
 from __future__ import annotations
 
+import re
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,9 +12,11 @@ import click
 
 from ..config import load_config
 from ..file_ops.checkpoint import Checkpoint
-from ..file_ops.queue import mark_queue_item_done
+from ..file_ops.queue import mark_queue_item_done, read_queue
 from ..messages import bilingual
+from ..models.schemas import HarnessConfig
 from ..session import load_session, save_session
+from ..state_machine.layers import HarnessLayer
 
 
 @click.group("review")
@@ -139,4 +144,132 @@ def _close_matching_session(project_root: Path, task_id: str, timestamp: str) ->
     return True
 
 
-__all__ = ["review_group", "review_close_cmd"]
+def _is_working_tree_clean(project_root: Path) -> bool:
+    """Return True when ``git status --porcelain`` is empty."""
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=project_root,
+        )
+        return result.returncode == 0 and not result.stdout.strip()
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return True
+
+
+def _extract_session_id(raw: str) -> str | None:
+    """Extract ``Session: <id>`` from a queue block's raw text."""
+    for line in raw.splitlines():
+        m = re.match(r"^\s*-?\s*Session:\s*(.+)$", line, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
+def auto_close_active_tasks(
+    project_root: Path,
+    *,
+    dry_run: bool = False,
+    config: HarnessConfig | None = None,
+) -> tuple[int, int]:
+    """Scan [active] queue items and auto-close those that are done.
+
+    A task is considered done when its session is already closed or when
+    its session has reached the REVIEW_NEXT layer and the working tree
+    is clean.
+
+    Returns (active_count, closed_count).
+    """
+    cfg = config or load_config(project_root)
+    items = read_queue(cfg.queue_file)
+    active_items = [item for item in items if item.active]
+
+    closed = 0
+    for item in active_items:
+        session_id = _extract_session_id(item.raw)
+        if not session_id:
+            continue
+
+        try:
+            session = load_session(project_root, session_id)
+        except FileNotFoundError:
+            continue
+
+        should_close = False
+
+        if session.status == "closed":
+            should_close = True
+        elif (
+            session.current_layer == HarnessLayer.REVIEW_NEXT
+            and _is_working_tree_clean(project_root)
+        ):
+            should_close = True
+
+        if not should_close:
+            continue
+
+        closed += 1
+        if not dry_run:
+            if session.status != "closed":
+                ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                save_session(
+                    project_root,
+                    session.model_copy(
+                        update={"status": "closed", "closed_at": ts}
+                    ),
+                )
+            mark_queue_item_done(
+                cfg.queue_file,
+                task_id=session_id,
+                evidence=("auto-closed by harness review auto-close",),
+            )
+
+    return len(active_items), closed
+
+
+@review_group.command("auto-close")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be closed without making changes.",
+)
+@click.pass_context
+def review_auto_close_cmd(ctx: click.Context, dry_run: bool) -> None:
+    """Auto-close [active] tasks whose sessions indicate completion.
+
+    A task qualifies when:
+
+    \b
+    * its session is already closed, or
+    * its session has reached the REVIEW_NEXT layer and the working
+      tree is clean.
+
+    Typically run automatically after ``harness check all``.
+    """
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    active, closed = auto_close_active_tasks(project_root, dry_run=dry_run)
+
+    if active == 0:
+        click.echo(bilingual("review.auto_close.no_active"))
+        return
+
+    if closed == 0:
+        click.echo(bilingual("review.auto_close.none"))
+        return
+
+    click.echo(
+        bilingual("review.auto_close.summary", active=active, closed=closed)
+    )
+
+
+__all__ = [
+    "review_group",
+    "review_close_cmd",
+    "review_auto_close_cmd",
+    "auto_close_active_tasks",
+]

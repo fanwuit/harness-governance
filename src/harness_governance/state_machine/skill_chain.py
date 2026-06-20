@@ -57,6 +57,14 @@ class SkillChainTracer:
         round_index: int = 0,
         files_passed: list[str] | None = None,
         parent_skill: str = "",
+        required_tier: str = "",
+        actual_tier: str = "",
+        platform: str = "",
+        model_label: str = "",
+        adapter: str = "",
+        verifier_required: bool = True,
+        owner_files: list[str] | None = None,
+        changed_files: list[str] | None = None,
     ) -> str:
         """Begin a new skill invocation and return its ``call_id``.
 
@@ -77,6 +85,14 @@ class SkillChainTracer:
             files_passed=tuple(files_passed or []),
             started_at=datetime.now(timezone.utc).isoformat(),
             trace_depth=0,  # computed on finalize
+            required_tier=required_tier,
+            actual_tier=actual_tier,
+            platform=platform,
+            model_label=model_label,
+            adapter=adapter,
+            verifier_required=verifier_required,
+            owner_files=tuple(owner_files or []),
+            changed_files=tuple(changed_files or []),
         )
 
         return call_id
@@ -476,11 +492,85 @@ def _gate_hook_skill_chain_review(
     return failures
 
 
+# ---------------------------------------------------------------------------
+# Gate hook: capability-tier enforcement
+# ---------------------------------------------------------------------------
+
+
+def _gate_hook_capability_tier(session, project_root: Path) -> list[str]:
+    """Enforce that execution/mechanical work has an independent verifier.
+
+    Fails at REVIEW_NEXT layer when:
+    - Any invocation with ``verifier_required=true`` has no matching
+      verifier invocation with ``actual_tier=strong``.
+    - The verifier and a lower-tier role share the same invocation
+      (self-verification).
+    """
+    session_id = session.session_id
+    records = _load_invocations(_chains_path(project_root, session_id))
+    if not records:
+        return []
+
+    failures: list[str] = []
+    needs_verifier: list[SkillInvocation] = [
+        r for r in records if r.verifier_required
+    ]
+    if not needs_verifier:
+        return []
+
+    verifier_calls: set[str] = set()
+    for r in records:
+        if r.role == "verifier" and r.actual_tier == "strong":
+            verifier_calls.add(r.call_id)
+
+    for inv in needs_verifier:
+        if not verifier_calls:
+            failures.append(
+                f"Role '{inv.role}' requires an independent strong verifier "
+                f"but no verifier invocation with actual_tier=strong was found. "
+                f"Execution/mechanical tier work cannot close out without "
+                f"independent verification."
+            )
+            break
+
+        if inv.call_id in verifier_calls:
+            failures.append(
+                f"Role '{inv.role}' (required_tier={inv.required_tier}) "
+                f"cannot self-verify. An independent strong verifier must "
+                f"accept the work."
+            )
+
+    return failures
+
+
+def _chains_path(project_root: Path, session_id: str) -> Path:
+    return project_root / SkillChainTracer.CHAINS_DIR / f"{session_id}.ndjson"
+
+
+def _load_invocations(path: Path) -> list[SkillInvocation]:
+    if not path.is_file():
+        return []
+    import json
+
+    records: list[SkillInvocation] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            data = json.loads(line)
+            records.append(SkillInvocation.model_validate(data))
+        except (json.JSONDecodeError, Exception):
+            continue
+    return records
+
+
 # Module-level registration — fires when skill_chain is imported.
 try:
     from .gates import HarnessLayer, register_gate_hook
 
     register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_skill_chain_verification)
     register_gate_hook(HarnessLayer.REVIEW_NEXT, _gate_hook_skill_chain_review)
+    register_gate_hook(HarnessLayer.REVIEW_NEXT, _gate_hook_capability_tier)
 except ImportError:
     pass

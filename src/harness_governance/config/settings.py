@@ -180,6 +180,19 @@ def write_default_config(
         "# Scope budget: limits per-task change size to prevent agent drift.\n"
         "# Format: max-files/max-diff-lines. Set to 0/0 to disable.\n"
         'scope_budget = "10/800"\n'
+        "\n"
+        "# Capability-tier subagent routing (v0.9.0)\n"
+        "# Optional per-role capability tier overrides (default policy in\n"
+        "# ROLE_CAPABILITY_POLICY: planner/contract/verifier=strong,\n"
+        "# implementer=execution, document-gardener=mechanical).\n"
+        "# role_capability_overrides = [\n"
+        '#   { role = "implementer", required_tier = "strong" },\n'
+        "# ]\n"
+        "#\n"
+        "# Per-agent model candidates are declared in each agent directory's\n"
+        "# tiers.json (e.g. .claude/tiers.json, .agents/tiers.json).\n"
+        "# Harness core discovers them at runtime - it never encodes model\n"
+        "# rankings itself.\n"
     )
     # Pure string literal — encoding="utf-8" (never utf-8-sig) guarantees
     # no BOM is emitted. No read->write round-trip here, so no BOM can

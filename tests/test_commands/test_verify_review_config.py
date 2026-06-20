@@ -251,3 +251,123 @@ def test_config_init_force_overwrites(tmp_repo: Path) -> None:
     )
     text = (tmp_repo / ".harness" / "config.toml").read_text(encoding="utf-8")
     assert "# custom" not in text
+
+
+def _seed_active_session(tmp_repo: Path, session_id: str, layer: HarnessLayer) -> None:
+    create_session(
+        tmp_repo,
+        SessionState(
+            session_id=session_id,
+            created_at="2026-06-20T00:00:00+00:00",
+            description="Auto-close test session",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=layer,
+        ),
+    )
+
+
+def test_auto_close_no_active_tasks(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "No active tasks found" in result.output
+
+
+def test_auto_close_no_matching_session(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Orphan task\n"
+        "- Session: no-such-session\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "No tasks to auto-close" in result.output
+
+
+def test_auto_close_session_already_closed(tmp_repo: Path) -> None:
+    _seed_active_session(tmp_repo, "task-closed", HarnessLayer.IMPLEMENTATION)
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Closed session task\n"
+        "- Session: task-closed\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    # Manually close the session first
+    runner.invoke(cli, ["--project-root", str(tmp_repo), "review", "close", "task-closed"])
+    # Now auto-close should pick it up
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "[done] Closed session task" in (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+
+
+def test_auto_close_review_next_and_clean_tree(tmp_repo: Path, monkeypatch) -> None:
+    _seed_active_session(tmp_repo, "task-review", HarnessLayer.REVIEW_NEXT)
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] REVIEW_NEXT task\n"
+        "- Session: task-review\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "harness_governance.commands.review._is_working_tree_clean",
+        lambda _: True,
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close"],
+    )
+    assert result.exit_code == 0, result.output
+    text = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[done] REVIEW_NEXT task" in text
+
+
+def test_auto_close_dry_run_does_not_modify(tmp_repo: Path, monkeypatch) -> None:
+    _seed_active_session(tmp_repo, "task-dry", HarnessLayer.REVIEW_NEXT)
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Dry-run task\n"
+        "- Session: task-dry\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "harness_governance.commands.review._is_working_tree_clean",
+        lambda _: True,
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close", "--dry-run"],
+    )
+    assert result.exit_code == 0, result.output
+    text = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Dry-run task" in text
+
+
+def test_auto_close_dirty_tree_skips(tmp_repo: Path, monkeypatch) -> None:
+    _seed_active_session(tmp_repo, "task-dirty", HarnessLayer.REVIEW_NEXT)
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Dirty tree task\n"
+        "- Session: task-dirty\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "harness_governance.commands.review._is_working_tree_clean",
+        lambda _: False,
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "review", "auto-close"],
+    )
+    assert result.exit_code == 0, result.output
+    text = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Dirty tree task" in text

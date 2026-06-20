@@ -19,6 +19,7 @@ from harness_governance.models.schemas import (
 )
 from harness_governance.state_machine.skill_chain import (
     SkillChainTracer,
+    _gate_hook_capability_tier,
     _gate_hook_skill_chain_review,
     _gate_hook_skill_chain_verification,
 )
@@ -747,3 +748,189 @@ class TestComputeDepths:
         # Both should have finite depth
         assert a.trace_depth >= 0
         assert b.trace_depth >= 0
+
+
+# ---------------------------------------------------------------------------
+# Capability-tier provenance tests
+# ---------------------------------------------------------------------------
+
+
+class TestStartInvocationProvenance:
+    """SkillInvocation provenance fields are recorded correctly."""
+
+    def _load_last_invocation(self, tmp_path: Path) -> SkillInvocation | None:
+        """Read back the most recently persisted invocation from NDJSON."""
+        chain_path = (
+            tmp_path
+            / ".harness"
+            / "skill-chains"
+            / f"{SESSION_ID}.ndjson"
+        )
+        if not chain_path.is_file():
+            return None
+        import json
+
+        lines = chain_path.read_text(encoding="utf-8").strip().splitlines()
+        if not lines:
+            return None
+        return SkillInvocation.model_validate(json.loads(lines[-1]))
+
+    def test_default_provenance(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="implementer",
+            session_id=SESSION_ID,
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        inv = self._load_last_invocation(tmp_path)
+        assert inv is not None
+        assert inv.required_tier == ""
+        assert inv.actual_tier == ""
+        assert inv.verifier_required is True
+
+    def test_provenance_fields_recorded(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="implementer",
+            session_id=SESSION_ID,
+            required_tier="execution",
+            actual_tier="execution",
+            platform="codex",
+            model_label="claude-sonnet-4",
+            adapter="codex-cli",
+            verifier_required=True,
+            owner_files=["src/foo.py"],
+            changed_files=["src/foo.py", "src/bar.py"],
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        inv = self._load_last_invocation(tmp_path)
+        assert inv is not None
+        assert inv.required_tier == "execution"
+        assert inv.actual_tier == "execution"
+        assert inv.platform == "codex"
+        assert inv.model_label == "claude-sonnet-4"
+        assert inv.adapter == "codex-cli"
+        assert inv.verifier_required is True
+        assert inv.owner_files == ("src/foo.py",)
+        assert inv.changed_files == ("src/foo.py", "src/bar.py")
+
+    def test_provenance_persisted_to_ndjson(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="implementer",
+            session_id=SESSION_ID,
+            required_tier="execution",
+            actual_tier="execution",
+            platform="codex",
+            model_label="claude-sonnet-4",
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        chain_path = tmp_path / ".harness" / "skill-chains" / f"{SESSION_ID}.ndjson"
+        assert chain_path.is_file()
+        raw = chain_path.read_text(encoding="utf-8")
+        assert "execution" in raw
+        assert "claude-sonnet-4" in raw
+        assert "codex" in raw
+
+
+# ---------------------------------------------------------------------------
+# Capability-tier gate hook tests
+# ---------------------------------------------------------------------------
+
+
+class FakeSession:
+    """Minimal session stub for gate hooks."""
+
+    def __init__(self, session_id: str) -> None:
+        self.session_id = session_id
+
+
+class TestGateHookCapabilityTier:
+    def test_no_invocations_passes(self, tmp_path: Path) -> None:
+        session = FakeSession("no-invocations")
+        failures = _gate_hook_capability_tier(session, tmp_path)
+        assert failures == []
+
+    def test_no_verifier_needed_passes(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="planner",
+            role="planner",
+            session_id="no-verifier-needed",
+            required_tier="strong",
+            actual_tier="strong",
+            verifier_required=False,
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        session = FakeSession("no-verifier-needed")
+        failures = _gate_hook_capability_tier(session, tmp_path)
+        assert failures == []
+
+    def test_execution_without_verifier_fails(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="implementer",
+            session_id="missing-verifier",
+            required_tier="execution",
+            actual_tier="execution",
+            verifier_required=True,
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        session = FakeSession("missing-verifier")
+        failures = _gate_hook_capability_tier(session, tmp_path)
+        assert len(failures) >= 1
+        assert "independent strong verifier" in failures[0].lower()
+
+    def test_execution_with_strong_verifier_passes(self, tmp_path: Path) -> None:
+        tracer = _make_tracer(tmp_path)
+        impl_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="implementer",
+            session_id="with-verifier",
+            required_tier="execution",
+            actual_tier="execution",
+            verifier_required=True,
+        )
+        tracer.end_invocation(impl_id, exit_code=0, verdict="success")
+        ver_id = tracer.start_invocation(
+            parent_call_id=impl_id,
+            child_skill="verifier",
+            role="verifier",
+            session_id="with-verifier",
+            required_tier="strong",
+            actual_tier="strong",
+            verifier_required=False,
+        )
+        tracer.end_invocation(ver_id, exit_code=0, verdict="success")
+        session = FakeSession("with-verifier")
+        failures = _gate_hook_capability_tier(session, tmp_path)
+        assert failures == []
+
+    def test_self_verification_fails(self, tmp_path: Path) -> None:
+        """A call acting as both execution-tier and strong verifier is rejected."""
+        tracer = _make_tracer(tmp_path)
+        # An execution-tier implementer that also signs as verifier
+        call_id = tracer.start_invocation(
+            parent_call_id=None,
+            child_skill="implementer",
+            role="verifier",
+            session_id="self-verify",
+            required_tier="execution",
+            actual_tier="strong",
+            verifier_required=True,
+        )
+        tracer.end_invocation(call_id, exit_code=0, verdict="success")
+        session = FakeSession("self-verify")
+        failures = _gate_hook_capability_tier(session, tmp_path)
+        failures_text = " ".join(failures).lower()
+        assert any(word in failures_text for word in ("self-verify", "cannot", "independent"))

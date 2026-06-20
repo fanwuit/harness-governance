@@ -10,6 +10,7 @@ typos in hand-written config files and CLI payloads.
 
 from __future__ import annotations
 
+import enum
 from datetime import date
 from pathlib import Path
 from typing import Literal
@@ -49,6 +50,10 @@ class HarnessConfig(BaseModel):
     scope_budget: ScopeBudget = Field(
         default_factory=lambda: ScopeBudget(max_files=10, max_diff_lines=800)
     )
+    # --- capability-tier subagent routing (v0.9.0) ---
+    role_capability_overrides: tuple[RoleCapabilityOverride, ...] = ()
+    """Per-role capability tier overrides.  Any role not listed uses the
+    default policy in ``ROLE_CAPABILITY_POLICY``."""
 
     @field_validator("project_root")
     @classmethod
@@ -220,6 +225,127 @@ class ScopeBudget(BaseModel):
     max_diff_lines: int = 0
     forbidden_paths: tuple[str, ...] = ()
     owner_files: tuple[str, ...] = ()
+
+
+class CapabilityTier(str, enum.Enum):
+    """Platform-neutral subagent capability tiers.
+
+    These tiers describe the expected quality, autonomy, and reliability
+    of a subagent invocation — not the governance rigor (which is
+    ``RigorTier``).
+    """
+
+    STRONG = "strong"
+    """Full-capability subagent: can plan, write contracts, implement,
+    verify, and close out tasks.  Required for planner, contract-writer,
+    verifier, reviewer."""
+
+    EXECUTION = "execution"
+    """Execution-focused subagent: can implement from a clear spec.
+    Cannot self-verify or close out.  Appropriate for implementer."""
+
+    MECHANICAL = "mechanical"
+    """Mechanical / narrow-scope subagent: can perform document updates,
+    formatting, linting, or simple mechanical transforms.  Cannot
+    self-verify or close out.  Appropriate for document-gardener."""
+
+
+# Default role → minimum capability tier policy.
+# Platform projects may override per-role tiers in config.
+ROLE_CAPABILITY_POLICY: dict[str, CapabilityTier] = {
+    "planner": CapabilityTier.STRONG,
+    "contract-writer": CapabilityTier.STRONG,
+    "adr-writer": CapabilityTier.STRONG,
+    "fact-finder-reviewer": CapabilityTier.STRONG,
+    "readiness-gate-writer": CapabilityTier.STRONG,
+    "reviewer": CapabilityTier.STRONG,
+    "verifier": CapabilityTier.STRONG,
+    "integrator": CapabilityTier.STRONG,
+    "orchestrator": CapabilityTier.STRONG,
+    "implementer": CapabilityTier.EXECUTION,
+    "document-gardener": CapabilityTier.MECHANICAL,
+}
+
+
+class ProvenanceRecord(BaseModel):
+    """Provenance metadata for one subagent invocation.
+
+    Records how, where, and at what capability the subagent ran, so
+    gates and audit trails can verify that the correct tier was used.
+    """
+
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
+
+    role: str = ""
+    required_tier: CapabilityTier = CapabilityTier.STRONG
+    actual_tier: CapabilityTier = CapabilityTier.STRONG
+    platform: str = ""  # e.g. "claude-code", "codex", "opencode"
+    model_label: str = ""  # opaque model identifier (e.g. "claude-sonnet-4")
+    adapter: str = ""  # adapter name (e.g. "codex-cli", "subprocess")
+    owner_files: tuple[str, ...] = ()
+    changed_files: tuple[str, ...] = ()
+    verifier_required: bool = True
+    """True when this invocation needs an independent strong verifier."""
+
+
+class RoleCapabilityOverride(BaseModel):
+    """Per-role capability tier override in project config."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: str
+    required_tier: CapabilityTier
+
+
+class AdapterRoute(BaseModel):
+    """Maps a (role, tier) pair to an adapter configuration.
+
+    Kept minimal: platform adapters expose candidates; project config
+    confirms the mapping.  Harness core does not rank models.
+    """
+
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
+
+    role: str = ""
+    required_tier: CapabilityTier = CapabilityTier.STRONG
+    adapter: str = ""  # adapter name
+    model_label: str = ""  # opaque label forwarded to the adapter
+
+
+# Well-known agent config directories where ``tiers.json`` is discovered.
+# Harness core scans these at runtime; it does not hardcode model rankings.
+AGENT_CONFIG_DIRS: tuple[Path, ...] = (
+    Path(".claude"),
+    Path(".agents"),
+    Path(".clinerules"),
+    Path(".cursor"),
+    Path(".opencode"),
+    Path(".windsurf"),
+    Path("."),  # project root (lowest priority)
+)
+
+# File name that each agent directory may contain to declare its
+# capability-tier model candidates.
+AGENT_TIERS_FILE = "tiers.json"
+
+
+class AgentCapabilityDeclaration(BaseModel):
+    """Per-agent capability-tier model declaration.
+
+    Each agent platform places a ``tiers.json`` in its config directory
+    (e.g. ``.claude/tiers.json``) to declare which models/adapters it
+    can provide for each role at each required tier.
+
+    Harness core discovers these files at runtime; it never encodes
+    model rankings itself.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    platform: str = ""
+    """Platform identifier (e.g. ``\"claude-code\"``, ``\"opencode\"``)."""
+    adapters: tuple[AdapterRoute, ...] = ()
+    """Adapters this agent provides for specific (role, tier) pairs."""
 
 
 class QueueItem(BaseModel):
@@ -732,7 +858,7 @@ class TraceabilityMatrix(BaseModel):
 class SkillInvocation(BaseModel):
     """One skill invocation record in the call tree."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
     call_id: str  # UUID hex
     parent_call_id: str | None = None  # None = root node
@@ -750,6 +876,15 @@ class SkillInvocation(BaseModel):
     exit_code: int = 0
     verdict: str = ""  # "success", "failure", "timeout"
     trace_depth: int = 0  # 0 = root
+    # --- capability-tier provenance (v0.9.0) ---
+    required_tier: str = ""  # CapabilityTier value
+    actual_tier: str = ""  # CapabilityTier value
+    platform: str = ""  # platform name
+    model_label: str = ""  # opaque model identifier
+    adapter: str = ""  # adapter name
+    verifier_required: bool = True
+    owner_files: tuple[str, ...] = ()
+    changed_files: tuple[str, ...] = ()
 
 
 class InvocationTreeNode(BaseModel):

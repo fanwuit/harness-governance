@@ -1612,9 +1612,20 @@ def check_priority_cmd(ctx: click.Context, fix_mode: bool) -> None:
 
 
 @check_group.command("all")
+@click.option(
+    "--auto-close/--no-auto-close",
+    "auto_close",
+    default=True,
+    help="Auto-close completed tasks after all checks pass (default: on).",
+)
 @click.pass_context
-def check_all_cmd(ctx: click.Context) -> None:
-    """Run every check; aggregate pass/fail."""
+def check_all_cmd(ctx: click.Context, auto_close: bool) -> None:
+    """Run every check; aggregate pass/fail.
+
+    After a successful run, active tasks whose sessions indicate
+    completion are auto-closed (see ``harness review auto-close``).
+    Use ``--no-auto-close`` to skip this.
+    """
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     if not ctx.obj.get("json_output"):
         freq = _get_check_frequency(project_root)
@@ -1637,6 +1648,20 @@ def check_all_cmd(ctx: click.Context) -> None:
         inspected=sum(r.inspected for r in results),
     )
     _emit(ctx, aggregate)
+
+    # Only reached when all checks pass (otherwise _emit raises Exit).
+    if auto_close:
+        from .review import auto_close_active_tasks
+
+        active, closed = auto_close_active_tasks(project_root)
+        if closed:
+            click.echo(
+                bilingual(
+                    "review.auto_close.summary",
+                    active=active,
+                    closed=closed,
+                )
+            )
 
 
 __all__ = [

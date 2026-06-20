@@ -18,7 +18,12 @@ from pathlib import Path
 from typing import Literal
 
 from ..file_ops.queue import read_queue
-from ..models.schemas import QueueItem
+from ..models.schemas import CapabilityTier, QueueItem
+from ..state_machine.capability_routing import (
+    resolve_required_tier,
+    role_policy_summary,
+    verifier_required_for_tier,
+)
 from .template_renderer import TemplateRenderer
 from .variables import VariableExtractor
 
@@ -137,6 +142,8 @@ class OrchestratorPrompt:
     roles_needed: list[str]
     queue_item_raw: str
     missing_variables: list[str]
+    role_capabilities: dict[str, str] | None = None
+    """Map of role → required CapabilityTier value for each dispatched role."""
 
 
 class OrchestratorPromptBuilder:
@@ -204,6 +211,15 @@ class OrchestratorPromptBuilder:
         # 2. Determine required roles from the ready item
         roles_needed = self._determine_roles(queue_item)
 
+        # 2b. Resolve capability tier for each role
+        from ..config import load_config
+
+        cfg = load_config(project_root)
+        role_caps: dict[str, str] = {}
+        for role in roles_needed:
+            tier = resolve_required_tier(role, cfg)
+            role_caps[role] = tier.value
+
         # 3. Extract variables and render role prompts
         rendered_prompts: dict[str, str] = {}
         all_missing: list[str] = []
@@ -228,6 +244,7 @@ class OrchestratorPromptBuilder:
             mode=mode,
             max_rounds=max_rounds,
             platform=effective_platform,
+            role_capabilities=role_caps,
         )
 
         return OrchestratorPrompt(
@@ -235,6 +252,7 @@ class OrchestratorPromptBuilder:
             roles_needed=roles_needed,
             queue_item_raw=queue_item.raw,
             missing_variables=all_missing,
+            role_capabilities=role_caps,
         )
 
     # Internal helpers -------------------------------------------------------
@@ -298,6 +316,7 @@ class OrchestratorPromptBuilder:
         mode: str,
         max_rounds: int,
         platform: str = "generic",
+        role_capabilities: dict[str, str] | None = None,
     ) -> str:
         """Assemble the complete orchestrator prompt document."""
         sections: list[str] = []
@@ -349,11 +368,21 @@ class OrchestratorPromptBuilder:
                 sections.append(f"\n# Current Checkpoint\n\n{cp_text}\n")
 
         # Execution parameters
+        params = [
+            f"- Mode: `{mode}`",
+            f"- Max rounds: `{max_rounds}`",
+            f"- Project root: `{project_root}`",
+        ]
+        if role_capabilities:
+            params.append("")
+            params.append("### Capability Tier Requirements")
+            for role, tier in sorted(role_capabilities.items()):
+                needs_v = verifier_required_for_tier(CapabilityTier(tier))
+                v_str = "requires independent strong verifier" if needs_v else ""
+                params.append(f"- `{role}` → **{tier}** {v_str}".strip())
+
         sections.append(
-            f"\n---\n\n# Execution Parameters\n\n"
-            f"- Mode: `{mode}`\n"
-            f"- Max rounds: `{max_rounds}`\n"
-            f"- Project root: `{project_root}`\n"
+            "\n---\n\n# Execution Parameters\n\n" + "\n".join(params) + "\n"
         )
 
         return "\n".join(sections)
