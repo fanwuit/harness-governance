@@ -591,10 +591,25 @@ def layer_wizard_cmd(
         for qa in state.layer_qa
         if qa.get("layer") == target.value
     }
+    pending_questions = [q for q in questions if q not in already_answered]
     if ctx.obj.get("json_output"):
         status = LayerGateEngine().check(state, project_root, target)
         next_layer = _next_layer_for_state(state, target)
         answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
+        pending_question: dict[str, object] | None = None
+        if not status.passed and pending_questions:
+            question = pending_questions[0]
+            pending_question = {
+                "question": question,
+                "suggested_answer": _suggest_author_answer(state, target, question),
+                "actions": _choice_payload(_wizard_question_choices()),
+            }
+        pending_advance: dict[str, object] | None = None
+        if status.passed and next_layer is not None:
+            pending_advance = {
+                "layer": next_layer.value,
+                "actions": _choice_payload(_wizard_advance_choices()),
+            }
         click.echo(
             json.dumps(
                 {
@@ -605,6 +620,8 @@ def layer_wizard_cmd(
                     "gate_passed": status.passed,
                     "questions_required": status.questions_required,
                     "next_layer": next_layer.value if next_layer else None,
+                    "pending_question": pending_question,
+                    "pending_advance": pending_advance,
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -613,7 +630,6 @@ def layer_wizard_cmd(
         return
 
     recorded = 0
-    pending_questions = [q for q in questions if q not in already_answered]
     index = 0
     while index < len(pending_questions):
         question = pending_questions[index]
@@ -680,11 +696,7 @@ def layer_wizard_cmd(
 
     choice = _select_choice(
         bilingual("layer.wizard.advance_prompt", layer=next_layer.value),
-        (
-            ("yes", bilingual("layer.wizard.choice.yes")),
-            ("no", bilingual("layer.wizard.choice.no")),
-            ("back", bilingual("layer.wizard.choice.back")),
-        ),
+        _wizard_advance_choices(),
     )
     if choice == "yes":
         ctx.invoke(
@@ -1003,12 +1015,7 @@ def _prompt_question_action(
     )
     action = _select_choice(
         bilingual("layer.wizard.question_action_prompt"),
-        (
-            ("confirm", bilingual("layer.wizard.choice.confirm")),
-            ("edit", bilingual("layer.wizard.choice.edit")),
-            ("skip", bilingual("layer.wizard.choice.skip")),
-            ("back", bilingual("layer.wizard.choice.question_back")),
-        ),
+        _wizard_question_choices(),
     )
     if action == "confirm":
         return action, suggested_answer
@@ -1019,6 +1026,27 @@ def _prompt_question_action(
     if action in {"skip", "back"}:
         return action, None
     raise click.ClickException(bilingual("layer.ask.aborted", layer=target.value))
+
+
+def _wizard_question_choices() -> tuple[tuple[str, str], ...]:
+    return (
+        ("confirm", bilingual("layer.wizard.choice.confirm")),
+        ("edit", bilingual("layer.wizard.choice.edit")),
+        ("skip", bilingual("layer.wizard.choice.skip")),
+        ("back", bilingual("layer.wizard.choice.question_back")),
+    )
+
+
+def _wizard_advance_choices() -> tuple[tuple[str, str], ...]:
+    return (
+        ("yes", bilingual("layer.wizard.choice.yes")),
+        ("no", bilingual("layer.wizard.choice.no")),
+        ("back", bilingual("layer.wizard.choice.back")),
+    )
+
+
+def _choice_payload(choices: tuple[tuple[str, str], ...]) -> list[dict[str, str]]:
+    return [{"key": key, "label": label} for key, label in choices]
 
 
 def _select_choice(prompt: str, choices: tuple[tuple[str, str], ...]) -> str:

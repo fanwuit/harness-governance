@@ -235,7 +235,7 @@ class TestLayerAdvance:
         assert "harness layer answer" in result.output
 
     def test_wizard_json_reports_state_without_prompting(self, tmp_path: Path) -> None:
-        _seed_session(
+        session_id = _seed_session(
             tmp_path,
             session_id="20260616-wizard-json-test",
             layer_qa=(),
@@ -260,6 +260,55 @@ class TestLayerAdvance:
         assert payload["layer"] == "intake-orientation"
         assert payload["questions_recorded"] == 0
         assert payload["gate_passed"] is False
+        assert payload["pending_question"]["question"].startswith(
+            "What is the current task"
+        )
+        assert payload["pending_question"]["suggested_answer"] == "Test"
+        assert [action["key"] for action in payload["pending_question"]["actions"]] == [
+            "confirm",
+            "edit",
+            "skip",
+            "back",
+        ]
+        assert payload["pending_advance"] is None
+        state = load_session(tmp_path, session_id)
+        assert state.layer_qa == ()
+
+    def test_wizard_json_reports_pending_advance_without_advancing(
+        self, tmp_path: Path
+    ) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-json-advance-test",
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "wizard",
+                "intake-orientation",
+            ],
+            input="",
+        )
+
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["gate_passed"] is True
+        assert payload["next_layer"] == "idea"
+        assert payload["pending_question"] is None
+        assert payload["pending_advance"]["layer"] == "idea"
+        assert [action["key"] for action in payload["pending_advance"]["actions"]] == [
+            "yes",
+            "no",
+            "back",
+        ]
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.INTAKE_ORIENTATION
 
     def test_wizard_can_record_answers_and_advance(self, tmp_path: Path) -> None:
         session_id = _seed_session(
