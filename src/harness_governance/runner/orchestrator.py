@@ -19,7 +19,9 @@ from typing import Literal
 
 from ..file_ops.queue import read_queue
 from ..models.schemas import CapabilityTier, QueueItem
+from ..state_machine.agent_declarations import discover_declarations
 from ..state_machine.capability_routing import (
+    resolve_adapter,
     resolve_required_tier,
     role_policy_summary,
     verifier_required_for_tier,
@@ -211,14 +213,19 @@ class OrchestratorPromptBuilder:
         # 2. Determine required roles from the ready item
         roles_needed = self._determine_roles(queue_item)
 
-        # 2b. Resolve capability tier for each role
+        # 2b. Resolve capability tier and adapter model for each role
         from ..config import load_config
 
         cfg = load_config(project_root)
         role_caps: dict[str, str] = {}
+        role_models: dict[str, str] = {}
+        declarations = discover_declarations(project_root)
         for role in roles_needed:
             tier = resolve_required_tier(role, cfg)
             role_caps[role] = tier.value
+            adapter = resolve_adapter(role, tier, project_root=project_root)
+            if adapter:
+                role_models[role] = adapter.get("model_label", "")
 
         # 3. Extract variables and render role prompts
         rendered_prompts: dict[str, str] = {}
@@ -245,6 +252,7 @@ class OrchestratorPromptBuilder:
             max_rounds=max_rounds,
             platform=effective_platform,
             role_capabilities=role_caps,
+            role_models=role_models,
         )
 
         return OrchestratorPrompt(
@@ -317,6 +325,7 @@ class OrchestratorPromptBuilder:
         max_rounds: int,
         platform: str = "generic",
         role_capabilities: dict[str, str] | None = None,
+        role_models: dict[str, str] | None = None,
     ) -> str:
         """Assemble the complete orchestrator prompt document."""
         sections: list[str] = []
@@ -379,7 +388,12 @@ class OrchestratorPromptBuilder:
             for role, tier in sorted(role_capabilities.items()):
                 needs_v = verifier_required_for_tier(CapabilityTier(tier))
                 v_str = "requires independent strong verifier" if needs_v else ""
-                params.append(f"- `{role}` → **{tier}** {v_str}".strip())
+                model_label = (role_models or {}).get(role, "")
+                model_str = f" (model: {model_label})" if model_label else ""
+                parts = [f"- `{role}` → **{tier}**{model_str}"]
+                if v_str:
+                    parts.append(f"  - {v_str}")
+                params.extend(parts)
 
         sections.append(
             "\n---\n\n# Execution Parameters\n\n" + "\n".join(params) + "\n"
