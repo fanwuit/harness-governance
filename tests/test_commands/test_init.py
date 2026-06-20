@@ -294,6 +294,41 @@ def test_init_creates_state_contract_test_scaffold(tmp_repo: Path) -> None:
     assert "harness state-contract check" in text
 
 
+def test_init_creates_tiers_json(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode"])
+    assert result.exit_code == 0, result.output
+
+    tiers = tmp_repo / ".opencode" / "tiers.json"
+    assert tiers.is_file()
+    import json
+    data = json.loads(tiers.read_text(encoding="utf-8"))
+    assert "platform" in data
+    assert len(data["adapters"]) > 0
+    assert data["adapters"][0]["required_tier"] in ("strong", "execution", "mechanical")
+
+
+def test_init_tiers_json_respects_platform(tmp_repo: Path) -> None:
+    """codex platform writes to .agents/, opencode writes to .opencode/."""
+    runner = CliRunner()
+
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "codex"])
+    assert result.exit_code == 0
+    assert (tmp_repo / ".agents" / "tiers.json").is_file()
+
+    # Re-init with different platform
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode", "--force"])
+    assert result.exit_code == 0
+    assert (tmp_repo / ".opencode" / "tiers.json").is_file()
+
+
+def test_init_minimal_skips_tiers_json(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+    assert not (tmp_repo / ".agents" / "tiers.json").exists()
+
+
 def test_init_minimal_skips_state_contract_test_scaffold(tmp_repo: Path) -> None:
     runner = CliRunner()
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
