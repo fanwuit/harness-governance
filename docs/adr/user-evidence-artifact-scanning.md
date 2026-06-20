@@ -3,9 +3,16 @@
 ## Decision
 
 Enhance `harness check user-evidence` with artifact-level scanning via a
-new `evidence_scanner.py` module that parses Playwright trace zips, HAR
-HTTP archives, and test source files for forbidden selectors, fabricated
-payloads, and mock response indicators.
+new `src/harness_governance/commands/evidence_scanner.py` module that parses
+Playwright trace zips, HAR HTTP archives, and test source files for forbidden
+selectors, fabricated payloads, and mock response indicators.
+
+## Rationale
+
+Artifact scanning must remain close to `harness check user-evidence` while
+staying isolated from the general-purpose document checker. A separate scanner
+module keeps binary/JSON parsing testable and avoids expanding
+`src/harness_governance/commands/check.py` with format-specific parsing code.
 
 ## Status
 
@@ -21,7 +28,7 @@ enhancement to Playwright trace / request payload / selector scanning.
 
 ## Alternatives Considered
 
-1. **Integrated in check.py** — rejected; check.py already 1600+ lines,
+1. **Integrated in `src/harness_governance/commands/check.py`** — rejected; `src/harness_governance/commands/check.py` already 1600+ lines,
    mixing binary/JSON artifact parsing with doc parsing blurs responsibility.
 2. **New CLI subcommand** — rejected; opt-in subcommand defeats the
    automatic gate purpose; users would skip the stricter check.

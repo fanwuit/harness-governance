@@ -4,6 +4,17 @@
 
 Verified on 2026-06-19.
 
+## Results
+
+Subagent-separation command coverage passed for the targeted checks below.
+`harness check all` remained blocked by pre-existing routing and inventory
+backlog unrelated to this gate implementation.
+
+## Evidence
+
+Evidence consists of the targeted pytest run, direct CLI check runs, docs check,
+py_compile, and the explicit `harness check all` failure record listed below.
+
 ## Passed Commands
 
 - `pytest tests/test_commands/test_check_cmd.py tests/test_commands/test_aliases.py`
@@ -42,4 +53,3 @@ Verified on 2026-06-19.
 - Waiver: this implementation is the first version of the subagent-separation checker, so independent subagent enforcement did not exist before the change
 - Replacement Verification: contract-first pytest, CLI checks, docs check, py_compile, and explicit `harness check all` failure record
 - Residual Risk: no independent verifier invocation was recorded for this first implementation; future work can use this new gate to require it
-

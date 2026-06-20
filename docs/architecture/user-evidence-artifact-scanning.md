@@ -1,5 +1,11 @@
 # Architecture: User-Evidence Artifact Scanning
 
+## Boundaries
+
+The scanner is an internal library used by `harness check user-evidence`. It
+does not add a public CLI command, does not replay browser traces, and does not
+introduce third-party runtime dependencies.
+
 ## Boundary Diagram
 
 ```
@@ -78,7 +84,7 @@ docs/verification/*.md          evidence_scanner.py            check.py
    `evidence_scanner.py` as a standalone module. Rationale: testability
    and single-responsibility.
 
-## Ownership
+## Owners
 
 All new components are owned by the harness-governance core package. No
 external team boundaries are crossed. The scanner is an internal library

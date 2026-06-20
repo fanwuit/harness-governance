@@ -101,9 +101,9 @@ Before requesting review, confirm:
 
 ## QA / Release Readiness / QA / 发布就绪
 
-QA and Release only provide pre-completion evidence; they do not approve new scope or automatically ship. For shared boundaries, see `harness-engineering/references/local-qa-release-monitor-retro.md`.
+QA and Release only provide pre-completion evidence; they do not approve new scope or automatically ship. For shared boundaries, see `src/harness_governance/data/references/local-qa-release-monitor-retro.md`.
 
-QA 和 Release 只提供完成前证据，不批准新 scope 或自动 shipping。共享边界见 `harness-engineering/references/local-qa-release-monitor-retro.md`。
+QA 和 Release 只提供完成前证据，不批准新 scope 或自动 shipping。共享边界见 `src/harness_governance/data/references/local-qa-release-monitor-retro.md`。
 
 ```markdown
 ## QA / Release Readiness

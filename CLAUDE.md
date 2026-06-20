@@ -43,6 +43,28 @@ src/harness_governance/
   messages.py             — bilingual i18n catalog (~170 message IDs)
 ```
 
+Command module index: `aliases.py`, `alignment.py`, `drift.py`,
+`evidence_scanner.py`, `gate_failure.py`, `hook.py`, `isolation.py`,
+`skill_chain.py`, `state_contract.py`, `tech_stack.py`.
+
+State machine module index: `alignment.py`, `drift.py`, `isolation.py`,
+`skill_chain.py`, `tech_stack.py`.
+
+Schema model index: `HarnessConfig`, `AgentAssessment`, `RoutingInput`,
+`RoutingResult`, `ChangePacketSummary`, `ChangePacketInitResult`,
+`CheckFinding`, `CheckResult`, `EntryRecord`, `PlanningSession`,
+`ScopeBudget`, `QueueItem`, `StatusQueueItem`, `StatusQueueSummary`,
+`StatusPacketItem`, `StatusActivePlan`, `StatusCheckpoint`, `StatusRunner`,
+`StatusVerification`, `StatusSessionItem`, `QAPair`, `GateStatus`,
+`GateResult`, `RigorProfile`, `GateCheckInput`, `StatusPayload`,
+`VersionConstraint`, `ToolIntroduction`, `LintGap`, `DocStyleGap`,
+`TechStackManifest`, `TechStackCheckResult`, `IsolationWorkspace`,
+`IsolationRecord`, `IsolationSummary`, `ScopeBoundary`, `ScopeDeclaration`,
+`DecompositionTrigger`, `DriftDetection`, `FieldAlignmentSpec`,
+`AlignmentFinding`, `AlignmentReport`, `TraceabilityEntry`,
+`TraceabilityMatrix`, `SkillInvocation`, `InvocationTreeNode`,
+`SkillChainReport`.
+
 ## Testing
 
 ```bash

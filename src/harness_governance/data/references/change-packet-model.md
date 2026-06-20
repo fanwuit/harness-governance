@@ -82,7 +82,7 @@ Use the bundled templates when a complex task needs a packet:
 当复杂任务需要包时，使用捆绑模板：
 
 ```text
-harness-engineering/templates/change-packet/
+src/harness_governance/data/templates/change-packet/
   proposal.md
   design.md
   tasks.md

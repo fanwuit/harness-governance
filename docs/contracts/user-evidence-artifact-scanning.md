@@ -9,6 +9,13 @@ scan_evidence_artifacts(repo_root: Path, evidence_path: Path) -> list[str]
 Returns a list of human-readable finding strings. Empty list = no findings.
 Never raises on malformed/missing artifacts (graceful).
 
+## Behaviour
+
+The scanner discovers evidence artifacts referenced by verification docs and
+well-known result directories, scans HAR files, Playwright traces, and test
+sources, then returns findings that `harness check user-evidence` converts into
+blocking check errors.
+
 ## Field Specifications
 
 ### API parameters (matched against Python AST)
@@ -94,6 +101,12 @@ Verified by: `test_existing_user_evidence_tests_pass`.
 - Unreadable test source → skip, no finding.
 - Evidence doc with no Command/Result paths and no well-known result dirs
   → no artifacts discovered, no findings.
+
+## Scope
+
+In scope: artifact discovery, defensive parsing, forbidden selector detection,
+empty save payload detection, mock response indicators, and graceful handling of
+malformed artifacts.
 
 ## Out of Scope
 

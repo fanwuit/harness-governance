@@ -4,6 +4,12 @@ Use this file as a starting point for changes that claim MVP, closed-loop,
 save, publish, import/export, login, payment, upload, run, preview,
 generate, sync, or other user-perceived functionality.
 
+## Results
+- Summary: <overall verification result and timestamp>
+
+## Evidence
+- Summary: <commands, artifacts, and user-visible evidence used to close this change>
+
 ## User-Perceived Integration Evidence
 - Evidence level: real-user acceptance
 - Real User Entry: <visible product entry point used by the test>

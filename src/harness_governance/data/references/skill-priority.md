@@ -12,17 +12,17 @@ Do not assume any third-party skill exists in the target environment. Before rou
 
 ## Entry Gate / 入口门控
 
-For development, planning, implementation, verification, queue, or handoff requests, route through `harness-engineering` before any third-party workflow. This includes empty projects, demos, small games, simple feature requests, and "continue" / "next" requests.
+For development, planning, implementation, verification, queue, or handoff requests, route through `harness governed-start` before any third-party workflow. This includes empty projects, demos, small games, simple feature requests, and "continue" / "next" requests.
 
-对于开发、规划、实施、验证、队列或交接请求，必须先通过 `harness-engineering` 路由，再处理任何第三方工作流。包括空项目、demo、小游戏、简单功能请求和"继续"/"下一步"请求。
+对于开发、规划、实施、验证、队列或交接请求，必须先通过 `harness governed-start` 路由，再处理任何第三方工作流。包括空项目、demo、小游戏、简单功能请求和"继续"/"下一步"请求。
 
 If a third-party skill also appears to match because of a broad session-start rule, treat it as a companion check only. It may be loaded when required, but it does not own entry routing and must not trigger its own workflow chain until harness has selected the current layer.
 
 如果第三方 skill 因宽泛的会话启动规则而匹配，仅将其视为伴生检查。可按需加载，但不拥有入口路由权，在 harness 选定当前层级之前不得触发其工作流链。
 
-A third-party skill is not exempt from harness entry even when its metadata says "starting any conversation" or "before ANY response". Project-level harness entry, `skill-use-transparency`, and local governance routing run first.
+A third-party skill is not exempt from harness entry even when its metadata says "starting any conversation" or "before ANY response". Project-level harness entry and local governance routing run first.
 
-即使第三方 skill 的元数据声明"starting any conversation"或"before ANY response"，也不得绕过 harness 入口。项目级 harness 入口、`skill-use-transparency` 和本地治理路由优先执行。
+即使第三方 skill 的元数据声明"starting any conversation"或"before ANY response"，也不得绕过 harness 入口。项目级 harness 入口和本地治理路由优先执行。
 
 ## Companion Capability Adapter / 伴生能力适配
 
@@ -65,7 +65,7 @@ Containment rules / 隔离规则：
 | Systematic debugging steps | `observable-fact-discovery` | Repro, observed facts, isolation, hypothesis result, fix verification |
 | Completion evidence before claims | `review-next-governance` | Completion Evidence record |
 | Review feedback handling | `review-next-governance` / `agent-role-isolation` | Review Feedback record and verification |
-| Plan execution checkpoints | `harness-engineering` / `planning-with-files` | Chosen carrier from `planning-carrier-decision.md` |
+| Plan execution checkpoints | `harness governed-start` / `planning-with-files` | Chosen carrier from `planning-carrier-decision.md` |
 | Parallel agent coordination | `execution-prompt-authoring` / `agent-role-isolation` | Execution matrix and Integrator checks |
 | Worktree / branch finish discipline | `review-next-governance` | Branch Finish record and explicit user/project approval |
 
@@ -75,7 +75,7 @@ Containment rules / 隔离规则：
 |---|---|---|---|
 | Creative product, feature, or design work | third-party brainstorming | `brainstorm-to-brief` | preferred |
 | Multi-step implementation planning | third-party plan writing | `planning-with-files` or project queue | preferred |
-| Executing a written plan | third-party plan execution | `harness-engineering` queue + checkpoints | preferred |
+| Executing a written plan | third-party plan execution | harness queue + checkpoints | preferred |
 | Independent parallel tasks | third-party parallel dispatch | Execute serially and record handoff state | optional |
 | Bug, test failure, or unexpected behavior | third-party systematic debugging | Reproduce, observe, isolate, fix, verify | preferred |
 | Feature or bugfix implementation | third-party TDD | `contract-first-development` + target-local tests | preferred |

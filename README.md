@@ -78,6 +78,10 @@ harness runner start                # 自主就绪循环
 harness session show/list           # 会话管理
 ```
 
+Maintainer command identifiers checked by `harness check docs --self`:
+`governed_start`, `hook`, `state_contract`, `tech_stack`, `isolation`,
+`drift`, `alignment`, `skill_chain`.
+
 ## Architecture / 架构
 
 ```

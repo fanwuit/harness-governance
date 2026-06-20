@@ -16,6 +16,11 @@ mypy src/harness_governance/commands/evidence_scanner.py
 - `ruff check`: All checks passed
 - `mypy`: Success, no issues found
 
+## Evidence
+
+Evidence covers scanner unit tests, user-evidence check regression tests,
+linting, type checking, and contract-to-test mapping for C1-C8 below.
+
 ## Contract Coverage
 
 | Contract | Test | Status |

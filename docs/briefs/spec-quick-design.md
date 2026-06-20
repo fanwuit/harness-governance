@@ -68,6 +68,14 @@ Upgrade from spec quick → full change packet when **any** of:
 **Default**: spec quick for trivial-safe-change and fast-path governed tasks;
 full change packet for governed-path tasks that meet any upgrade criterion.
 
+## Success Criteria
+
+- Simple tasks can be documented in one durable spec file without creating a
+  full five-file change packet.
+- Any task that crosses the upgrade boundary has an explicit path to promote
+  the quick spec into a full packet.
+- Gate checks remain authoritative; spec quick is only a documentation carrier.
+
 ## CLI Design
 
 ```bash
