@@ -9,6 +9,9 @@ from click.testing import CliRunner
 
 from harness_governance.cli import cli
 from harness_governance.commands import verify as verify_module
+from harness_governance.session import SessionState, create_session, load_session
+from harness_governance.state_machine.classification import RoutingPath
+from harness_governance.state_machine.layers import HarnessLayer
 
 
 def _mark_harness_governance_repo(project_root: Path) -> None:
@@ -16,6 +19,19 @@ def _mark_harness_governance_repo(project_root: Path) -> None:
     (project_root / "pyproject.toml").write_text(
         '[project]\nname = "harness-governance"\n',
         encoding="utf-8",
+    )
+
+
+def _seed_review_session(project_root: Path, session_id: str) -> None:
+    create_session(
+        project_root,
+        SessionState(
+            session_id=session_id,
+            created_at="2026-06-20T00:00:00+00:00",
+            description="Review close test session",
+            routing_path=RoutingPath.GOVERNED_PATH,
+            current_layer=HarnessLayer.REVIEW_NEXT,
+        ),
     )
 
 
@@ -160,6 +176,59 @@ def test_review_close_marks_matching_queue_item_done(tmp_repo: Path) -> None:
     assert "- Closed: task-1" in text
     assert "- Evidence: pytest -q" in text
     assert "- Risk: none" in text
+
+
+def test_review_close_closes_matching_session_and_queue(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Session: task-1\n"
+        "- Layer: implementation\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "review",
+            "close",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+            "--risk",
+            "none",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    session = load_session(tmp_repo, "task-1")
+    assert session.status == "closed"
+    assert session.closed_at is not None
+
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[done] Implement queue closure" in queue
+    assert "- Closed: task-1" in queue
+
+
+def test_review_close_missing_session_is_non_fatal(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "unrelated-session")
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "review",
+            "close",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert load_session(tmp_repo, "unrelated-session").status == "active"
 
 
 def test_config_init_writes_file(tmp_repo: Path) -> None:

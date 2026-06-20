@@ -11,6 +11,7 @@ from ..config import load_config
 from ..file_ops.checkpoint import Checkpoint
 from ..file_ops.queue import mark_queue_item_done
 from ..messages import bilingual
+from ..session import load_session, save_session
 
 
 @click.group("review")
@@ -112,7 +113,30 @@ def review_close_cmd(
         evidence=evidence,
         risks=risks,
     )
+    _close_matching_session(project_root, task_id, timestamp)
     click.echo(bilingual("review.recorded", task_id=task_id, path=str(target)))
+
+
+def _close_matching_session(project_root: Path, task_id: str, timestamp: str) -> bool:
+    """Close the session whose id exactly matches *task_id*, if it exists."""
+    try:
+        state = load_session(project_root, task_id)
+    except FileNotFoundError:
+        return False
+
+    if state.status == "closed":
+        return False
+
+    save_session(
+        project_root,
+        state.model_copy(
+            update={
+                "status": "closed",
+                "closed_at": timestamp,
+            }
+        ),
+    )
+    return True
 
 
 __all__ = ["review_group", "review_close_cmd"]
