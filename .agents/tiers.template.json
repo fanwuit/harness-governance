@@ -1,0 +1,65 @@
+{
+  "platform": "your-platform-name",
+  "adapters": [
+    {
+      "role": "planner",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "contract-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "verifier",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "reviewer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "implementer",
+      "required_tier": "execution",
+      "adapter": "subagent",
+      "model_label": "your-execution-model"
+    },
+    {
+      "role": "document-gardener",
+      "required_tier": "mechanical",
+      "adapter": "subagent",
+      "model_label": "your-mechanical-model"
+    },
+    {
+      "role": "adr-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "fact-finder-reviewer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "readiness-gate-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    },
+    {
+      "role": "integrator",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "your-strong-model"
+    }
+  ]
+}
