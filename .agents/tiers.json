@@ -5,19 +5,19 @@
       "role": "implementer",
       "required_tier": "execution",
       "adapter": "subagent",
-      "model_label": "deepseek-v4-flash"
+      "model_label": "python3"
     },
     {
       "role": "verifier",
       "required_tier": "strong",
       "adapter": "subagent",
-      "model_label": "deepseek-v4-flash"
+      "model_label": "python3"
     },
     {
       "role": "planner",
       "required_tier": "strong",
       "adapter": "subagent",
-      "model_label": "deepseek-v4-flash"
+      "model_label": "python3"
     }
   ]
 }

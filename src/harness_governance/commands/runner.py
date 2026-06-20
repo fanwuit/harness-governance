@@ -316,11 +316,181 @@ def runner_start_cmd(
         raise click.exceptions.Exit(code=1)
 
 
+@runner_group.command("dispatch")
+@click.option(
+    "--role",
+    "role",
+    required=True,
+    type=click.Choice(
+        [
+            "planner",
+            "contract-writer",
+            "implementer",
+            "reviewer",
+            "adr-writer",
+            "fact-finder-reviewer",
+            "readiness-gate-writer",
+            "document-gardener",
+            "integrator",
+        ]
+    ),
+    help="Role to dispatch.",
+)
+@click.option(
+    "--prompt",
+    "prompt_text",
+    default=None,
+    help="Prompt text for the subagent. If omitted, a default prompt is used.",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Resolve the adapter and print the dispatch plan without executing.",
+)
+@click.option(
+    "--session-id",
+    "session_id",
+    default=None,
+    help="Session ID for provenance recording. Auto-detected if omitted.",
+)
+@click.pass_context
+def runner_dispatch_cmd(
+    ctx: click.Context,
+    role: str,
+    prompt_text: str | None,
+    dry_run: bool,
+    session_id: str | None,
+) -> None:
+    """Dispatch a subagent for a specific role.
+
+    Resolves the capability tier and adapter from agent declarations,
+    executes the subagent, and records provenance in the skill chain.
+
+    This is the primary mechanism for capabilitiy-tier-aware dispatch:
+    each role uses the adapter and model declared in the agent's
+    ``tiers.json``.
+    """
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+
+    # 1. Resolve required capability tier
+    from ..models.schemas import CapabilityTier
+    from ..state_machine.capability_routing import resolve_required_tier
+    from ..state_machine.capability_routing import verifier_required_for_tier
+
+    from ..config import load_config
+
+    cfg = load_config(project_root)
+    tier = resolve_required_tier(role, cfg)
+    needs_verifier = verifier_required_for_tier(tier)
+
+    # 2. Resolve adapter from agent declarations
+    from ..runner.adapters.registry import resolve_executor, available_executors
+
+    executor = resolve_executor(role, tier, project_root=project_root)
+
+    # 3. Build the prompt
+    if prompt_text is None:
+        prompt_text = (
+            f"You are a {role} subagent at capability tier '{tier.value}'.\n"
+            f"Please complete the task described below.\n"
+            f"Respond with structured JSON output.\n\n"
+            f"## Task\n\nThis is a simulated dispatch for role '{role}' "
+            f"at tier '{tier.value}'."
+        )
+
+    if dry_run:
+        click.echo("=== Dispatch Plan (dry-run) ===")
+        click.echo(f"  Role:         {role}")
+        click.echo(f"  Required tier: {tier.value}")
+        click.echo(f"  Verifier needed: {needs_verifier}")
+        if executor:
+            click.echo(f"  Executor:     {executor.name}")
+        else:
+            click.echo(f"  Executor:     (none - no adapter declaration found)")
+        click.echo(f"  Prompt:       {prompt_text[:120]}...")
+        click.echo("")
+        click.echo("Available executor configurations:")
+        for a in available_executors(project_root=project_root):
+            click.echo(
+                f"  {a['platform']}: {a['role']} @ {a['required_tier']} "
+                f"→ {a['adapter']} ({a['model_label']})"
+            )
+        return
+
+    if executor is None:
+        click.echo(
+            f"No adapter declaration found for role '{role}' at tier "
+            f"'{tier.value}'. Create a tiers.json in an agent config "
+            f"directory (e.g. .agents/tiers.json).",
+            err=True,
+        )
+        raise click.exceptions.Exit(code=1)
+
+    # 4. Record provenance via SkillChainTracer
+    from ..state_machine.skill_chain import SkillChainTracer
+
+    if session_id is None:
+        from ..session import find_active_session
+
+        active = find_active_session(project_root)
+        session_id = active.session_id if active else "anonymous-dispatch"
+
+    tracer = SkillChainTracer(project_root)
+
+    call_id = tracer.start_invocation(
+        parent_call_id=None,
+        child_skill=role,
+        role=role,
+        session_id=session_id,
+        layer="implementation",
+        round_index=0,
+        required_tier=tier.value,
+        actual_tier=tier.value,
+        platform=cfg.agent_platform,
+        adapter=executor.name,
+        model_label=getattr(executor, "model", ""),
+        verifier_required=needs_verifier,
+    )
+
+    # 5. Execute
+    click.echo(f"Dispatch: {role} @ {tier.value} via {executor.name}...")
+    result = executor.execute(prompt_text, timeout_seconds=300)
+
+    verdict = "success" if result.succeeded else "failure"
+    tracer.end_invocation(
+        call_id,
+        exit_code=result.exit_code,
+        verdict=verdict,
+    )
+
+    # 6. Output
+    click.echo("")
+    click.echo("=== Dispatch Result ===")
+    click.echo(f"  Exit code:    {result.exit_code}")
+    click.echo(f"  Verdict:      {verdict}")
+    click.echo(f"  Duration:     {result.duration_seconds:.1f}s")
+    click.echo(f"  Adapter:      {executor.name}")
+    click.echo(f"  Tier:         {tier.value}")
+    click.echo(f"  Verifier req: {needs_verifier}")
+    if result.stdout:
+        click.echo(f"  Output:       {result.stdout[:500]}")
+    if result.stderr:
+        click.echo(f"  Stderr:       {result.stderr[:200]}")
+
+    if result.marker:
+        click.echo(f"  Marker:       {result.marker}")
+
+    if not result.succeeded:
+        raise click.exceptions.Exit(code=1)
+
+
 __all__ = [
     "runner_group",
     "runner_start_cmd",
     "runner_render_cmd",
     "runner_parse_result_cmd",
+    "runner_dispatch_cmd",
 ]
 
 

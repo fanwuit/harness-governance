@@ -676,6 +676,15 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "No active tasks found.",
         "zh-CN": "未找到 active 任务。",
     },
+    # runner dispatch ---------------------------------------------------------
+    "runner.dispatch.header": {
+        "en": "=== Dispatch Plan (dry-run) ===",
+        "zh-CN": "=== 调度计划（dry-run） ===",
+    },
+    "runner.dispatch.no_adapter": {
+        "en": "No adapter declaration found for role '{role}' at tier '{tier}'.",
+        "zh-CN": "未找到角色 '{role}' 在层级 '{tier}' 的适配器声明。",
+    },
     # config ---------------------------------------------------------------
     "config.created": {
         "en": "Created: {path}",
