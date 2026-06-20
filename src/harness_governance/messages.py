@@ -868,6 +868,38 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Gate passed. Advance to {layer}?",
         "zh-CN": "门控已通过。推进到 {layer} 吗？",
     },
+    "layer.wizard.question": {
+        "en": "Question: {question}",
+        "zh-CN": "问题: {question}",
+    },
+    "layer.wizard.suggested_answer": {
+        "en": "Suggested answer: {answer}",
+        "zh-CN": "建议答案: {answer}",
+    },
+    "layer.wizard.question_action_prompt": {
+        "en": "Choose how to answer this question:",
+        "zh-CN": "请选择如何回答此问题:",
+    },
+    "layer.wizard.choice.confirm": {
+        "en": "confirm - use suggested answer",
+        "zh-CN": "confirm — 使用建议答案",
+    },
+    "layer.wizard.choice.edit": {
+        "en": "edit - type a different answer",
+        "zh-CN": "edit — 输入不同答案",
+    },
+    "layer.wizard.choice.skip": {
+        "en": "skip - leave unanswered",
+        "zh-CN": "skip — 暂不回答",
+    },
+    "layer.wizard.choice.question_back": {
+        "en": "back - return to previous question",
+        "zh-CN": "back — 返回上一题",
+    },
+    "layer.wizard.edit_prompt": {
+        "en": "Answer for: {question}",
+        "zh-CN": "回答: {question}",
+    },
     "layer.wizard.choice.yes": {
         "en": "yes - advance now",
         "zh-CN": "yes — 现在推进",

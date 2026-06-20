@@ -613,13 +613,27 @@ def layer_wizard_cmd(
         return
 
     recorded = 0
-    for question in questions:
-        if question in already_answered:
+    pending_questions = [q for q in questions if q not in already_answered]
+    index = 0
+    while index < len(pending_questions):
+        question = pending_questions[index]
+        suggested = _suggest_author_answer(state, target, question)
+        action, answer = _prompt_question_action(question, suggested, target)
+        if action == "back":
+            if index > 0:
+                index -= 1
             continue
-        answer = _prompt_author_answer(question, target)
+        if action == "skip":
+            index += 1
+            continue
+        if answer is None:
+            raise click.ClickException(
+                bilingual("layer.ask.aborted", layer=target.value)
+            )
         state = _append_layer_answer(state, target, question, answer)
         already_answered.add(question)
         recorded += 1
+        index += 1
 
     save_session(project_root, state)
     answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
@@ -953,31 +967,85 @@ def _prompt_author_answer(question: str, target: HarnessLayer) -> str:
     return answer.rstrip("\n")
 
 
+def _suggest_author_answer(
+    state: SessionState,
+    target: HarnessLayer,
+    question: str,
+) -> str:
+    """Return a deterministic suggested answer for a wizard question."""
+    q = question.lower()
+    if target is HarnessLayer.INTAKE_ORIENTATION:
+        if "current task" in q or "任务" in question:
+            return state.description
+        if "queue" in q or "队列" in question:
+            return "Use the active session and current project roadmap if present."
+        if "constraints" in q or "risks" in q or "约束" in question or "风险" in question:
+            return "No additional constraints or risks are known yet."
+        if "continuation" in q or "延续" in question:
+            return "New task unless the author states it continues previous work."
+    if target is HarnessLayer.IDEA:
+        if "core problem" in q or "一句话" in question:
+            return state.description
+        if "feature" in q or "功能" in question:
+            return "feature"
+    return "No suggested answer is available; choose Edit to provide one."
+
+
+def _prompt_question_action(
+    question: str,
+    suggested_answer: str,
+    target: HarnessLayer,
+) -> tuple[str, str | None]:
+    """Prompt for one wizard Author Question action and optional answer."""
+    click.echo(bilingual("layer.wizard.question", question=question))
+    click.echo(
+        bilingual("layer.wizard.suggested_answer", answer=suggested_answer)
+    )
+    action = _select_choice(
+        bilingual("layer.wizard.question_action_prompt"),
+        (
+            ("confirm", bilingual("layer.wizard.choice.confirm")),
+            ("edit", bilingual("layer.wizard.choice.edit")),
+            ("skip", bilingual("layer.wizard.choice.skip")),
+            ("back", bilingual("layer.wizard.choice.question_back")),
+        ),
+    )
+    if action == "confirm":
+        return action, suggested_answer
+    if action == "edit":
+        return action, _prompt_author_answer(
+            bilingual("layer.wizard.edit_prompt", question=question), target
+        )
+    if action in {"skip", "back"}:
+        return action, None
+    raise click.ClickException(bilingual("layer.ask.aborted", layer=target.value))
+
+
 def _select_choice(prompt: str, choices: tuple[tuple[str, str], ...]) -> str:
     """Return a choice key using arrow keys on a TTY or numbers otherwise."""
     click.echo(prompt)
-    for idx, (_key, label) in enumerate(choices, 1):
-        click.echo(f"  {idx}. {label}")
-
     if (
         click.get_text_stream("stdin").isatty()
         and click.get_text_stream("stdout").isatty()
     ):
         click.echo(bilingual("layer.selector.hint"))
         index = 0
+        _draw_choice_menu(choices, index, first=True)
         while True:
             char = click.getchar()
             if char in ("\r", "\n"):
                 return choices[index][0]
-            if char in ("1", "2", "3") and int(char) <= len(choices):
+            if char.isdigit() and 1 <= int(char) <= len(choices):
                 return choices[int(char) - 1][0]
             if char in ("\x1b[B", "\t", "j"):
                 index = (index + 1) % len(choices)
-                click.echo(f"> {choices[index][1]}")
+                _draw_choice_menu(choices, index, first=False)
             elif char in ("\x1b[A", "k"):
                 index = (index - 1) % len(choices)
-                click.echo(f"> {choices[index][1]}")
+                _draw_choice_menu(choices, index, first=False)
 
+    for idx, (_key, label) in enumerate(choices, 1):
+        click.echo(f"  {idx}. {label}")
     stdin = click.get_text_stream("stdin")
     click.echo("> ", nl=False)
     raw_text = stdin.readline()
@@ -991,6 +1059,33 @@ def _select_choice(prompt: str, choices: tuple[tuple[str, str], ...]) -> str:
     if raw < 1 or raw > len(choices):
         return "no"
     return choices[raw - 1][0]
+
+
+def _format_choice_menu(
+    choices: tuple[tuple[str, str], ...],
+    selected_index: int,
+) -> tuple[str, ...]:
+    """Render selectable menu lines, highlighting the selected row."""
+    lines: list[str] = []
+    for idx, (_key, label) in enumerate(choices, 1):
+        text = f"{idx}. {label}"
+        if idx - 1 == selected_index:
+            lines.append(f"> \x1b[7m{text}\x1b[0m")
+        else:
+            lines.append(f"  {text}")
+    return tuple(lines)
+
+
+def _draw_choice_menu(
+    choices: tuple[tuple[str, str], ...],
+    selected_index: int,
+    *,
+    first: bool,
+) -> None:
+    if not first:
+        click.echo(f"\x1b[{len(choices)}F", nl=False)
+    for line in _format_choice_menu(choices, selected_index):
+        click.echo(f"\x1b[2K{line}")
 
 
 def _guide_key_and_section_for_layer(target: HarnessLayer) -> tuple[str, str | None]:

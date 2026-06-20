@@ -11,6 +11,7 @@ from harness_governance.cli import cli
 from harness_governance.commands.layer import (
     _extract_author_questions,
     _extract_guide_section,
+    _format_choice_menu,
 )
 from harness_governance.session import SessionState, create_session, load_session
 from harness_governance.state_machine.classification import RoutingPath
@@ -271,15 +272,96 @@ class TestLayerAdvance:
         result = runner.invoke(
             cli,
             ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
-            input="A1\nA2\nA3\nA4\n1\n",
+            input="1\n1\n1\n1\n1\n",
         )
 
         assert result.exit_code == 0, result.output
+        assert "Suggested answer" in result.output
         assert "Gate passed" in result.output
         assert "Layer advanced" in result.output
         state = load_session(tmp_path, session_id)
         assert state.current_layer == HarnessLayer.IDEA
         assert len(state.layer_qa) == 4
+        assert state.layer_qa[0]["answer"] == "Test"
+
+    def test_wizard_edit_records_edited_answer(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-edit-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="2\nEdited core problem\n1\n2\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 2
+        assert state.layer_qa[0]["answer"] == "Edited core problem"
+
+    def test_wizard_skip_does_not_record_or_pass_gate(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-skip-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="3\n1\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "FAILED" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 1
+        assert state.layer_qa[0]["question"].startswith("Feature, bug fix")
+
+    def test_wizard_back_revisits_previous_question(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-back-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="1\n4\n2\nRevised core problem\n1\n2\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 2
+        assert state.layer_qa[0]["answer"] == "Revised core problem"
+
+    def test_choice_menu_formats_selected_row_with_highlight(self) -> None:
+        lines = _format_choice_menu(
+            (
+                ("confirm", "confirm - use suggested answer"),
+                ("edit", "edit - type a different answer"),
+                ("skip", "skip - leave unanswered"),
+                ("back", "back - return to previous question"),
+            ),
+            selected_index=1,
+        )
+
+        assert lines[0] == "  1. confirm - use suggested answer"
+        assert lines[1] == "> \x1b[7m2. edit - type a different answer\x1b[0m"
+        assert lines[3] == "  4. back - return to previous question"
 
     def test_wizard_defaults_to_stop_when_selection_input_ends(
         self, tmp_path: Path
@@ -294,7 +376,7 @@ class TestLayerAdvance:
         result = runner.invoke(
             cli,
             ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
-            input="A1\nA2\nA3\nA4\n",
+            input="1\n1\n1\n1\n",
         )
 
         assert result.exit_code == 0, result.output
