@@ -779,8 +779,8 @@ Need help? Run: harness guide quickstart
 1. **P1 已完成后续版**：Governance UX Friction Reduction。已实现 dependency-free CLI 切片：`harness layer answer` 对同层同问题去重并保留最新答案，`harness layer ask` 跳过已回答问题，gate failure guidance 去重重复缺失项并提供 `yes` / `no` / `back` 明确选择；后续版已增加 `harness layer wizard`、TTY 方向键/`j`/`k` 选择与编号 fallback、非交互 abort guidance、Codex 平台 `/harness ...` slash 触发方式文档。
 2. **P1 增强**：在 `harness ship` 输出中提示 tag release 前安装/运行 release 验证（仅本仓库）。
 3. **P1 已完成**：将 user-evidence 从文档级检查增强到 Playwright trace / HAR request payload / selector 扫描。已实现 `src/harness_governance/commands/evidence_scanner.py`，扫描 Playwright trace zip、HAR HTTP archive、测试源文件中的禁止 selector、空 payload、mock response 指标；自动接入 `check_user_evidence`，无 artifact 时优雅跳过。
-4. **P1 后续增强**：将 state-contract 从显式要求列表增强为更自动化的 writer/consumer 扫描。
-5. **P2 设计**：定义 `spec quick` 与完整 change packet 的升级边界。
+4. **P1 已完成**：将 state-contract 从显式要求列表增强为更自动化的 writer/consumer 扫描。`harness state-contract check` 新增 `--auto/--no-auto` 和 `--show-auto` 选项，自动发现 13 个 stateful 命令的证据文件并在验证前通过；新增 `harness state-contract scan` 子命令显示发现的 writer/consumer 对。
+5. **P2 已完成**：已定义 `spec quick` 与完整 change packet 的升级边界。设计文档见 `docs/briefs/spec-quick-design.md`，包含单文件格式、升级条件（7 条标准）、CLI 命令设计。实现推迟到后续 P1 周期。
 6. **P2 评估**：在已有 `--minimal` 基础上决定是否增加 `harness init --tier light`。
 7. **暂缓项跟踪**：后续在平台 skill 文档中描述 `/harness ...` slash 触发方式。
 
