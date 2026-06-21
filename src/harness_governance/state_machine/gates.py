@@ -529,8 +529,22 @@ class LayerGateEngine:
         tier = RigorTier(session.rigor_tier)
         required = gate_def.min_questions_answered.get(tier, 1)
 
-        # Count answered questions for this layer from the session Q&A log.
-        qa_count = sum(1 for qa in session.layer_qa if qa.get("layer") == layer.value)
+        # v0.9.0: Answer provenance — count only ``source=author`` for the
+        # gate threshold.  Agent-inferred answers are reported for visibility
+        # but do NOT count toward passing the gate.
+        author_answers = sum(
+            1
+            for qa in session.layer_qa
+            if qa.get("layer") == layer.value
+            and qa.get("source", "author") == "author"
+        )
+        inferred_answers = sum(
+            1
+            for qa in session.layer_qa
+            if qa.get("layer") == layer.value
+            and qa.get("source") == "agent_inference"
+        )
+        qa_count = author_answers + inferred_answers
 
         # Check required artifacts on disk.
         artifacts_found: list[str] = []
@@ -550,8 +564,8 @@ class LayerGateEngine:
             if not list(project_root.glob(pattern)):
                 blocking_missing.append(pattern)
 
-        # Q&A threshold must be met and all blocking artifacts must exist.
-        passed = qa_count >= required and len(blocking_missing) == 0
+        # Q&A threshold must be met with *author* answers only.
+        passed = author_answers >= required and len(blocking_missing) == 0
 
         # Execute registered gate hooks and collect failure messages.
         confirmation_items_unmet: list[str] = []
@@ -579,6 +593,8 @@ class LayerGateEngine:
             passed=passed,
             questions_answered=qa_count,
             questions_required=required,
+            questions_author_answered=author_answers,
+            questions_agent_inferred=inferred_answers,
             artifacts_found=tuple(artifacts_found),
             artifacts_missing=tuple(artifacts_missing),
             confirmation_items_met=gate_def.confirmation_items,

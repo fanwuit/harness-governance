@@ -33,6 +33,15 @@ def format_gate_failure_guidance(layer: str, status: GateStatus) -> list[str]:
                 required=status.questions_required,
             )
         )
+        if status.questions_agent_inferred:
+            lines.append(
+                bilingual(
+                    "gate.check.answer_breakdown",
+                    author=status.questions_author_answered,
+                    required=status.questions_required,
+                    inferred=status.questions_agent_inferred,
+                )
+            )
 
     blocking_artifacts_missing = _unique(status.blocking_artifacts_missing)
     if blocking_artifacts_missing:

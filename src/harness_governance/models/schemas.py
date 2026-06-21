@@ -468,6 +468,10 @@ class QAPair(BaseModel):
     question: str
     answer: str
     timestamp: str  # ISO 8601 UTC
+    source: Literal["author", "agent_inference", "author_imported"] = "author"
+    """Provenance of this answer: ``author`` (real user), ``agent_inference``
+    (agent guessed without author input), ``author_imported`` (author
+    confirmed/reviewed an agent-drafted answer)."""
 
 
 class GateStatus(BaseModel):
@@ -479,6 +483,12 @@ class GateStatus(BaseModel):
     passed: bool
     questions_answered: int = 0
     questions_required: int = 0
+    # v0.9.0: answer provenance breakdown
+    questions_author_answered: int = 0
+    """Count of answers with ``source=author`` that count toward the gate."""
+    questions_agent_inferred: int = 0
+    """Count of answers with ``source=agent_inference`` — informational,
+    these do NOT count toward the gate threshold."""
     artifacts_found: tuple[str, ...] = ()
     artifacts_missing: tuple[str, ...] = ()
     # v0.8.0: blocking artifacts whose absence fails the gate

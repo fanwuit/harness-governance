@@ -186,6 +186,12 @@ def layer_advance_cmd(
     if rigor_override:
         state = state.model_copy(update={"rigor_tier": rigor_override})
 
+    # v0.9.0: --confirmed required for standard/strict layer advancement
+    # (author must explicitly approve the transition).
+    rigor_for_confirmed = RigorTier(state.rigor_tier)
+    if not confirmed and not skip_gate and rigor_for_confirmed in (RigorTier.STANDARD, RigorTier.STRICT):
+        raise click.UsageError(bilingual("layer.confirmed_required_for_strict"))
+
     from_layer = state.current_layer
     assert from_layer is not None  # guaranteed by the check above
     if from_layer == to_layer:
@@ -234,6 +240,16 @@ def layer_advance_cmd(
                     ),
                     err=True,
                 )
+                if status.questions_agent_inferred:
+                    click.echo(
+                        bilingual(
+                            "gate.check.answer_breakdown",
+                            author=status.questions_author_answered,
+                            required=status.questions_required,
+                            inferred=status.questions_agent_inferred,
+                        ),
+                        err=True,
+                    )
                 click.echo(
                     bilingual("layer.gate_blocked"),
                     err=True,
@@ -245,6 +261,16 @@ def layer_advance_cmd(
         # Gate passed — write lock for the current layer.
         locks = LockFileManager(project_root)
         locks.write_lock(from_layer, status, state)
+        if status.questions_agent_inferred:
+            click.echo(
+                bilingual(
+                    "gate.check.answer_breakdown",
+                    author=status.questions_author_answered,
+                    required=status.questions_required,
+                    inferred=status.questions_agent_inferred,
+                ),
+                err=True,
+            )
         if ctx.obj.get("verbose", False):
             click.echo(
                 bilingual(
@@ -398,6 +424,14 @@ def layer_advance_cmd(
     default=None,
     help="Session ID (defaults to active session).",
 )
+@click.option(
+    "--source",
+    "source",
+    type=click.Choice(["author", "agent_inference", "author_imported"]),
+    default="author",
+    show_default=True,
+    help="Provenance of this answer (author=real user, agent_inference=agent guess, author_imported=author reviewed agent draft).",
+)
 @click.pass_context
 def layer_answer_cmd(
     ctx: click.Context,
@@ -405,6 +439,7 @@ def layer_answer_cmd(
     question: str,
     answer: str,
     session_id: str | None,
+    source: str,
 ) -> None:
     """Record an author question answer in the active governance session."""
     project_root: Path = ctx.obj["project_root"]
@@ -415,7 +450,7 @@ def layer_answer_cmd(
         raise click.ClickException(str(exc))
 
     state = _resolve_session(project_root, session_id)
-    state = _append_layer_answer(state, target, question, answer)
+    state = _append_layer_answer(state, target, question, answer, source=source)
     save_session(project_root, state)
 
     answered = sum(1 for qa in state.layer_qa if qa.get("layer") == target.value)
@@ -433,6 +468,7 @@ def layer_answer_cmd(
         )
         return
 
+    source_label = {"author": "author", "agent_inference": "agent-inferred", "author_imported": "author-imported"}
     click.echo(
         bilingual(
             "layer.answer_recorded",
@@ -440,6 +476,8 @@ def layer_answer_cmd(
             count=answered,
         )
     )
+    if source != "author":
+        click.echo(f"  (source: {source_label.get(source, source)})", err=True)
 
 
 @layer_group.command("ask")
@@ -526,6 +564,8 @@ def layer_ask_cmd(
                     "questions_answered": answered,
                     "gate_passed": status.passed,
                     "questions_required": status.questions_required,
+                    "questions_author_answered": status.questions_author_answered,
+                    "questions_agent_inferred": status.questions_agent_inferred,
                     "artifacts_missing": list(status.artifacts_missing),
                     "blocking_artifacts_missing": list(
                         status.blocking_artifacts_missing
@@ -555,6 +595,15 @@ def layer_ask_cmd(
             required=status.questions_required,
         )
     )
+    if status.questions_agent_inferred:
+        click.echo(
+            bilingual(
+                "gate.check.answer_breakdown",
+                author=status.questions_author_answered,
+                required=status.questions_required,
+                inferred=status.questions_agent_inferred,
+            )
+        )
     if status.confirmation_items_unmet:
         click.echo(bilingual("gate.failure.confirmations_unmet"))
         for item in status.confirmation_items_unmet:
@@ -931,6 +980,7 @@ def _append_layer_answer(
     target: HarnessLayer,
     question: str,
     answer: str,
+    source: str = "author",
 ) -> SessionState:
     existing = tuple(
         qa
@@ -942,6 +992,7 @@ def _append_layer_answer(
         "question": question,
         "answer": answer,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": source,
     }
     return state.model_copy(update={"layer_qa": existing + (entry,)})
 

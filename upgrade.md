@@ -52,22 +52,21 @@ Required first version:
 
 ### P0. Hybrid Routing + Author-Answer Provenance
 
-**Status:** planned, not implemented.
+**Status:** first version done (v0.9.0).
 
 **Goal:** avoid routing ordinary questions into 12-layer governance while making
 sure Author Questions cannot be satisfied by agent self-answers.
 
 Required first version:
-- Treat agent route recommendation as advisory; deterministic policy decides from
-  structured facts such as `operation`, `writes_files`, `contracts`, `external`,
-  `scope_unclear`, and `risk`.
-- Force `question` / `read_only` / no-write work to `fast-path` unless a hard
-  governed override applies.
-- Add answer provenance to `layer_qa`: `author`, `agent_inference`,
+- ✅ Treat agent route recommendation as advisory; deterministic policy decides
+  from structured facts.
+- ✅ Force `question` / `read_only` / no-write work to `fast-path` unless a
+  hard governed override applies.
+- ✅ Add answer provenance to `layer_qa`: `author`, `agent_inference`,
   `author_imported`.
-- Make gates count only `source=author` for Author Questions.
-- Report ignored agent inferences in gate output.
-- Require `--confirmed` for standard/strict layer advancement.
+- ✅ Make gates count only `source=author` for Author Questions.
+- ✅ Report ignored agent inferences in gate output.
+- ✅ Require `--confirmed` for standard/strict layer advancement.
 
 Primary implementation areas:
 - `src/harness_governance/models/schemas.py`
@@ -92,15 +91,15 @@ These remain important but are no longer the active implementation focus:
 | P1 | Agent Preflight Assessment | First version done |
 | P1 | NEXT.md Queue Closure | First version done |
 | P1 | Governance UX Friction Reduction | Mostly done: ask/wizard/guidance improvements |
-| P2 | Spec Quick design | Designed, implementation deferred |
+| P2 | Spec Quick | Done: `quick`, `list`, and `upgrade` |
 | P3 | Quickstart guidance | Done |
 
 ## Backlog
 
-- Add `harness ship` hints for release verification.
-- Decide whether `harness init --tier light` should exist beyond `--minimal`.
-- Document platform slash-command triggers in generated skills where applicable.
-- Implement `spec quick` if lightweight specs become a repeated need.
+- ✅ Add `harness ship` hints for release verification.
+- ✅ Decide whether `harness init --tier light` should exist beyond `--minimal` — implemented `harness init --tier <tier>`.
+- ✅ Document platform slash-command triggers in generated skills where applicable.
+- ✅ Implement `spec quick` if lightweight specs become a repeated need — `quick`, `list`, and `upgrade` are done.
 
 ## Archive
 

@@ -208,6 +208,8 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
         agent_risk=assessment.risk if assessment else None,
         agent_change_kind=assessment.change_kind if assessment else "",
         agent_recommended_rigor=assessment.recommended_rigor if assessment else None,
+        agent_operation=assessment.operation if assessment else None,
+        agent_writes_files=assessment.writes_files if assessment else None,
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
     rec_key = _build_recommendation(decision.path)
