@@ -56,7 +56,7 @@ def test_governed_start_classifies_public_api_as_governed(tmp_repo: Path) -> Non
     assert "Disclosure" in result.output
     assert "Layer path:" in result.output
     assert "intake-orientation -> idea -> fact-discovery" in result.output
-    assert "Next layer: idea" in result.output
+    assert "下一层: idea" in result.output or "Next layer: idea" in result.output
     assert "harness layer show" in result.output
     assert "harness gate status" in result.output
 

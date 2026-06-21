@@ -173,8 +173,16 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "门控锁: {locked}/{total}",
     },
     "alias.ship.release_verify_hint": {
-        "en": "Before pushing a release tag for this repository: run `harness verify local --release` or install `harness hook install --tag-release`.",
-        "zh-CN": "推送本仓库 release tag 前: 运行 `harness verify local --release`，或安装 `harness hook install --tag-release`。",
+        "en": "Before pushing a release tag: run `harness verify local` and consider installing a pre-push hook.",
+        "zh-CN": "推送 release tag 前: 运行 `harness verify local` 并考虑安装 pre-push hook。",
+    },
+    "alias.ship.hook_hint": {
+        "en": "No pre-push hook found. Install one with `harness hook install --tag-release` to automate release verification.",
+        "zh-CN": "未找到 pre-push hook。运行 `harness hook install --tag-release` 安装以自动验证发布。",
+    },
+    "alias.ship.fail_hint": {
+        "en": "Fix the failing checks above before proceeding with a release. Re-run `harness ship` after fixing.",
+        "zh-CN": "在发布前请先修复上述失败的检查项，修复后重新运行 `harness ship`。",
     },
     "governed_start.disclosure": {
         "en": "Disclosure:",
@@ -953,6 +961,10 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "--skip-gate requires --confirmed (safety interlock).",
         "zh-CN": "--skip-gate 必须配合 --confirmed 使用（安全联动）。",
     },
+    "layer.confirmed_required_for_strict": {
+        "en": "--confirmed is required to advance layers in standard/strict governance (use --confirmed to record author approval).",
+        "zh-CN": "标准/严格治理模式下推进层需要 --confirmed（使用 --confirmed 记录作者确认）。",
+    },
     "layer.gate_blocked": {
         "en": "Advance blocked: complete the current layer's gate requirements first, or use --skip-gate --confirmed to override.",
         "zh-CN": "推进被阻止: 请先完成当前层的门控要求，或使用 --skip-gate --confirmed 强制跳过。",
@@ -969,6 +981,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "gate.check.failed": {
         "en": "Gate {layer}: FAILED ({questions}/{required} questions answered; artifacts missing: {missing})",
         "zh-CN": "门控 {layer}: 失败 ({questions}/{required} 问题已答; 缺失工件: {missing})",
+    },
+    "gate.check.answer_breakdown": {
+        "en": "  Author: {author}/{required}  |  Agent-inferred: {inferred}",
+        "zh-CN": "  作者回答: {author}/{required}  |  智能体推断: {inferred}",
+    },
+    "gate.check.agent_inferred_ignored": {
+        "en": "  ({n} agent-inferred answer(s) are informational and do not count toward the gate threshold)",
+        "zh-CN": "  （{n} 条智能体推断答案仅供参考，不计入门控阈值）",
     },
     "gate.failure.details_header": {
         "en": "Missing requirements:",
@@ -1295,6 +1315,23 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "skill_chain.clean": {
         "en": "✓ Skill chain integrity verified.",
         "zh-CN": "✓ 技能调用链完整性已验证。",
+    },
+    # spec ----------------------------------------------------------------
+    "spec.created": {
+        "en": "Spec created: {path}",
+        "zh-CN": "规格已创建: {path}",
+    },
+    "spec.exists": {
+        "en": "Spec already exists: {path}",
+        "zh-CN": "规格文件已存在: {path}",
+    },
+    "spec.list_header": {
+        "en": "Spec files ({count}):",
+        "zh-CN": "规格文件（共 {count} 个）:",
+    },
+    "spec.list_empty": {
+        "en": "No spec files found in .harness/specs/.",
+        "zh-CN": ".harness/specs/ 中未找到规格文件。",
     },
 }
 

@@ -85,7 +85,7 @@ def test_verify_local_release_runs_release_steps(
         ["--project-root", str(tmp_repo), "verify", "local", "--release"],
     )
     assert result.exit_code == 0, result.output
-    assert "verify local --release: passed" in result.output
+    assert "verify local --release: 通过" in result.output or "verify local --release: passed" in result.output
 
 
 def test_verify_local_release_is_self_repo_only(tmp_repo: Path) -> None:
@@ -115,7 +115,7 @@ def test_verify_local_release_fails_on_step(
         ["--project-root", str(tmp_repo), "verify", "local", "--release"],
     )
     assert result.exit_code == 1, result.output
-    assert "verify local --release: failed" in result.output
+    assert "verify local --release: 失败" in result.output or "verify local --release: failed" in result.output
 
 
 def test_review_close_writes_checkpoint(tmp_repo: Path) -> None:

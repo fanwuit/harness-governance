@@ -377,9 +377,13 @@ def write_skill_file(project_root: Path, platform: str, tier: str = "standard") 
     return target
 
 
-def write_all_skill_files(project_root: Path, platform: str) -> list[Path]:
-    """Write all applicable tier skill files for *platform*.
+def write_all_skill_files(
+    project_root: Path, platform: str, tier_filter: str | None = None
+) -> list[Path]:
+    """Write skill files for *platform*, optionally restricted to *tier_filter*.
 
+    When *tier_filter* is set, only that tier's skill file is written.
+    When None, all applicable tiers are written.
     For platforms where all tiers share the same file (qoderwork, generic
     both use AGENTS.md), only the standard tier is written to avoid
     overwrites. Returns a list of paths written.
@@ -387,9 +391,12 @@ def write_all_skill_files(project_root: Path, platform: str) -> list[Path]:
     paths: list[Path] = []
     # Platforms that use a single shared file for all tiers
     _shared_file_platforms = {"qoderwork", "generic"}
-    tiers_to_write = (
-        ["standard"] if platform in _shared_file_platforms else list(GOVERNANCE_TIERS)
-    )
+    if tier_filter:
+        tiers_to_write = [tier_filter]
+    elif platform in _shared_file_platforms:
+        tiers_to_write = ["standard"]
+    else:
+        tiers_to_write = list(GOVERNANCE_TIERS)
     for tier in tiers_to_write:
         paths.append(write_skill_file(project_root, platform, tier))
     return paths
@@ -486,6 +493,13 @@ def _prompt_platform_choice(default: str | None = None) -> str:
     default=False,
     help="Write skill adapters for ALL supported platforms.",
 )
+@click.option(
+    "--tier",
+    "tier",
+    type=click.Choice(["light", "standard", "strict", "monitor"]),
+    default=None,
+    help="Governance tier for skill files (default: write all tiers).",
+)
 @click.pass_context
 def init_cmd(
     ctx: click.Context,
@@ -495,6 +509,7 @@ def init_cmd(
     no_detect: bool,
     minimal: bool,
     all_platforms: bool,
+    tier: str | None,
 ) -> None:
     """Initialize harness governance in the current project."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd()).resolve()
@@ -531,49 +546,53 @@ def init_cmd(
     skill_paths: list[Path] = []
 
     if all_platforms:
-        # Write skill files for ALL supported platforms (4 tiers each)
+        # Write skill files for ALL supported platforms
+        tiers_to_write = [tier] if tier else list(GOVERNANCE_TIERS)
         seen_paths: set[Path] = set()
         for plat in sorted(PLATFORM_SKILL_PATHS):
-            for tier in GOVERNANCE_TIERS:
+            for t in tiers_to_write:
                 tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(
                     plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
                 )
-                target = (project_root / tier_paths[tier]).resolve()
+                target = (project_root / tier_paths[t]).resolve()
                 if target not in seen_paths:
                     seen_paths.add(target)
                     skill_paths.append(target)
-            template_ver = extract_skill_version(load_skill_template(plat, "standard"))
-            standard_target = (
+            template_ver = extract_skill_version(
+                load_skill_template(plat, tier or "standard")
+            )
+            ref_tier = tier or "standard"
+            ref_target = (
                 project_root
                 / PLATFORM_SKILL_PATHS_BY_TIER.get(
                     plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
-                )["standard"]
+                )[ref_tier]
             ).resolve()
-            if standard_target.exists() and not force:
+            if ref_target.exists() and not force:
                 disk_ver = extract_skill_version(
-                    standard_target.read_text(encoding="utf-8")
+                    ref_target.read_text(encoding="utf-8")
                 )
                 if template_ver and disk_ver == template_ver:
                     notes.append(
-                        f"skill up-to-date (v{template_ver}): {standard_target}"
+                        f"skill up-to-date (v{template_ver}): {ref_target}"
                     )
                 else:
                     notes.append(
                         bilingual(
                             "init.skill_outdated",
-                            path=str(standard_target),
+                            path=str(ref_target),
                             disk_ver=disk_ver or "unknown",
                             template_ver=template_ver or "unknown",
                         )
                     )
             else:
-                for tier in GOVERNANCE_TIERS:
+                for t in tiers_to_write:
                     tier_paths = PLATFORM_SKILL_PATHS_BY_TIER.get(
                         plat, PLATFORM_SKILL_PATHS_BY_TIER["generic"]
                     )
-                    tier_target = (project_root / tier_paths[tier]).resolve()
+                    tier_target = (project_root / tier_paths[t]).resolve()
                     if not tier_target.exists() or force:
-                        write_skill_file(project_root, plat, tier)
+                        write_skill_file(project_root, plat, t)
                         notes.append(
                             bilingual("init.skill_created", path=str(tier_target))
                         )
@@ -590,9 +609,11 @@ def init_cmd(
             project_root
             / PLATFORM_SKILL_PATHS.get(detected, PLATFORM_SKILL_PATHS["generic"])
         ).resolve()
-        template_ver = extract_skill_version(load_skill_template(detected, "standard"))
         should_write = True
         if existing.exists() and not force:
+            template_ver = extract_skill_version(
+                load_skill_template(detected, tier or "standard")
+            )
             disk_ver = extract_skill_version(existing.read_text(encoding="utf-8"))
             if template_ver and disk_ver == template_ver:
                 notes.append(f"skill up-to-date (v{template_ver}): {existing}")
@@ -608,8 +629,8 @@ def init_cmd(
                 )
                 should_write = False  # stale: warn but don't overwrite without --force
         if should_write:
-            # Write all 4 tier skills (strict / standard / light / monitor)
-            written = write_all_skill_files(project_root, detected)
+            # Write tier-specific or all 4 tier skills
+            written = write_all_skill_files(project_root, detected, tier_filter=tier)
             skill_path = written[0] if written else None
             for p in written:
                 notes.append(bilingual("init.skill_created", path=str(p)))

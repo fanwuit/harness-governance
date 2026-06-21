@@ -296,7 +296,7 @@ def test_runner_render_output_file(tmp_repo: Path) -> None:
     assert out_path.is_file()
     content = out_path.read_text(encoding="utf-8")
     assert len(content) > 0
-    assert "Rendered implementer prompt written to" in result.output
+    assert "implementer 提示已渲染并写入" in result.output or "Rendered implementer prompt written to" in result.output
 
 
 def test_runner_render_no_ready_items(tmp_repo: Path) -> None:

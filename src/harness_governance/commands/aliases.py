@@ -215,6 +215,11 @@ def ship_cmd(ctx: click.Context) -> None:
         )
     if release_verification_available:
         click.echo(bilingual("alias.ship.release_verify_hint"))
+    if passed:
+        if not (project_root / ".git" / "hooks" / "pre-push").is_file():
+            click.echo(bilingual("alias.ship.hook_hint"))
+    else:
+        click.echo(bilingual("alias.ship.fail_hint"))
     if not passed:
         raise click.exceptions.Exit(code=1)
 

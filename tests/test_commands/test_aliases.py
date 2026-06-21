@@ -110,4 +110,5 @@ def test_ship_alias_mentions_release_verification_only_for_self_repo(
     )
 
     assert result.exit_code == 1, result.output
-    assert "harness verify local --release" in result.output
+    assert "release tag" in result.output
+    assert "harness verify local" in result.output
