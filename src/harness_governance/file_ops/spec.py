@@ -1,0 +1,368 @@
+"""Spec quick file operations.
+
+Encapsulates ``.harness/specs/{slug}.md`` creation, listing, and
+upgrade to full change packets.
+"""
+
+from __future__ import annotations
+
+import re
+from importlib import resources
+from pathlib import Path
+
+from jinja2 import Template
+
+from ..messages import bilingual
+from . import packet as packet_ops
+
+_TEMPLATE_PACKAGE = "harness_governance.data.templates.spec-quick"
+
+# Default specs directory relative to project root.
+SPECS_DIR = Path(".harness/specs")
+
+
+def _slug_from_description(description: str) -> str:
+    """Generate a URL-friendly slug from *description*."""
+    slug = description.lower().strip()
+    slug = re.sub(r"[^a-z0-9\u4e00-\u9fff\s-]", "", slug)
+    slug = re.sub(r"[\s_]+", "-", slug)
+    slug = slug.strip("-")[:64]
+    # Remove any remaining CJK or non-ASCII after length limit
+    slug = re.sub(r"[^a-z0-9-]", "", slug)
+    slug = re.sub(r"-{2,}", "-", slug)
+    if not slug:
+        slug = "spec"
+    return slug
+
+
+def _load_template() -> str:
+    """Return the spec-quick markdown template."""
+    resource = resources.files(_TEMPLATE_PACKAGE).joinpath("spec-quick.md")
+    return resource.read_text(encoding="utf-8")
+
+
+def _render_template(description: str, slug: str) -> str:
+    """Render the spec template with placeholders derived from *description*."""
+    template_source = _load_template()
+    tmpl = Template(template_source)
+    return tmpl.render(
+        title=description,
+        goal=f"{description}.",
+        in_scope="(describe what is in scope)",
+        out_of_scope="(describe what is out of scope)",
+        contract_delta="(describe observable behaviour changes)",
+        task_1=f"Implement {description.lower()}",
+        task_2="",
+        task_3="",
+        verification="(describe how to verify this works)",
+        upgrade_notes=(
+            "Single-file spec quick. Upgrade to full change packet if any "
+            "upgrade criterion is met (3+ files, public API, external side "
+            "effects, multi-engineer, new persisted state, multi-session, "
+            "dependency change, or author request)."
+        ),
+    )
+
+
+def init_spec(project_root: Path, description: str, slug: str | None = None) -> Path:
+    """Create a new spec quick file and return its path."""
+    if slug is None:
+        slug = _slug_from_description(description)
+
+    specs_dir = project_root / SPECS_DIR
+    specs_dir.mkdir(parents=True, exist_ok=True)
+
+    target = specs_dir / f"{slug}.md"
+    if target.exists():
+        raise FileExistsError(
+            bilingual("spec.exists", path=str(target))
+        )
+
+    content = _render_template(description, slug)
+    target.write_text(content, encoding="utf-8")
+    return target
+
+
+def list_specs(project_root: Path) -> list[Path]:
+    """Return paths to all spec files under ``.harness/specs/``."""
+    specs_dir = project_root / SPECS_DIR
+    if not specs_dir.is_dir():
+        return []
+    return sorted(specs_dir.glob("*.md"))
+
+
+def read_spec(spec_path: Path) -> dict[str, str]:
+    """Parse a spec quick file and return its sections as a dict.
+
+    Returns an empty dict when the file does not exist.
+    """
+    if not spec_path.is_file():
+        return {}
+    text = spec_path.read_text(encoding="utf-8")
+    sections: dict[str, str] = {}
+    current_key: str | None = None
+    current_lines: list[str] = []
+    for line in text.splitlines():
+        if line.startswith("# Spec:"):
+            sections["title"] = line[7:].strip()
+        elif line.startswith("## "):
+            if current_key:
+                sections[current_key] = "\n".join(current_lines).strip()
+            current_key = line[3:].strip().lower().replace(" ", "_")
+            current_lines = []
+        elif current_key:
+            current_lines.append(line)
+    if current_key:
+        sections[current_key] = "\n".join(current_lines).strip()
+    return sections
+
+
+def upgrade_spec(
+    project_root: Path,
+    spec_path: Path,
+    *,
+    change_id: str | None = None,
+) -> Path:
+    """Promote a spec quick file into a full change packet.
+
+    The source spec is left in place. Existing change packets are not
+    overwritten; callers can choose a different ``change_id`` when needed.
+    """
+    source = _resolve_spec_path(project_root, spec_path)
+    sections = read_spec(source)
+    if not sections:
+        raise FileNotFoundError(str(spec_path))
+
+    packet_id = change_id or source.stem
+    result = packet_ops.init_packet(project_root, packet_id)
+    target = result.packet_dir
+    rel_source = _rel_path(source, project_root)
+
+    title = sections.get("title") or source.stem.replace("-", " ")
+    goal = sections.get("goal", "").strip() or f"{title}."
+    scope = sections.get("scope", "").strip() or "- In scope: TBD\n- Out of scope: TBD"
+    contract_delta = sections.get("contract_delta", "").strip() or "TBD"
+    tasks = _normalise_tasks(sections.get("tasks", ""), title)
+    verification = sections.get("verification", "").strip() or "TBD"
+    upgrade_notes = sections.get("upgrade_notes", "").strip() or "Promoted from spec quick."
+
+    (target / "proposal.md").write_text(
+        _render_proposal(packet_id, title, goal, scope, upgrade_notes, rel_source),
+        encoding="utf-8",
+    )
+    (target / "design.md").write_text(
+        _render_design(packet_id, rel_source),
+        encoding="utf-8",
+    )
+    (target / "tasks.md").write_text(
+        _render_tasks(packet_id, tasks),
+        encoding="utf-8",
+    )
+    (target / "contracts.md").write_text(
+        _render_contracts(packet_id, rel_source, contract_delta),
+        encoding="utf-8",
+    )
+    (target / "verification.md").write_text(
+        _render_verification(packet_id, verification),
+        encoding="utf-8",
+    )
+    return target
+
+
+def _resolve_spec_path(project_root: Path, spec_path: Path) -> Path:
+    """Resolve absolute, repo-relative, or ``.harness/specs`` spec paths."""
+    if spec_path.is_absolute():
+        return spec_path.resolve()
+
+    repo_relative = (project_root / spec_path).resolve()
+    if repo_relative.is_file():
+        return repo_relative
+
+    specs_relative = (project_root / SPECS_DIR / spec_path).resolve()
+    if specs_relative.is_file():
+        return specs_relative
+
+    if spec_path.suffix != ".md":
+        specs_with_suffix = (project_root / SPECS_DIR / f"{spec_path}.md").resolve()
+        if specs_with_suffix.is_file():
+            return specs_with_suffix
+
+    return repo_relative
+
+
+def _rel_path(path: Path, project_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(project_root.resolve()))
+    except ValueError:
+        return str(path)
+
+
+def _normalise_tasks(tasks_text: str, title: str) -> str:
+    lines = [line.rstrip() for line in tasks_text.splitlines()]
+    task_lines = [line for line in lines if line.strip().startswith("- [")]
+    if not task_lines:
+        task_lines = [f"- [ ] Implement {title}"]
+    return "\n".join(task_lines)
+
+
+def _render_proposal(
+    change_id: str,
+    title: str,
+    goal: str,
+    scope: str,
+    upgrade_notes: str,
+    spec_ref: str,
+) -> str:
+    return f"""# Proposal: {change_id}
+
+Status: draft
+
+## Goal
+
+{goal}
+
+## Motivation
+
+Promoted from spec quick `{spec_ref}` so the work can use the full change packet
+carrier.
+
+## Scope
+
+{scope}
+
+## Affected Users Or Systems
+
+- {title}
+
+## Harness Layer
+
+- Current layer: contract
+- Next candidate layer: readiness
+- Packetization note: {upgrade_notes}
+"""
+
+
+def _render_design(change_id: str, spec_ref: str) -> str:
+    return f"""# Design: {change_id}
+
+## Boundaries
+
+- Owned files / modules: TBD from implementation readiness.
+- Forbidden paths: anything outside the promoted spec scope.
+- Runtime or process boundary: defined by promoted spec `{spec_ref}`.
+
+## Responsibilities
+
+- Promoted spec owner maintains the contract and verification evidence.
+- Implementer stays inside the owner-file list established at readiness.
+
+## Data Or Control Flow
+
+- Spec quick `{spec_ref}` provides the initial goal, scope, contract delta, tasks, and verification notes.
+- Readiness converts those notes into executable owner files and commands.
+
+## Alternatives Considered
+
+- Keep the work as spec quick only. Rejected because the caller requested promotion to a full change packet.
+
+## ADR Candidates
+
+- Required ADR / decision note: none identified during promotion.
+- Not needed because: promotion only changes the planning carrier.
+
+## Harness Constraints
+
+- This packet does not approve implementation by itself.
+- Implementation still requires readiness and verification evidence.
+"""
+
+
+def _render_tasks(change_id: str, tasks: str) -> str:
+    return f"""# Tasks: {change_id}
+
+Status: draft
+
+## Current Blocking Layer
+
+- Layer: readiness
+- State: ready
+- Evidence: promoted from spec quick; implementation readiness still owns owner files and commands.
+
+## Task Checklist
+
+{tasks}
+- [ ] Confirm owner files and stop conditions.
+- [ ] Run and record verification.
+- [ ] Review / Next: sync final status back to roadmap or queue if needed.
+
+## Blocked Items
+
+- None at promotion time.
+"""
+
+
+def _render_contracts(change_id: str, spec_ref: str, contract_delta: str) -> str:
+    return f"""# Contracts: {change_id}
+
+## Current behavior
+
+The work was tracked as a lightweight spec quick at `{spec_ref}`.
+
+## Proposed behavior / contract delta
+
+{contract_delta}
+
+## Contract artifacts
+
+- Artifact: promoted spec quick contract delta
+- Path: {spec_ref}
+- Type: documentation invariant
+
+## Acceptance checks
+
+- Readiness must define executable verification commands before implementation closes.
+
+## Failure cases
+
+- Missing owner files or verification commands block implementation closeout.
+
+## Contract-first reminder
+
+The promoted packet is a durable carrier. It does not replace executable checks.
+"""
+
+
+def _render_verification(change_id: str, verification: str) -> str:
+    return f"""# Verification: {change_id}
+
+## Verification Commands
+
+- blocked: verification command must be confirmed during readiness.
+
+## Results
+
+- blocked: not run at promotion time.
+
+## Evidence
+
+Promoted verification notes:
+
+{verification}
+
+## Subagent Separation
+
+- Required: no
+- Waiver: Promotion from spec quick to change packet is a mechanical planning-carrier change.
+- Replacement Verification: packet structure check validates generated files.
+- Residual Risk: Actual implementation verification remains pending until readiness defines commands.
+"""
+
+
+__all__ = [
+    "init_spec",
+    "list_specs",
+    "read_spec",
+    "upgrade_spec",
+    "_slug_from_description",
+    "SPECS_DIR",
+]

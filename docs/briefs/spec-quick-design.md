@@ -92,9 +92,9 @@ harness spec list
   # List all specs in .harness/specs/
 ```
 
-## Implementation Plan (P2 — deferred)
+## Implementation Plan (P2 — implemented)
 
-1. Create template file at `src/harness_governance/data/templates/spec-quick.md`
+1. Create template file at `src/harness_governance/data/templates/spec-quick/spec-quick.md`
 2. Create command group `src/harness_governance/commands/spec.py`
 3. Implement `spec quick` — generate single file from template
 4. Implement `spec upgrade` — promote spec to full change packet

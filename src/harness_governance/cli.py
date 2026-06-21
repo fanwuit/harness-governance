@@ -52,6 +52,7 @@ from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.session_cmd import session_group
 from .commands.skill_chain import skill_chain_group
+from .commands.spec import spec_group
 from .commands.state_contract import state_contract_group
 from .commands.status import status_cmd
 from .commands.tech_stack import tech_stack_group
@@ -128,6 +129,7 @@ cli.add_command(runner_group)
 cli.add_command(layer_group)
 cli.add_command(gate_group)
 cli.add_command(session_group)
+cli.add_command(spec_group)
 cli.add_command(state_contract_group)
 cli.add_command(tech_stack_group)
 cli.add_command(isolation_group)
