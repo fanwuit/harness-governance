@@ -23,7 +23,7 @@ Missing sessions remain a no-op. Queue item closure keeps the existing `mark_que
 ## Consequences
 
 - The normal closeout command becomes the single path for checkpoint, queue, and same-id session closure.
-- `commands/review.py` gains a small dependency on session persistence.
+- `src/harness_governance/commands/review.py` gains a small dependency on session persistence.
 - Exact matching avoids closing unrelated sessions.
 
 ## Validation

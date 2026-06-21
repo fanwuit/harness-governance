@@ -42,3 +42,10 @@ linting, type checking, and contract-to-test mapping for C1-C8 below.
 - Reason: This change enhances an internal CLI check (`harness check user-evidence`) for a governance tool. It has no user-visible UI, no save/publish/login flow, and no external state. The users are developers running CLI commands.
 - Replacement verification: pytest + ruff + mypy on the scanner module and integration tests
 - Residual risk: Low — scanner is additive and graceful; no regression on existing checks
+
+## Subagent Separation
+
+- Required: no
+- Waiver: This was an internal scanner enhancement verified through focused command and scanner tests; no subagent dispatch was used.
+- Replacement Verification: `pytest tests/test_commands/test_evidence_scanner.py -v` and `pytest tests/test_commands/test_check_cmd.py -v` cover artifact scanning integration.
+- Residual Risk: Scanner heuristics may miss future artifact formats; malformed artifacts degrade gracefully.

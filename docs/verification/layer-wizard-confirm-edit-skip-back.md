@@ -56,3 +56,10 @@
 ## Failures
 
 None in the final verification run.
+
+## Subagent Separation
+
+- Required: no
+- Waiver: This was a focused CLI interaction slice verified through public command tests; no subagent dispatch was used.
+- Replacement Verification: `pytest tests/test_commands/test_layer_cmd.py -q` exercises the public wizard path and persisted `layer_qa` readback.
+- Residual Risk: Manual terminal ergonomics may vary by platform, but non-TTY fallback and persisted state behavior are covered.

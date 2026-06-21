@@ -31,6 +31,6 @@
 ## Subagent Separation
 
 - Required: no
-- Reason: This was a small local CLI closeout consistency fix implemented in the main context after strict governance gates; no separate subagent handoff was used.
-- Alternative Verification: Contract tests exercise the public CLI and persisted readback.
+- Waiver: This was a small local CLI closeout consistency fix implemented in the main context after strict governance gates; no separate subagent handoff was used.
+- Replacement Verification: Contract tests exercise the public CLI and persisted readback.
 - Residual Risk: Broader release verification is deferred; this slice only proves the review close state linkage path.
