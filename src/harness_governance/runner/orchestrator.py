@@ -283,7 +283,8 @@ class OrchestratorPromptBuilder:
             "contract/test writer": ["contract-writer"],
             "implementer": ["implementer"],
             "reviewer": ["reviewer"],
-            "reviewer/verifier": ["reviewer"],
+            "reviewer/verifier": ["reviewer", "verifier"],
+            "verifier": ["verifier"],
             # Governance roles
             "adr writer": ["adr-writer"],
             "adr-writer": ["adr-writer"],
@@ -352,6 +353,7 @@ class OrchestratorPromptBuilder:
             "contract-writer": "CONTRACT_WRITER_PROMPT",
             "implementer": "IMPLEMENTER_PROMPT",
             "reviewer": "REVIEWER_PROMPT",
+            "verifier": "VERIFIER_PROMPT",
             # Governance
             "adr-writer": "ADR_WRITER_PROMPT",
             "fact-finder-reviewer": "FACT_FINDER_REVIEWER_PROMPT",

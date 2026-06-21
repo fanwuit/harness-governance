@@ -23,20 +23,37 @@ from ..base import AgentExecutor
 from .codex_cli import CodexCliExecutor
 from .generic import SubprocessAgentExecutor
 
+_PLATFORM_CLI: dict[str, str] = {
+    "claude-code": "claude",
+    "codex": "codex exec",
+    "opencode": "opencode",
+    "cline": "cline",
+    "cursor": "cursor",
+    "windsurf": "windsurf",
+    "qoderwork": "qoderwork",
+    "generic": "python3",
+}
+
+
 class SubagentExecutor(SubprocessAgentExecutor):
     """A subagent executor that delegates to the platform's CLI.
 
-    Uses a simple subprocess command that accepts the prompt as a
-    final argument.  The ``model_label`` from ``tiers.json`` is used
-    as the command name.
+    Uses the platform name to determine the CLI command, and passes
+    ``model_label`` as a ``--model`` flag when present.
     """
 
     def __init__(
         self,
-        model_label: str = "python3",
+        model_label: str = "",
+        platform: str = "generic",
         workdir: Path | None = None,
     ) -> None:
-        command_template = f"{model_label} -c {{prompt}}"
+        base_cmd = _PLATFORM_CLI.get(platform, _PLATFORM_CLI["generic"])
+        parts = [base_cmd]
+        if model_label:
+            parts.extend(["--model", model_label])
+        parts.append("--prompt {prompt}")
+        command_template = " ".join(parts)
         super().__init__(
             command_template=command_template,
             prompt_as_arg=False,
@@ -86,13 +103,15 @@ def resolve_executor(
                     continue
 
                 kwargs: dict = {"workdir": workdir or Path.cwd()}
-                if route.model_label:
+                if factory == SubagentExecutor:
+                    kwargs["platform"] = decl.platform
+                    if route.model_label:
+                        kwargs["model_label"] = route.model_label
+                elif route.model_label:
                     if factory == CodexCliExecutor:
                         kwargs["model"] = route.model_label
                     elif factory == SubprocessAgentExecutor:
                         kwargs["command_template"] = route.model_label
-                    elif factory == SubagentExecutor:
-                        kwargs["model_label"] = route.model_label
 
                 try:
                     return factory(**kwargs)

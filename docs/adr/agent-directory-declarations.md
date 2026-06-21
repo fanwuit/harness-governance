@@ -2,7 +2,7 @@
 
 ## Decision
 
-Agent platforms declare model candidates in `tiers.json` placed in their
+Agent platforms declare model candidates in a tiers-json declaration file placed in their
 well-known config directory (`.claude/`, `.agents/`, `.opencode/`, etc.),
 not in `.harness/config.toml`.
 

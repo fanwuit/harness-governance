@@ -54,7 +54,7 @@
 
 ## Schema: tiers.json Format
 
-```json
+```json-schema
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -84,7 +84,7 @@
 }
 ```
 
-| JSON Path | Type | Required | Description |
+| JSON Path | JSON Type | Required | Description |
 |---|---|---|---|
 | `$.platform` | string | yes | Agent platform identifier |
 | `$.adapters` | array | yes | List of adapter declarations |

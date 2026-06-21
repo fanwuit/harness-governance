@@ -1,0 +1,65 @@
+{
+  "platform": "opencode",
+  "adapters": [
+    {
+      "role": "planner",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "contract-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "verifier",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "reviewer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "implementer",
+      "required_tier": "execution",
+      "adapter": "subagent",
+      "model_label": "deepseek-v4-flash"
+    },
+    {
+      "role": "document-gardener",
+      "required_tier": "mechanical",
+      "adapter": "subagent",
+      "model_label": "deepseek-v4-flash"
+    },
+    {
+      "role": "adr-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "fact-finder-reviewer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "readiness-gate-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    },
+    {
+      "role": "integrator",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "glm-5.2"
+    }
+  ]
+}
