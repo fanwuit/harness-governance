@@ -21,7 +21,7 @@ from ..file_ops.queue import (
     read_queue,
 )
 from ..queue_validation import validate_queue
-from ..hard_gates import is_trivial_queue_item
+from ..hard_gates import git_changed_files, is_trivial_queue_item
 from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import (
@@ -574,6 +574,7 @@ def governed_start_cmd(
             current_layer=result.current_layer,
             companion_skills=payload.companion_skills,
             rigor_tier=resolved_rigor.value,
+            git_status_baseline=tuple(git_changed_files(project_root)),
         )
         session_path = create_session(project_root, session)
         config = load_config(project_root)

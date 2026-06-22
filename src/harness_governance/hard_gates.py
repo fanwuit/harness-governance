@@ -12,6 +12,7 @@ from typing import Iterable
 from .config import load_config
 from .file_ops.queue import read_queue
 from .models.schemas import QueueItem
+from .session import load_session
 
 
 def is_trivial_queue_item(item: QueueItem) -> bool:
@@ -123,7 +124,11 @@ def implementation_gate_failures(project_root: Path, session_id: str) -> list[st
             + ", ".join(missing_roles)
         )
 
-    outside = changed_files_outside_owner_allowlist(project_root, item.owner_files)
+    outside = changed_files_outside_owner_allowlist(
+        project_root,
+        item.owner_files,
+        baseline=_session_git_status_baseline(project_root, session_id),
+    )
     if outside:
         failures.append(
             "Changed files outside owner allowlist: " + ", ".join(outside)
@@ -135,15 +140,26 @@ def implementation_gate_failures(project_root: Path, session_id: str) -> list[st
 def changed_files_outside_owner_allowlist(
     project_root: Path,
     owner_files: Iterable[str],
+    *,
+    baseline: Iterable[str] = (),
 ) -> list[str]:
     allowlist = tuple(path.strip() for path in owner_files if path.strip())
     if not allowlist:
         return []
-    changed = _git_changed_files(project_root)
+    baseline_paths = {
+        path.replace("\\", "/").strip()
+        for path in baseline
+        if path.strip()
+    }
+    changed = [
+        path
+        for path in git_changed_files(project_root)
+        if path not in baseline_paths
+    ]
     return [path for path in changed if not _path_allowed(path, allowlist)]
 
 
-def _git_changed_files(project_root: Path) -> list[str]:
+def git_changed_files(project_root: Path) -> list[str]:
     try:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -165,6 +181,14 @@ def _git_changed_files(project_root: Path) -> list[str]:
             path = path.rsplit(" -> ", 1)[1]
         changed.append(path.replace("\\", "/"))
     return changed
+
+
+def _session_git_status_baseline(project_root: Path, session_id: str) -> tuple[str, ...]:
+    try:
+        session = load_session(project_root, session_id)
+    except (FileNotFoundError, OSError, ValueError):
+        return ()
+    return tuple(session.git_status_baseline)
 
 
 def _path_allowed(path: str, allowlist: tuple[str, ...]) -> bool:
@@ -204,7 +228,11 @@ def finish_gate_failures(
     if "targeted" not in evidence_text and "targeted checks" not in evidence_text:
         failures.append("Finish evidence must include targeted checks.")
 
-    outside = changed_files_outside_owner_allowlist(project_root, item.owner_files)
+    outside = changed_files_outside_owner_allowlist(
+        project_root,
+        item.owner_files,
+        baseline=_session_git_status_baseline(project_root, session_id),
+    )
     if outside:
         failures.append(
             "Changed files outside owner allowlist: " + ", ".join(outside)

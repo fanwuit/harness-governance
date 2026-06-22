@@ -10,6 +10,7 @@ from click.testing import CliRunner
 
 from harness_governance.cli import cli
 from harness_governance.commands.gate_failure import format_gate_failure_guidance
+from harness_governance.hard_gates import record_render
 from harness_governance.models.schemas import GateStatus
 from harness_governance.session import SessionState, create_session
 from harness_governance.state_machine.classification import RoutingPath
@@ -62,6 +63,7 @@ def _seed_gate_session(tmp_path: Path, **overrides) -> str:
 def _seed_implementation_gate_session(
     tmp_path: Path,
     session_id: str = "impl-session",
+    **overrides,
 ) -> str:
     return _seed_gate_session(
         tmp_path,
@@ -91,6 +93,7 @@ def _seed_implementation_gate_session(
                 "source": "author",
             },
         ),
+        **overrides,
     )
 
 
@@ -237,6 +240,91 @@ class TestGateCheck:
 
         assert result.exit_code != 0
         assert "owner allowlist" in result.output.lower()
+        assert "tests/test_app.py" in result.output
+
+    def test_implementation_gate_ignores_session_baseline_dirty_files(
+        self, tmp_path: Path
+    ) -> None:
+        _seed_implementation_gate_session(
+            tmp_path,
+            git_status_baseline=("README.md",),
+        )
+        (tmp_path / "NEXT.md").write_text(
+            "[active] Implement task\n"
+            "- Id: impl-1\n"
+            "- Layer: implementation\n"
+            "- Role: implementer\n"
+            "- SessionId: impl-session\n"
+            "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+            "- OwnerFiles: src/app.py\n"
+            "- TestPlan: tests/test_app.py\n"
+            "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "src" / "app.py").write_text("ok = True\n", encoding="utf-8")
+        (tmp_path / "README.md").write_text("baseline dirty\n", encoding="utf-8")
+        (tmp_path / "tests" / "test_app.py").write_text(
+            "def test_changed(): pass\n", encoding="utf-8"
+        )
+        for role in (
+            "planner",
+            "contract-test-writer",
+            "implementer",
+            "reviewer-verifier",
+        ):
+            record_render(
+                tmp_path,
+                session_id="impl-session",
+                queue_id="impl-1",
+                role=role,
+            )
+
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "baseline"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        (tmp_path / "README.md").write_text("preexisting dirty\n", encoding="utf-8")
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "check",
+                "implementation",
+                "--session-id",
+                "impl-session",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+
+        (tmp_path / "tests" / "test_app.py").write_text(
+            "def test_new_change(): pass\n", encoding="utf-8"
+        )
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "check",
+                "implementation",
+                "--session-id",
+                "impl-session",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "README.md" not in result.output
         assert "tests/test_app.py" in result.output
 
     def test_check_failed_json_output_has_no_prose_guidance(

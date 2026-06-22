@@ -52,6 +52,10 @@ class SessionState(BaseModel):
     layer_qa: tuple[
         dict[str, Any], ...
     ] = ()  # Q&A log: {"layer","question","answer","timestamp"}
+    # Files already dirty when the governed session began. Owner allowlist
+    # gates subtract this baseline so older workspace state does not block
+    # the current implementation task.
+    git_status_baseline: tuple[str, ...] = ()
 
 
 __all__ = [
