@@ -216,6 +216,134 @@ def test_governed_start_queue_rejects_same_session_review(tmp_repo: Path) -> Non
     assert "sessionId must differ" in result.output
 
 
+def test_governed_start_queue_marks_item_active(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Implement task" in queue
+    assert "- Status: active" in queue
+    assert "- SessionId: impl-session" in queue
+
+
+def test_governed_start_queue_rejects_non_governed_route(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+            "--recommended-route",
+            "fast-path",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--queue requires governed-path" in result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[ready] Implement task" in queue
+    assert "- SessionId:" not in queue
+
+
+def test_governed_start_queue_generates_session_for_ready_implementer(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Implement task" in queue
+    assert "- Status: active" in queue
+    assert "- SessionId:" in queue
+
+
+def test_governed_start_queue_generates_independent_review_session(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- Evidence: pytest -q\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Review task" in queue
+    assert "- SessionId:" in queue
+    assert "- SessionId: impl-session" in queue
+    review_block = queue.split("[active] Review task", 1)[1]
+    assert "- SessionId: impl-session" not in review_block
+
+
 def test_governed_start_queue_applies_project_policy(tmp_repo: Path) -> None:
     harness_dir = tmp_repo / ".harness"
     harness_dir.mkdir(parents=True, exist_ok=True)

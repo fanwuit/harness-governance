@@ -365,6 +365,31 @@ def test_runner_render_queue_item_infers_role(tmp_repo: Path) -> None:
     assert "Role: Reviewer" in result.output or "Role: reviewer" in result.output
 
 
+def test_runner_render_queue_item_infers_verifier_role(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Verify queue-backed item\n"
+        "- Id: verify-1\n"
+        "- Role: verifier\n"
+        "- ChangeId: sample-change\n"
+        "- Verification: pytest -q\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "render",
+            "--queue",
+            "verify-1",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Role: Verifier" in result.output or "role\": \"verifier\"" in result.output
+
+
 # ---------------------------------------------------------------------------
 # runner parse-result (lines 332-404)
 # ---------------------------------------------------------------------------

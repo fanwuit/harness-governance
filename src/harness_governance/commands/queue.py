@@ -24,6 +24,44 @@ def _queue_path(project_root: Path) -> Path:
     return load_config(project_root).queue_file
 
 
+def _find_item(items, item_id: str):
+    lowered = item_id.lower()
+    for item in items:
+        if item.id and item.id.lower() == lowered:
+            return item
+        if item.session_id and item.session_id.lower() == lowered:
+            return item
+        if item.change_id and item.change_id.lower() == lowered:
+            return item
+    return None
+
+
+def _validate_review_start(items, item, session_id: str) -> None:
+    if item is None or item.role != "reviewer-verifier":
+        return
+    by_id = {}
+    for candidate in items:
+        for key in (candidate.id, candidate.session_id, candidate.change_id):
+            if key:
+                by_id.setdefault(key, candidate)
+    deps = [by_id.get(dep_id) for dep_id in item.depends_on]
+    impl_deps = [dep for dep in deps if dep and dep.role == "implementer"]
+    if not impl_deps:
+        raise click.ClickException(
+            "reviewer-verifier queue item must dependOn an implementer item."
+        )
+    for dep in impl_deps:
+        if dep.status != "done":
+            raise click.ClickException(
+                f"dependsOn implementation item '{dep.id or dep.session_id}' "
+                "must be done before review."
+            )
+        if dep.session_id and dep.session_id == session_id:
+            raise click.ClickException(
+                "reviewer-verifier sessionId must differ from implementation."
+            )
+
+
 def _echo_items(ctx: click.Context, items) -> None:
     if ctx.obj.get("json_output"):
         import json
@@ -54,7 +92,7 @@ def queue_group() -> None:
 @queue_group.command("validate")
 @click.pass_context
 def queue_validate_cmd(ctx: click.Context) -> None:
-    """Validate NEXT.md queue item structure."""
+    """Validate configured queue file item structure."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     _emit(ctx, validate_queue(project_root))
 
@@ -70,7 +108,15 @@ def queue_validate_cmd(ctx: click.Context) -> None:
 @click.option("--change-kind", "change_kind", default=None)
 @click.option("--depends-on", "depends_on", multiple=True)
 @click.option("--owner-file", "owner_files", multiple=True)
-@click.option("--session-id", "session_id", default=None)
+@click.option(
+    "--session-id",
+    "session_id",
+    default=None,
+    help=(
+        "Execution session binding. Optional while queued; active/done role "
+        "items must have one."
+    ),
+)
 @click.option("--verification", default=None)
 @click.option("--stop-conditions", "stop_conditions", default=None)
 @click.option("--handoff-from", "handoff_from", default=None)
@@ -142,11 +188,19 @@ def queue_next_cmd(ctx: click.Context) -> None:
 
 @queue_group.command("start")
 @click.argument("item_id")
-@click.option("--session-id", "session_id", default=None)
+@click.option(
+    "--session-id",
+    "session_id",
+    default=None,
+    help="Execution session to bind while marking the queue item active.",
+)
 @click.pass_context
 def queue_start_cmd(ctx: click.Context, item_id: str, session_id: str | None) -> None:
     """Mark a queue item active and attach a session id."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    queue_path = _queue_path(project_root)
+    items = read_queue(queue_path)
+    item = _find_item(items, item_id)
     if session_id is None:
         active = find_active_session(project_root)
         if active is None:
@@ -155,8 +209,9 @@ def queue_start_cmd(ctx: click.Context, item_id: str, session_id: str | None) ->
                 "start a governed session first."
             )
         session_id = active.session_id
+    _validate_review_start(items, item, session_id)
     if not mark_queue_item_status(
-        _queue_path(project_root),
+        queue_path,
         task_id=item_id,
         status="active",
         session_id=session_id,

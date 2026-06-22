@@ -15,7 +15,11 @@ import click
 
 from ..messages import bilingual
 from ..config import load_config
-from ..file_ops.queue import append_governed_queue_item, read_queue
+from ..file_ops.queue import (
+    append_governed_queue_item,
+    mark_queue_item_status,
+    read_queue,
+)
 from ..queue_validation import validate_queue
 from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
@@ -168,7 +172,12 @@ def _queue_item_description(item) -> str:
         return ""
     first_line = item.raw.splitlines()[0].strip()
     first_line = re.sub(r"^\s*(?:\d+\.|[-*])\s*", "", first_line)
-    return re.sub(r"^\[(?:planned|ready|active|blocked|done|not-now)\]\s*", "", first_line, flags=re.IGNORECASE).strip()
+    return re.sub(
+        r"^\[(?:planned|ready|active|blocked|done|not-now|archived)\]\s*",
+        "",
+        first_line,
+        flags=re.IGNORECASE,
+    ).strip()
 
 
 def _validate_queue_context(queue_item, items) -> None:
@@ -183,9 +192,12 @@ def _validate_queue_context(queue_item, items) -> None:
             raise click.ClickException(
                 "Implementation queue item must declare role=implementer."
             )
-        if queue_item.layer.value == "verification" and queue_item.role != "reviewer-verifier":
+        if queue_item.layer.value == "verification" and queue_item.role not in {
+            "reviewer-verifier",
+            "verifier",
+        }:
             raise click.ClickException(
-                "Review queue item must declare role=reviewer-verifier."
+                "Verification queue item must declare role=reviewer-verifier or role=verifier."
             )
 
     resolved_deps = [dep_map.get(dep_id) for dep_id in queue_item.depends_on]
@@ -201,11 +213,32 @@ def _validate_queue_context(queue_item, items) -> None:
             raise click.ClickException(
                 "Review queue item must dependsOn an implementation item."
             )
-        for dep in impl_deps:
-            if dep.session_id and queue_item.session_id == dep.session_id:
-                raise click.ClickException(
-                    "reviewer-verifier sessionId must differ from implementation."
-                )
+        if queue_item.session_id:
+            for dep in impl_deps:
+                if dep.session_id and queue_item.session_id == dep.session_id:
+                    raise click.ClickException(
+                        "reviewer-verifier sessionId must differ from implementation."
+                    )
+
+
+def _validate_resolved_queue_session(queue_item, items, session_id: str) -> None:
+    if queue_item.role != "reviewer-verifier":
+        return
+    dep_map = {}
+    for item in items:
+        for key in (item.id, item.session_id, item.change_id):
+            if key:
+                dep_map.setdefault(key, item)
+    impl_deps = [
+        dep_map.get(dep_id)
+        for dep_id in queue_item.depends_on
+        if dep_map.get(dep_id) and dep_map.get(dep_id).role == "implementer"
+    ]
+    for dep in impl_deps:
+        if dep.session_id and session_id == dep.session_id:
+            raise click.ClickException(
+                "reviewer-verifier sessionId must differ from implementation."
+            )
 
 
 def _check_skill_freshness(project_root: Path) -> str | None:
@@ -404,8 +437,22 @@ def governed_start_cmd(
     loaded_assessment = (
         _load_agent_assessment(assessment_path) if assessment_path is not None else None
     )
+    if queue_item is not None:
+        explicit_route = (
+            RoutingPath(recommended_route)
+            if recommended_route is not None
+            else loaded_assessment.recommended_route
+            if loaded_assessment is not None
+            else None
+        )
+        if explicit_route is not None and explicit_route is not RoutingPath.GOVERNED_PATH:
+            raise click.ClickException(
+                "--queue requires governed-path; queue start is an execution binding."
+            )
     assessment_route = (
-        RoutingPath(recommended_route)
+        RoutingPath.GOVERNED_PATH
+        if queue_item is not None
+        else RoutingPath(recommended_route)
         if recommended_route is not None
         else loaded_assessment.recommended_route
         if loaded_assessment is not None
@@ -505,7 +552,13 @@ def governed_start_cmd(
     if result.path is RoutingPath.GOVERNED_PATH:
         from datetime import datetime, timezone
 
-        session_id = queue_item.session_id if queue_item and queue_item.session_id else generate_session_id(resolved_description)
+        session_id = (
+            queue_item.session_id
+            if queue_item and queue_item.session_id
+            else generate_session_id(resolved_description)
+        )
+        if queue_item is not None:
+            _validate_resolved_queue_session(queue_item, queue_items, session_id)
         session = SessionState(
             session_id=session_id,
             created_at=datetime.now(timezone.utc).isoformat(),
@@ -524,6 +577,17 @@ def governed_start_cmd(
                 description=resolved_description,
                 layer=result.current_layer or HarnessLayer.INTAKE_ORIENTATION,
                 rigor_tier=resolved_rigor.value,
+            )
+        else:
+            mark_queue_item_status(
+                config.queue_file,
+                task_id=queue_item.id
+                or queue_item.session_id
+                or queue_item.change_id
+                or queue_item_id
+                or session_id,
+                status="active",
+                session_id=session_id,
             )
         import logging
 

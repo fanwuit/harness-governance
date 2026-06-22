@@ -9,8 +9,31 @@ from .file_ops.queue import read_queue
 from .queue_policy import load_queue_policy
 from .models.schemas import CheckFinding, CheckResult, QueueItem
 
-_VALID_STATUSES = {"planned", "ready", "active", "blocked", "done", "not-now"}
-_MVP_ROLES = {"implementer", "reviewer-verifier"}
+_VALID_STATUSES = {
+    "planned",
+    "ready",
+    "active",
+    "blocked",
+    "done",
+    "not-now",
+    "archived",
+}
+_VALID_ROLES = {
+    "planner",
+    "fact-finder",
+    "fact-finder-reviewer",
+    "contract-test-writer",
+    "contract-writer",
+    "test-writer",
+    "readiness-gate-writer",
+    "architect-adr",
+    "implementer",
+    "product-implementer",
+    "reviewer",
+    "reviewer-verifier",
+    "verifier",
+}
+_EVIDENCE_REQUIRED_ROLES = {"implementer", "reviewer-verifier"}
 
 
 def _target(item: QueueItem, index: int) -> str:
@@ -79,35 +102,42 @@ def validate_queue(repo_root: Path) -> CheckResult:
                     ),
                 )
             )
-        if item.role and item.role not in _MVP_ROLES:
+        if item.role and item.role not in _VALID_ROLES:
             findings.append(
                 CheckFinding(
                     check="queue",
                     target=target,
                     level="error",
                     message=(
-                        f"Unsupported MVP queue role '{item.role}'. Use "
-                        "implementer or reviewer-verifier."
+                        f"Unsupported queue role '{item.role}'. Use one of: "
+                        + ", ".join(sorted(_VALID_ROLES))
                     ),
                 )
             )
-        if item.role:
-            for field_name, field_value in (
-                ("id", item.id),
-                ("sessionId", item.session_id),
-            ):
-                if not field_value:
-                    findings.append(
-                        CheckFinding(
-                            check="queue",
-                            target=target,
-                            level="error",
-                            message=(
-                                f"Structured queue item with role={item.role} "
-                                f"must declare {field_name}."
-                            ),
-                        )
-                    )
+        if item.role and not item.id:
+            findings.append(
+                CheckFinding(
+                    check="queue",
+                    target=target,
+                    level="error",
+                    message=(
+                        f"Structured queue item with role={item.role} "
+                        "must declare id."
+                    ),
+                )
+            )
+        if item.role and item.status in {"active", "done"} and not item.session_id:
+            findings.append(
+                CheckFinding(
+                    check="queue",
+                    target=target,
+                    level="error",
+                    message=(
+                        "Active/done role queue item must declare sessionId; "
+                        "SessionId is bound when a queued task starts."
+                    ),
+                )
+            )
 
         expected_role = _policy_expected_role(item, policy)
         if expected_role and item.role != expected_role:
@@ -300,6 +330,18 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
                         ),
                     )
                 )
+        if reviewer.status in {"active", "done"} and not reviewer.session_id:
+            findings.append(
+                CheckFinding(
+                    check="role-isolation",
+                    target=target,
+                    level="error",
+                    message=(
+                        "Active/done reviewer-verifier queue item must declare "
+                        "its own sessionId."
+                    ),
+                )
+            )
         expected_role = _policy_expected_role(reviewer, policy)
         if expected_role and reviewer.role != expected_role:
             findings.append(
@@ -352,7 +394,9 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
         if item.status != "done":
             continue
         target = _target(item, index)
-        if item.role in _MVP_ROLES and not (item.evidence or item.verification):
+        if item.role in _EVIDENCE_REQUIRED_ROLES and not (
+            item.evidence or item.verification
+        ):
             findings.append(
                 CheckFinding(
                     check="role-isolation",

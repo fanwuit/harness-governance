@@ -50,13 +50,13 @@ def extract_skill_version(content: str) -> str | None:
 _NEXT_MD_TEMPLATE = """\
 <!-- Harness Governance Queue (NEXT.md)
 
-Status labels: [planned] [ready] [active] [blocked] [done] [not-now]
+Status labels: [planned] [ready] [active] [blocked] [done] [not-now] [archived]
 Fields:  - Id: <queue-item-id>
          - Layer: <layer-name>
          - Change: <change-id>       (links to docs/changes/<id>/)
          - Role: <role-name>
          - DependsOn: <queue-item-id>
-         - SessionId: <governance-session-id>
+         - SessionId: <governance-session-id>  (execution binding; added at start)
          - Verification: <cmd or evidence requirement>
          - Done when: <criteria>
          - Forbidden shortcut: <what to avoid>

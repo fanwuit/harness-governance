@@ -253,6 +253,21 @@ def test_init_creates_next_md(tmp_repo: Path) -> None:
     assert "[ready]" in content
 
 
+def test_init_next_md_examples_do_not_validate_as_real_queue(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    validate = runner.invoke(cli, ["--project-root", str(tmp_repo), "queue", "validate"])
+    assert validate.exit_code == 0, validate.output
+    assert "Example" not in validate.output
+
+    isolation = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "check", "role-isolation"]
+    )
+    assert isolation.exit_code == 0, isolation.output
+
+
 def test_init_does_not_overwrite_existing_next_md(tmp_repo: Path) -> None:
     next_file = tmp_repo / "NEXT.md"
     next_file.write_text("[ready] My existing task\n", encoding="utf-8")

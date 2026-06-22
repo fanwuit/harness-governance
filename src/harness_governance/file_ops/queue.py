@@ -1,4 +1,4 @@
-"""NEXT.md queue helpers.
+"""Configured queue file helpers.
 
 The queue is the scheduler surface used by ``harness-status.mjs`` and
 ``autonomous-ready-loop``. This module parses entries into
@@ -21,7 +21,7 @@ from ..state_machine.layers import HarnessLayer
 # or bulleted lists like ``1. [ready] Task description`` are accepted.
 _TAG_RE = re.compile(
     r"^\s*(?:(?:\d+\.|[-*])\s+)?"
-    r"\[(?P<tag>planned|active|ready|blocked|not-now|done)\]\s+",
+    r"\[(?P<tag>planned|active|ready|blocked|not-now|done|archived)\]\s+",
     re.IGNORECASE,
 )
 # ``Key: Value`` field within an entry. The leading list marker
@@ -33,12 +33,12 @@ _FIELD_RE = re.compile(
     r"ChangeKind|Change Kind|GateId|Gate ID|OwnerFiles|Owner Files|"
     r"Evidence|Verification|Scope|DependsOn|Depends On|Session|SessionId|"
     r"SessionID|StopConditions|Stop Conditions|HandoffFrom|Handoff From)\s*:\s*(?P<value>.+?)\s*$",
-    re.MULTILINE,
+    re.MULTILINE | re.IGNORECASE,
 )
 
 
 def parse_queue(markdown: str) -> list[QueueItem]:
-    """Parse a NEXT.md document into a list of :class:`QueueItem` objects.
+    """Parse queue markdown into a list of :class:`QueueItem` objects.
 
     Entries are separated by a blank line. Each entry begins with a tag
     (``[active]``, ``[ready]``, …) optionally followed by ``Key: Value``
@@ -46,23 +46,31 @@ def parse_queue(markdown: str) -> list[QueueItem]:
     """
     items: list[QueueItem] = []
     current: list[str] = []
+    in_comment = False
 
     def flush() -> None:
         if not current:
             return
         raw = "\n".join(current).strip()
-        items.append(_entry_to_item(raw))
+        if _TAG_RE.match(raw):
+            items.append(_entry_to_item(raw))
 
     for line in markdown.splitlines():
+        stripped = line.strip()
+        if in_comment:
+            if "-->" in stripped:
+                in_comment = False
+            continue
+        if stripped.startswith("<!--"):
+            if "-->" not in stripped:
+                in_comment = True
+            continue
         if line.strip() == "":
             flush()
             current = []
             continue
         current.append(line)
     flush()
-
-    if not items and markdown.strip():
-        items.append(QueueItem(raw=markdown.strip()))
 
     return items
 
@@ -71,7 +79,7 @@ def read_queue(
     queue_path: Path,
     blocked_statuses: tuple[str, ...] = ("blocked", "archived"),
 ) -> list[QueueItem]:
-    """Read and parse a NEXT.md file.
+    """Read and parse a configured queue file.
 
     *blocked_statuses* documents which tag values the governance model
     treats as non-actionable.  The default matches the schema default in
@@ -246,7 +254,7 @@ def _entry_to_item(raw: str) -> QueueItem:
 
 
 def format_queue(items: Iterable[QueueItem]) -> str:
-    """Render a list of items back into NEXT.md format."""
+    """Render a list of items back into queue markdown format."""
     blocks: list[str] = []
     for item in items:
         blocks.append(item.raw.strip())
@@ -261,7 +269,7 @@ def append_governed_queue_item(
     layer: HarnessLayer,
     rigor_tier: str,
 ) -> bool:
-    """Append a governed task entry to ``NEXT.md`` if not already present."""
+    """Append a governed task entry to the queue file if not already present."""
     existing = queue_path.read_text(encoding="utf-8") if queue_path.is_file() else ""
     if f"Session: {session_id}" in existing:
         return False
@@ -498,7 +506,7 @@ def _set_block_status(
     lines = block.splitlines()
     if lines:
         lines[0] = re.sub(
-            r"^(\s*)\[(active|ready|planned|blocked|done|not-now)\]",
+            r"^(\s*)\[(active|ready|planned|blocked|done|not-now|archived)\]",
             rf"\1[{status}]",
             lines[0],
             count=1,

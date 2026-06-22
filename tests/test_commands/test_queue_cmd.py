@@ -30,7 +30,51 @@ def test_queue_validate_passes_structured_items(tmp_repo: Path) -> None:
     assert payload["check"] == "queue"
 
 
-def test_queue_validate_fails_structured_item_without_session(tmp_repo: Path) -> None:
+def test_queue_validate_accepts_full_role_taxonomy(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Plan work\n"
+        "- Id: plan-1\n"
+        "- Role: planner\n"
+        "- SessionId: plan-session\n"
+        "- Layer: brief\n\n"
+        "[ready] Write contract tests\n"
+        "- Id: contract-test-1\n"
+        "- Role: contract-test-writer\n"
+        "- SessionId: contract-test-session\n"
+        "- Layer: contract\n\n"
+        "[ready] Write ADR\n"
+        "- Id: adr-1\n"
+        "- Role: architect-adr\n"
+        "- SessionId: adr-session\n"
+        "- Layer: adr\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_queue_validate_accepts_archived_status(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[archived] Old work\n"
+        "- Id: old-1\n"
+        "- Status: archived\n"
+        "- Role: planner\n"
+        "- SessionId: plan-session\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_queue_validate_allows_ready_role_item_without_session(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
         "[ready] Implement\n"
         "- Id: impl-1\n"
@@ -42,8 +86,40 @@ def test_queue_validate_fails_structured_item_without_session(tmp_repo: Path) ->
         cli, ["--project-root", str(tmp_repo), "queue", "validate"]
     )
 
+    assert result.exit_code == 0, result.output
+
+
+def test_queue_validate_fails_active_role_item_without_session(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
     assert result.exit_code == 1
-    assert "must declare sessionId" in result.output
+    assert "Active/done role queue item must declare sessionId" in result.output
+
+
+def test_queue_validate_fails_done_role_item_without_session(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- Evidence: pytest -q\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
+    assert result.exit_code == 1
+    assert "Active/done role queue item must declare sessionId" in result.output
 
 
 def test_check_role_isolation_rejects_same_session_review(tmp_repo: Path) -> None:
@@ -88,6 +164,51 @@ def test_check_role_isolation_passes_review_dependency(tmp_repo: Path) -> None:
     )
 
     assert result.exit_code == 0, result.output
+
+
+def test_check_role_isolation_allows_ready_review_without_session(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- Evidence: pytest -q\n\n"
+        "[ready] Review\n"
+        "- Id: review-1\n"
+        "- Role: reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "check", "role-isolation"]
+    )
+
+    assert result.exit_code == 0, result.output
+
+
+def test_check_role_isolation_rejects_active_review_without_session(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- Evidence: pytest -q\n\n"
+        "[active] Review\n"
+        "- Id: review-1\n"
+        "- Role: reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "check", "role-isolation"]
+    )
+
+    assert result.exit_code == 1
+    assert "must declare its own sessionId" in result.output
 
 
 def test_check_role_isolation_rejects_done_item_without_evidence(tmp_repo: Path) -> None:
@@ -198,6 +319,39 @@ def test_queue_add_list_next_start_finish_block(tmp_repo: Path) -> None:
     assert "[done] Implement queue suite" in queue_text
     assert "CompletedAt" in queue_text
     assert "dependency missing" in queue_text
+
+
+def test_queue_start_rejects_reviewer_with_implementation_session(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- Evidence: pytest -q\n\n"
+        "[ready] Review\n"
+        "- Id: review-1\n"
+        "- Role: reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "queue",
+            "start",
+            "review-1",
+            "--session-id",
+            "impl-session",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "sessionId must differ" in result.output
 
 
 def test_queue_validate_applies_project_policy(tmp_repo: Path) -> None:

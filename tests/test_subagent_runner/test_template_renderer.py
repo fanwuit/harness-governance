@@ -132,6 +132,7 @@ class TestListRoles:
         roles = renderer.list_roles()
         assert "implementer" in roles
         assert "reviewer" in roles
+        assert "verifier" in roles
         assert "planner" in roles
         assert "spec-writer" in roles
         assert "contract-writer" in roles
@@ -153,6 +154,8 @@ class TestListRoles:
         assert "adr_writer" in roles
         assert "adr writer" in roles
         assert "fact_finder_reviewer" in roles
+        assert "verify" in roles
+        assert "verification" in roles
         assert "fact finder" in roles
         assert "readiness_gate_writer" in roles
         assert "document_gardener" in roles

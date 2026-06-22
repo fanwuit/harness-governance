@@ -360,12 +360,15 @@ def runner_start_cmd(
     type=click.Choice(
         [
             "planner",
+            "fact-finder",
+            "contract-test-writer",
             "contract-writer",
             "implementer",
             "product-implementer",
             "reviewer",
             "reviewer-verifier",
             "verifier",
+            "architect-adr",
             "adr-writer",
             "fact-finder-reviewer",
             "readiness-gate-writer",
@@ -541,12 +544,15 @@ __all__ = [
     type=click.Choice(
         [
             "planner",
+            "fact-finder",
+            "contract-test-writer",
             "contract-writer",
             "implementer",
             "product-implementer",
             "reviewer",
             "reviewer-verifier",
             "verifier",
+            "architect-adr",
             "adr-writer",
             "fact-finder-reviewer",
             "readiness-gate-writer",
@@ -562,7 +568,7 @@ __all__ = [
     default="NEXT.md",
     show_default=True,
     type=click.Path(dir_okay=False, path_type=Path),
-    help="Queue file (NEXT.md).",
+    help="Queue file path; NEXT.md is the default carrier.",
 )
 @click.option(
     "--queue",
@@ -667,10 +673,13 @@ def runner_render_cmd(
     type=click.Choice(
         [
             "planner",
+            "fact-finder",
+            "contract-test-writer",
             "contract-writer",
             "implementer",
             "reviewer",
             "verifier",
+            "architect-adr",
             "adr-writer",
             "fact-finder-reviewer",
             "readiness-gate-writer",
