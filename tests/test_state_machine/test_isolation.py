@@ -80,6 +80,8 @@ class TestConstants:
     def test_implementer_allowed_paths_include_src(self) -> None:
         impl_paths = _DEFAULT_ROLE_PATHS["implementer"]
         assert any("src" in p for p in impl_paths)
+        assert "tests/**" not in impl_paths
+        assert "docs/contracts/**" not in impl_paths
 
     def test_test_writer_allowed_paths_include_tests_and_tests_md(self) -> None:
         paths = _DEFAULT_ROLE_PATHS["test-writer"]
@@ -91,6 +93,21 @@ class TestConstants:
         assert "src/**" in paths
         assert "docs/changes/*/contracts.md" not in paths
         assert "docs/changes/*/tests.md" not in paths
+
+    def test_reviewer_does_not_directly_access_src(self) -> None:
+        paths = _DEFAULT_ROLE_PATHS["reviewer"]
+        assert "src/**" not in paths
+        assert "docs/**" in paths
+
+    def test_verifier_does_not_directly_access_product_or_test_files(self) -> None:
+        paths = _DEFAULT_ROLE_PATHS["verifier"]
+        assert "src/**" not in paths
+        assert "tests/**" not in paths
+        assert "docs/changes/*/verification.md" in paths
+
+    def test_reviewer_and_verifier_can_collaborate(self) -> None:
+        assert "verifier" in _DEFAULT_ROLE_ALLOWANCES["reviewer"]
+        assert "reviewer" in _DEFAULT_ROLE_ALLOWANCES["verifier"]
 
     def test_all_roles_allow_harness_dir(self) -> None:
         for role, patterns in _DEFAULT_ROLE_PATHS.items():
@@ -353,7 +370,7 @@ class TestCheckViolations:
         )
         assert violations == []
 
-    def test_implementer_src_is_allowed(self, tmp_path: Path) -> None:
+    def test_implementer_src_is_allowed_but_tests_are_not(self, tmp_path: Path) -> None:
         write_permissive_config(tmp_path)
         mgr = IsolationManager(tmp_path)
         mgr.create_workspace("implementer", "sess-106")
@@ -363,7 +380,7 @@ class TestCheckViolations:
             ["src/app.py", "tests/test_app.py"],
             session_id="sess-106",
         )
-        assert violations == []
+        assert violations == ["tests/test_app.py"]
 
     def test_reviewer_docs_is_allowed(self, tmp_path: Path) -> None:
         write_permissive_config(tmp_path)
@@ -376,6 +393,30 @@ class TestCheckViolations:
             session_id="sess-107",
         )
         assert violations == []
+
+    def test_reviewer_src_is_not_allowed(self, tmp_path: Path) -> None:
+        write_permissive_config(tmp_path)
+        mgr = IsolationManager(tmp_path)
+        mgr.create_workspace("reviewer", "sess-109")
+
+        violations = mgr.check_violations(
+            "reviewer",
+            ["src/app.py"],
+            session_id="sess-109",
+        )
+        assert violations == ["src/app.py"]
+
+    def test_verifier_src_and_tests_are_not_allowed(self, tmp_path: Path) -> None:
+        write_permissive_config(tmp_path)
+        mgr = IsolationManager(tmp_path)
+        mgr.create_workspace("verifier", "sess-110")
+
+        violations = mgr.check_violations(
+            "verifier",
+            ["src/app.py", "tests/test_app.py"],
+            session_id="sess-110",
+        )
+        assert violations == ["src/app.py", "tests/test_app.py"]
 
     def test_combined_file_and_cross_role_violations(self, tmp_path: Path) -> None:
         write_permissive_config(tmp_path)

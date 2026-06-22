@@ -76,8 +76,6 @@ _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
     ],
     "implementer": [
         "src/**",
-        "tests/**",
-        "docs/contracts/**",
         "docs/adr/**",
         ".harness/**",
     ],
@@ -87,7 +85,6 @@ _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
         ".harness/**",
     ],
     "reviewer": [
-        "src/**",
         "tests/**",
         "docs/**",
         ".harness/**",
@@ -103,7 +100,7 @@ _DEFAULT_ROLE_ALLOWANCES: dict[str, list[str]] = {
     "product-implementer": ["test-writer", "verifier"],
     "implementer": ["contract-writer", "reviewer"],
     "verifier": ["test-writer", "product-implementer", "reviewer"],
-    "reviewer": ["implementer"],
+    "reviewer": ["implementer", "verifier"],
 }
 
 
