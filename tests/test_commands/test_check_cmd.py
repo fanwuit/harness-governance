@@ -367,6 +367,32 @@ def test_check_subagent_separation_requires_invocation_evidence(
     assert any("invocation" in f.message.lower() for f in result.findings)
 
 
+def test_check_subagent_separation_allows_required_with_full_waiver(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "local-waiver.md").write_text(
+        """# P0 governed work
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: test-writer invocation evidence-1
+- Implementer: product-implementer invocation impl-1
+- Verifier: verifier invocation verify-1
+- Waiver: local role evidence recorded without runner invocation log
+- Replacement Verification: focused tests passed
+- Residual Risk: no external runner process evidence
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert result.passed, [f.message for f in result.findings]
+
+
 def test_check_subagent_separation_requires_waiver_details(
     tmp_repo: Path,
 ) -> None:
@@ -452,6 +478,69 @@ def test_check_subagent_separation_rejects_same_implementer_verifier(
 
     assert not result.passed
     assert any("same invocation" in f.message.lower() for f in result.findings)
+
+
+def test_check_subagent_separation_rejects_same_test_writer_and_product_implementer(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "same-test-impl.md").write_text(
+        """# P0 governed work
+
+## Subagent Separation
+- Required: yes
+- Contract Owner: contract-writer invocation contract-1
+- Test/Evidence Owner: test-writer invocation same-1
+- Implementer: product-implementer invocation same-1
+- Verifier: verifier invocation verify-1
+- Waiver:
+""",
+        encoding="utf-8",
+    )
+    invocation_log = tmp_repo / ".harness" / "invocations.ndjson"
+    invocation_log.parent.mkdir()
+    invocation_log.write_text(
+        "\n".join(
+            [
+                '{"role":"contract-writer","invocation_id":"contract-1"}',
+                '{"role":"test-writer","invocation_id":"same-1"}',
+                '{"role":"product-implementer","invocation_id":"same-1"}',
+                '{"role":"verifier","invocation_id":"verify-1"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("test/evidence owner" in f.message.lower() for f in result.findings)
+
+
+def test_check_subagent_separation_rejects_product_implementer_test_file_edit(
+    tmp_repo: Path,
+) -> None:
+    evidence_dir = tmp_repo / "docs" / "verification"
+    evidence_dir.mkdir(parents=True)
+    (evidence_dir / "product-impl-tests.md").write_text(
+        """# P0 governed work
+
+product-implementer modified tests.md.
+
+## Subagent Separation
+- Required: no
+- Waiver: emergency repair
+- Replacement Verification: reviewer inspected docs
+- Residual Risk: medium
+""",
+        encoding="utf-8",
+    )
+
+    result = check_subagent_separation(tmp_repo)
+
+    assert not result.passed
+    assert any("product-implementer" in f.message.lower() for f in result.findings)
 
 
 def test_check_subagent_separation_cli_and_check_all(tmp_repo: Path) -> None:

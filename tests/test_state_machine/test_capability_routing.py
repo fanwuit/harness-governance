@@ -32,6 +32,15 @@ class TestRoleCapabilityPolicy:
     def test_implementer_is_execution(self) -> None:
         assert ROLE_CAPABILITY_POLICY["implementer"] == CapabilityTier.EXECUTION
 
+    def test_product_implementer_is_execution(self) -> None:
+        assert ROLE_CAPABILITY_POLICY["product-implementer"] == CapabilityTier.EXECUTION
+
+    def test_spec_writer_is_strong(self) -> None:
+        assert ROLE_CAPABILITY_POLICY["spec-writer"] == CapabilityTier.STRONG
+
+    def test_test_writer_is_strong(self) -> None:
+        assert ROLE_CAPABILITY_POLICY["test-writer"] == CapabilityTier.STRONG
+
     def test_document_gardener_is_mechanical(self) -> None:
         assert (
             ROLE_CAPABILITY_POLICY["document-gardener"]

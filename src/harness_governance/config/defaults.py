@@ -36,6 +36,7 @@ REQUIRED_PACKET_FILES: tuple[str, ...] = (
     "design.md",
     "tasks.md",
     "contracts.md",
+    "tests.md",
     "verification.md",
 )
 

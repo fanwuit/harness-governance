@@ -170,6 +170,10 @@ def upgrade_spec(
         _render_contracts(packet_id, rel_source, contract_delta),
         encoding="utf-8",
     )
+    (target / "tests.md").write_text(
+        _render_tests(packet_id, rel_source, contract_delta, verification),
+        encoding="utf-8",
+    )
     (target / "verification.md").write_text(
         _render_verification(packet_id, verification),
         encoding="utf-8",
@@ -337,6 +341,55 @@ The work was tracked as a lightweight spec quick at `{spec_ref}`.
 ## Contract-first reminder
 
 The promoted packet is a durable carrier. It does not replace executable checks.
+"""
+
+
+def _render_tests(
+    change_id: str,
+    spec_ref: str,
+    contract_delta: str,
+    verification: str,
+) -> str:
+    return f"""# Tests: {change_id}
+
+Status: draft
+
+## Test Owner
+
+- Test Owner: test-writer required before product implementation
+
+## Test Types
+
+- Unit: applicable
+- Integration: not applicable until readiness identifies integration boundaries
+- E2E: not applicable unless readiness identifies a user-visible flow
+
+## Test Files
+
+- Blocked reason: test file paths must be confirmed during readiness.
+
+## Source Inputs
+
+- Contract Delta Source: {spec_ref}
+- Contract Delta:
+
+{contract_delta}
+
+- Verification Source: {spec_ref}
+- Verification Notes:
+
+{verification}
+
+## Red Green Evidence
+
+- Expected failing command before product implementation: blocked until readiness defines targeted tests
+- Green command: blocked until readiness defines targeted tests
+
+## Waiver
+
+- Waiver:
+- Replacement Verification:
+- Residual Risk:
 """
 
 

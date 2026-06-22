@@ -103,7 +103,7 @@ src/harness_governance/
   runner/                    ← autonomous loop + orchestrator + result parser
   data/
     skills/{strict,standard,light,monitor}/  ← 32 skill files (8 platforms × 4 tiers)
-    role-prompts/             ← 10 subagent role templates
+    role-prompts/             ← 13 subagent role templates
     references/               ← layer-author-guide, layer-progression, etc.
   messages.py                ← bilingual i18n (~170 message IDs)
 ```

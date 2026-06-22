@@ -22,7 +22,16 @@ from ..models.schemas import IsolationRecord, IsolationSummary, IsolationWorkspa
 logger = logging.getLogger("harness.isolation")
 
 # Canonical role list — maps to the roles the orchestrator dispatches.
-_CANONICAL_ROLES = ("planner", "contract-writer", "implementer", "reviewer")
+_CANONICAL_ROLES = (
+    "planner",
+    "spec-writer",
+    "contract-writer",
+    "test-writer",
+    "product-implementer",
+    "implementer",
+    "verifier",
+    "reviewer",
+)
 
 # Default allowed paths per role (glob patterns relative to project root).
 _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
@@ -35,11 +44,34 @@ _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
         ".harness/**",
         "*.md",
     ],
+    "spec-writer": [
+        "docs/changes/*/proposal.md",
+        ".harness/specs/**",
+        ".harness/**",
+    ],
     "contract-writer": [
         "docs/contracts/**",
         "docs/briefs/**",
         "docs/adr/**",
+        "docs/changes/*/contracts.md",
+        "src/**/contracts/**",
+        ".harness/**",
+    ],
+    "test-writer": [
+        "docs/changes/*/tests.md",
         "tests/**",
+        "fixtures/**",
+        "e2e/**",
+        "playwright/**",
+        ".harness/**",
+    ],
+    "product-implementer": [
+        "src/**",
+        "config/**",
+        "migrations/**",
+        "pyproject.toml",
+        "package.json",
+        "package-lock.json",
         ".harness/**",
     ],
     "implementer": [
@@ -47,6 +79,11 @@ _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
         "tests/**",
         "docs/contracts/**",
         "docs/adr/**",
+        ".harness/**",
+    ],
+    "verifier": [
+        "docs/changes/*/verification.md",
+        "docs/verification/**",
         ".harness/**",
     ],
     "reviewer": [
@@ -59,9 +96,13 @@ _DEFAULT_ROLE_PATHS: dict[str, list[str]] = {
 
 # Default allowed cross-role collaboration.
 _DEFAULT_ROLE_ALLOWANCES: dict[str, list[str]] = {
-    "planner": ["contract-writer"],
-    "contract-writer": ["planner", "implementer"],
+    "planner": ["spec-writer", "contract-writer"],
+    "spec-writer": ["planner", "contract-writer"],
+    "contract-writer": ["planner", "spec-writer", "test-writer"],
+    "test-writer": ["contract-writer", "product-implementer", "verifier"],
+    "product-implementer": ["test-writer", "verifier"],
     "implementer": ["contract-writer", "reviewer"],
+    "verifier": ["test-writer", "product-implementer", "reviewer"],
     "reviewer": ["implementer"],
 }
 

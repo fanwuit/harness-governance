@@ -161,6 +161,14 @@ _SUBAGENT_CLOSURE_CLAIMS = (
 _SUBAGENT_OWNERSHIP_PATTERNS = (
     (
         re.compile(
+            r"\bproduct-implementer\b.{0,80}\b(?:modified|changed|edited|wrote)\b"
+            r".{0,80}\b(?:contracts?\.md|tests?\.md|contract|test plan)\b",
+            re.I | re.S,
+        ),
+        "ownership violation: product-implementer modified contracts.md or tests.md",
+    ),
+    (
+        re.compile(
             r"\bimplementer\b.{0,80}\b(?:modified|changed|edited|wrote)\b"
             r".{0,80}\b(?:contract|evidence)\b",
             re.I | re.S,
@@ -464,6 +472,11 @@ def _same_invocation(left: str | None, right: str | None) -> bool:
     return bool(left_hint and right_hint and left_hint == right_hint)
 
 
+def _has_nonempty_waiver(section: str) -> bool:
+    waiver = _field_value(section, "Waiver")
+    return bool(waiver and waiver.strip())
+
+
 def _rel(repo_root: Path, path: Path) -> str:
     try:
         return str(path.relative_to(repo_root))
@@ -676,6 +689,7 @@ def _validate_subagent_separation_file(
 
     if required == "yes":
         values = {field: _field_value(section, field) for field in _SUBAGENT_FIELDS}
+        has_waiver = _has_nonempty_waiver(section)
         for field, value in values.items():
             if field == "Waiver":
                 continue
@@ -689,35 +703,71 @@ def _validate_subagent_separation_file(
                     )
                 )
 
-        records = _read_invocation_records(_invocation_logs_for_evidence(repo_root, path))
-        if not records:
-            findings.append(
-                CheckFinding(
-                    check="subagent-separation",
-                    target=rel,
-                    level="error",
-                    message="independent role invocation evidence is required",
-                )
-            )
-        else:
-            role_requirements = (
-                ("Contract Owner", ("contract",)),
-                ("Test/Evidence Owner", ("evidence", "fact-finder", "test")),
-                ("Implementer", ("implementer",)),
-                ("Verifier", ("verifier", "reviewer")),
-            )
-            for field, role_terms in role_requirements:
-                if not _role_has_invocation(records, role_terms, values.get(field)):
+        if has_waiver:
+            for field in ("Replacement Verification", "Residual Risk"):
+                value = _field_value(section, field)
+                if not value:
                     findings.append(
                         CheckFinding(
                             check="subagent-separation",
                             target=rel,
                             level="error",
-                            message=f"{field} lacks matching invocation evidence",
+                            message=f"{field} is required when waiver is used",
                         )
                     )
+        else:
+            records = _read_invocation_records(
+                _invocation_logs_for_evidence(repo_root, path)
+            )
+            if not records:
+                findings.append(
+                    CheckFinding(
+                        check="subagent-separation",
+                        target=rel,
+                        level="error",
+                        message="independent role invocation evidence is required",
+                    )
+                )
+            else:
+                role_requirements = (
+                    ("Contract Owner", ("contract",)),
+                    ("Test/Evidence Owner", ("evidence", "fact-finder", "test")),
+                    ("Implementer", ("implementer",)),
+                    ("Verifier", ("verifier", "reviewer")),
+                )
+                for field, role_terms in role_requirements:
+                    if not _role_has_invocation(records, role_terms, values.get(field)):
+                        findings.append(
+                            CheckFinding(
+                                check="subagent-separation",
+                                target=rel,
+                                level="error",
+                                message=f"{field} lacks matching invocation evidence",
+                            )
+                        )
 
-        if _same_invocation(values.get("Implementer"), values.get("Verifier")):
+        if (
+            _same_invocation(
+                values.get("Test/Evidence Owner"), values.get("Implementer")
+            )
+            and not has_waiver
+        ):
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "Test/Evidence Owner and Implementer cannot use the "
+                        "same invocation without waiver"
+                    ),
+                )
+            )
+
+        if (
+            _same_invocation(values.get("Implementer"), values.get("Verifier"))
+            and not has_waiver
+        ):
             findings.append(
                 CheckFinding(
                     check="subagent-separation",

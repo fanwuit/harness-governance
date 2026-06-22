@@ -254,7 +254,9 @@ class CapabilityTier(str, enum.Enum):
 # Platform projects may override per-role tiers in config.
 ROLE_CAPABILITY_POLICY: dict[str, CapabilityTier] = {
     "planner": CapabilityTier.STRONG,
+    "spec-writer": CapabilityTier.STRONG,
     "contract-writer": CapabilityTier.STRONG,
+    "test-writer": CapabilityTier.STRONG,
     "adr-writer": CapabilityTier.STRONG,
     "fact-finder-reviewer": CapabilityTier.STRONG,
     "readiness-gate-writer": CapabilityTier.STRONG,
@@ -263,6 +265,7 @@ ROLE_CAPABILITY_POLICY: dict[str, CapabilityTier] = {
     "integrator": CapabilityTier.STRONG,
     "orchestrator": CapabilityTier.STRONG,
     "implementer": CapabilityTier.EXECUTION,
+    "product-implementer": CapabilityTier.EXECUTION,
     "document-gardener": CapabilityTier.MECHANICAL,
 }
 

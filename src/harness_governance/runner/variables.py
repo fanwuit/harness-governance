@@ -50,6 +50,7 @@ class RoleVariables:
     forbidden_scope: str = ""
     verification_commands: str = ""
     done_when: str = ""
+    test_plan: str = ""
 
     # --- Reviewer / Fact Finder only ---
     git_diff: str = ""
@@ -143,6 +144,7 @@ class VariableExtractor:
         """Read packet files and fill task-packet-derived variables."""
         tasks_path = pkt / "tasks.md"
         contracts_path = pkt / "contracts.md"
+        tests_path = pkt / "tests.md"
         design_path = pkt / "design.md"
 
         if tasks_path.is_file():
@@ -186,6 +188,9 @@ class VariableExtractor:
 
         if contracts_path.is_file():
             variables.contracts = contracts_path.read_text(encoding="utf-8")
+
+        if tests_path.is_file():
+            variables.test_plan = tests_path.read_text(encoding="utf-8")
 
         # Design doc as fallback scope source
         if not variables.scope and design_path.is_file():

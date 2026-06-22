@@ -180,6 +180,7 @@ def test_spec_upgrade_creates_change_packet(tmp_repo: Path) -> None:
     assert (packet_dir / "design.md").is_file()
     assert (packet_dir / "tasks.md").is_file()
     assert (packet_dir / "contracts.md").is_file()
+    assert (packet_dir / "tests.md").is_file()
     assert (packet_dir / "verification.md").is_file()
     assert "add audit log." in (packet_dir / "proposal.md").read_text(
         encoding="utf-8"
@@ -187,6 +188,10 @@ def test_spec_upgrade_creates_change_packet(tmp_repo: Path) -> None:
     assert "- [ ] Implement add audit log" in (packet_dir / "tasks.md").read_text(
         encoding="utf-8"
     )
+    tests_text = (packet_dir / "tests.md").read_text(encoding="utf-8")
+    assert "Test Owner" in tests_text
+    assert "Contract Delta" in tests_text
+    assert "Expected failing command before product implementation" in tests_text
 
 
 def test_spec_upgrade_with_custom_change_id(tmp_repo: Path) -> None:

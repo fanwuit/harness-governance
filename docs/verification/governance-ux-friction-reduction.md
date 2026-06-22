@@ -39,6 +39,8 @@
 - Implementer: invocation gov-ux-implementer-20260619, `src/harness_governance/commands/layer.py` and `src/harness_governance/commands/gate_failure.py`.
 - Verifier: invocation gov-ux-verifier-20260619, verification context using focused pytest commands and `harness isolation check`.
 - Waiver: No external runner process was launched; role invocation records are local evidence for this governed session, isolation workspaces were created for implementer and verifier, and final acceptance is limited to implementation smoke plus focused CLI verification.
+- Replacement Verification: Focused CLI tests, gate tests, py_compile, and isolation check listed below.
+- Residual Risk: No external runner invocation log exists for this historical local-governance session.
 
 ## Results
 

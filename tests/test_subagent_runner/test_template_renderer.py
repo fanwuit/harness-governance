@@ -133,7 +133,10 @@ class TestListRoles:
         assert "implementer" in roles
         assert "reviewer" in roles
         assert "planner" in roles
+        assert "spec-writer" in roles
         assert "contract-writer" in roles
+        assert "test-writer" in roles
+        assert "product-implementer" in roles
         assert "orchestrator" in roles
 
     def test_lists_governance_roles(self, renderer: TemplateRenderer) -> None:
@@ -327,8 +330,11 @@ class TestPlaceholderSubstitution:
 
     ALL_ROLES_WITH_PLACEHOLDERS = [
         "planner",
+        "spec-writer",
         "contract-writer",
+        "test-writer",
         "implementer",
+        "product-implementer",
         "reviewer",
         "adr-writer",
         "fact-finder-reviewer",

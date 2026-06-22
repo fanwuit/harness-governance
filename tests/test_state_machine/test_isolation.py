@@ -37,7 +37,16 @@ class TestConstants:
             assert isinstance(role, str)
 
     def test_canonical_roles_contains_expected_members(self) -> None:
-        for expected in ("planner", "contract-writer", "implementer", "reviewer"):
+        for expected in (
+            "planner",
+            "spec-writer",
+            "contract-writer",
+            "test-writer",
+            "product-implementer",
+            "implementer",
+            "verifier",
+            "reviewer",
+        ):
             assert expected in _CANONICAL_ROLES
 
     def test_default_role_paths_covers_all_canonical_roles(self) -> None:
@@ -71,6 +80,17 @@ class TestConstants:
     def test_implementer_allowed_paths_include_src(self) -> None:
         impl_paths = _DEFAULT_ROLE_PATHS["implementer"]
         assert any("src" in p for p in impl_paths)
+
+    def test_test_writer_allowed_paths_include_tests_and_tests_md(self) -> None:
+        paths = _DEFAULT_ROLE_PATHS["test-writer"]
+        assert "tests/**" in paths
+        assert "docs/changes/*/tests.md" in paths
+
+    def test_product_implementer_cannot_write_packet_contract_or_tests(self) -> None:
+        paths = _DEFAULT_ROLE_PATHS["product-implementer"]
+        assert "src/**" in paths
+        assert "docs/changes/*/contracts.md" not in paths
+        assert "docs/changes/*/tests.md" not in paths
 
     def test_all_roles_allow_harness_dir(self) -> None:
         for role, patterns in _DEFAULT_ROLE_PATHS.items():

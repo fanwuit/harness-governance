@@ -3,16 +3,16 @@
 ## Goal
 
 Define a single-file lightweight spec mode (`harness spec quick`) as an
-alternative to the full 5-file change packet, and specify the upgrade
+alternative to the full 6-file change packet, and specify the upgrade
 boundary between them.
 
 ## Motivation
 
-The full change packet requires 5 files:
-- `proposal.md`, `contracts.md`, `design.md`, `tasks.md`, `verification.md`
+The full change packet requires 6 files:
+- `proposal.md`, `contracts.md`, `design.md`, `tasks.md`, `tests.md`, `verification.md`
 
 For simple tasks (single-file change, config tweak, small bug fix), creating
-5 files is disproportionate friction. But "just describe it" with no structure
+6 files is disproportionate friction. But "just describe it" with no structure
 loses traceability. Spec quick fills the gap.
 
 ## Spec Quick Format
@@ -85,7 +85,7 @@ harness spec quick <description> [--path <path>]
 harness spec upgrade <spec-path> [--change-id <id>]
   # Upgrade a spec quick to a full change packet:
   # 1. Read spec quick fields
-  # 2. Generate 5 packet files with pre-filled content
+  # 2. Generate 6 packet files with pre-filled content
   # 3. Create docs/changes/<id>/ with the packet files
 
 harness spec list
