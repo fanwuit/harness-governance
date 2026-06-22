@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,51 +23,16 @@ def review_group() -> None:
     """Close out tasks; persist review/next state."""
 
 
-@review_group.command("close")
-@click.argument("task_id")
-@click.option(
-    "--evidence",
-    "evidence",
-    multiple=True,
-    help="Evidence line; pass multiple times to record several.",
-)
-@click.option(
-    "--risk",
-    "risks",
-    multiple=True,
-    help="Risk line; pass multiple times to record several.",
-)
-@click.option(
-    "--checkpoint",
-    "checkpoint",
-    type=click.Path(dir_okay=False, path_type=Path),
-    default=Path(".harness/run-checkpoint.md"),
-    show_default=True,
-    help="Checkpoint file to update.",
-)
-@click.option(
-    "--next-resume",
-    "next_resume",
-    default=None,
-    help="Pointer to the next resume source (queue item, ADR, …).",
-)
-@click.pass_context
-def review_close_cmd(
-    ctx: click.Context,
+def close_task(
+    project_root: Path,
     task_id: str,
-    evidence: tuple[str, ...],
-    risks: tuple[str, ...],
-    checkpoint: Path,
-    next_resume: str | None,
-) -> None:
-    """Record review/next state for a finished task.
-
-    Writes the supplied evidence and risks into the run checkpoint under
-    ``## Verification`` and ``## Stop Reason`` and updates the
-    ``## Next Resume Source`` heading. The original file (if any) is
-    preserved otherwise.
-    """
-    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    *,
+    evidence: tuple[str, ...] = (),
+    risks: tuple[str, ...] = (),
+    checkpoint: Path = Path(".harness/run-checkpoint.md"),
+    next_resume: str | None = None,
+) -> Path:
+    """Close *task_id* across checkpoint, queue, and matching session state."""
     target = (
         (project_root / checkpoint).resolve()
         if not checkpoint.is_absolute()
@@ -119,6 +83,62 @@ def review_close_cmd(
         risks=risks,
     )
     _close_matching_session(project_root, task_id, timestamp)
+    return target
+
+
+@review_group.command("close")
+@click.argument("task_id")
+@click.option(
+    "--evidence",
+    "evidence",
+    multiple=True,
+    help="Evidence line; pass multiple times to record several.",
+)
+@click.option(
+    "--risk",
+    "risks",
+    multiple=True,
+    help="Risk line; pass multiple times to record several.",
+)
+@click.option(
+    "--checkpoint",
+    "checkpoint",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=Path(".harness/run-checkpoint.md"),
+    show_default=True,
+    help="Checkpoint file to update.",
+)
+@click.option(
+    "--next-resume",
+    "next_resume",
+    default=None,
+    help="Pointer to the next resume source (queue item, ADR, …).",
+)
+@click.pass_context
+def review_close_cmd(
+    ctx: click.Context,
+    task_id: str,
+    evidence: tuple[str, ...],
+    risks: tuple[str, ...],
+    checkpoint: Path,
+    next_resume: str | None,
+) -> None:
+    """Record review/next state for a finished task.
+
+    Writes the supplied evidence and risks into the run checkpoint under
+    ``## Verification`` and ``## Stop Reason`` and updates the
+    ``## Next Resume Source`` heading. The original file (if any) is
+    preserved otherwise.
+    """
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    target = close_task(
+        project_root,
+        task_id,
+        evidence=evidence,
+        risks=risks,
+        checkpoint=checkpoint,
+        next_resume=next_resume,
+    )
     click.echo(bilingual("review.recorded", task_id=task_id, path=str(target)))
 
 
@@ -272,4 +292,5 @@ __all__ = [
     "review_close_cmd",
     "review_auto_close_cmd",
     "auto_close_active_tasks",
+    "close_task",
 ]

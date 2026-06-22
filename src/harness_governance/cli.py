@@ -40,6 +40,7 @@ from .commands.check import check_group
 from .commands.config_cmd import config_group
 from .commands.drift import drift_group
 from .commands.entry import entry_group
+from .commands.finish import finish_cmd
 from .commands.gate import gate_group
 from .commands.governed_start import governed_start_cmd
 from .commands.hook import hook_group
@@ -119,6 +120,7 @@ cli.add_command(next_cmd)
 cli.add_command(ship_cmd)
 cli.add_command(packet_group)
 cli.add_command(entry_group)
+cli.add_command(finish_cmd)
 cli.add_command(plan_group)
 cli.add_command(check_group)
 cli.add_command(status_cmd)

@@ -212,6 +212,55 @@ def test_review_close_closes_matching_session_and_queue(tmp_repo: Path) -> None:
     assert "- Closed: task-1" in queue
 
 
+def test_finish_closes_matching_session_and_queue(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Session: task-1\n"
+        "- Layer: implementation\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+            "--risk",
+            "none",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "Finished: task-1" in result.output
+
+    session = load_session(tmp_repo, "task-1")
+    assert session.status == "closed"
+    assert session.closed_at is not None
+
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[done] Implement queue closure" in queue
+    assert "- Closed: task-1" in queue
+    assert "- Evidence: pytest -q" in queue
+    assert "- Risk: none" in queue
+
+
+def test_status_warns_active_queue_item_can_be_finished(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Finish reminder\n"
+        "- Session: task-1\n"
+        "- Layer: implementation\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "status"])
+    assert result.exit_code == 0, result.output
+    assert "harness finish task-1" in result.output
+
+
 def test_review_close_missing_session_is_non_fatal(tmp_repo: Path) -> None:
     _seed_review_session(tmp_repo, "unrelated-session")
     runner = CliRunner()

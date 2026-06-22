@@ -123,6 +123,14 @@ def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
     return None
 
 
+def _extract_session_id(raw: str) -> str | None:
+    for line in raw.splitlines():
+        m = re.match(r"^\s*-?\s*Session:\s*(.+)$", line, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
 def _find_latest_checkpoint(
     repo_root: Path,
     harness_dir: Path,
@@ -236,6 +244,16 @@ def build_status(
     # Only flag verification staleness if the project is initialized.
     if initialized and verification.stale:
         warnings.append("Verification is missing, failed, or stale.")
+    for item in items:
+        if not item.active:
+            continue
+        session_id = _extract_session_id(item.raw)
+        if session_id:
+            warnings.append(
+                "Active task pending closeout: run "
+                f"`harness finish {session_id} --evidence <result> --risk none` "
+                "when verification is complete."
+            )
 
     current_layer = _infer_current_layer(items) or "unknown"
 

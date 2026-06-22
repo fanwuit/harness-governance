@@ -48,7 +48,7 @@ def spec_quick_cmd(ctx: click.Context, description: str, slug: str | None) -> No
         click.echo(
             json.dumps(
                 {
-                    "path": str(target),
+                    "path": target.as_posix(),
                     "slug": target.stem,
                 },
                 indent=2,
@@ -56,7 +56,7 @@ def spec_quick_cmd(ctx: click.Context, description: str, slug: str | None) -> No
         )
         return
 
-    click.echo(bilingual("spec.created", path=str(target)))
+    click.echo(bilingual("spec.created", path=target.as_posix()))
 
 
 @spec_group.command("list")
@@ -74,7 +74,7 @@ def spec_list_cmd(ctx: click.Context) -> None:
                 {
                     "specs": [
                         {
-                            "path": str(p),
+                            "path": p.as_posix(),
                             "slug": p.stem,
                         }
                         for p in specs
@@ -121,6 +121,7 @@ def spec_upgrade_cmd(
         raise click.BadParameter(str(exc), param_hint="change_id") from exc
 
     rel = target.resolve().relative_to(project_root.resolve())
+    rel_path = rel.as_posix()
     if ctx.obj.get("json_output"):
         import json
 
@@ -128,15 +129,15 @@ def spec_upgrade_cmd(
             json.dumps(
                 {
                     "change_id": target.name,
-                    "packet_dir": str(target),
-                    "path": str(rel),
+                    "packet_dir": target.as_posix(),
+                    "path": rel_path,
                 },
                 indent=2,
             )
         )
         return
 
-    click.echo(f"Spec upgraded to change packet: {rel}")
+    click.echo(f"Spec upgraded to change packet: {rel_path}")
 
 
 __all__ = [
