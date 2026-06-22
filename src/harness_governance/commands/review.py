@@ -11,7 +11,11 @@ import click
 
 from ..config import load_config
 from ..file_ops.checkpoint import Checkpoint
-from ..file_ops.queue import mark_queue_item_done, read_queue
+from ..file_ops.queue import (
+    append_structured_queue_item,
+    mark_queue_item_done,
+    read_queue,
+)
 from ..messages import bilingual
 from ..models.schemas import HarnessConfig
 from ..session import load_session, save_session
@@ -115,11 +119,39 @@ def close_task(
             for item in items
         )
         if not has_review_queue:
+            review_id = _review_queue_id(matched_item.id or task_id)
+            append_structured_queue_item(
+                config.queue_file,
+                item_id=review_id,
+                description=f"Review implementation {matched_item.id or task_id}",
+                status="ready",
+                layer=HarnessLayer.VERIFICATION.value,
+                role="reviewer-verifier",
+                change_id=matched_item.change_id,
+                gate_id="verification" if matched_item.gate_id else None,
+                change_kind=matched_item.change_kind,
+                depends_on=(matched_item.id or task_id,),
+                owner_files=matched_item.owner_files,
+                session_id=_review_session_id(matched_item.session_id or task_id),
+                verification="harness check all --no-auto-close",
+                stop_conditions=(
+                    "Stop if implementation evidence is missing or the "
+                    "review session matches the implementation session."
+                ),
+                handoff_from=matched_item.session_id or task_id,
+            )
             click.echo(
-                "Implementation finished without a reviewer-verifier queue item; "
-                "add one or document a role-isolation waiver."
+                f"Generated reviewer-verifier queue item: {review_id}"
             )
     return target
+
+
+def _review_queue_id(implementation_id: str) -> str:
+    return f"review-{implementation_id}"
+
+
+def _review_session_id(implementation_session_id: str) -> str:
+    return f"review-{implementation_session_id}"
 
 
 @review_group.command("close")

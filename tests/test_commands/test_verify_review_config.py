@@ -276,7 +276,7 @@ def test_finish_rejects_closing_review_queue_by_item_id(tmp_repo: Path) -> None:
     assert "must be finished by their own sessionId" in result.output
 
 
-def test_finish_prompts_for_review_queue_after_implementation(tmp_repo: Path) -> None:
+def test_finish_generates_review_queue_after_implementation(tmp_repo: Path) -> None:
     _seed_review_session(tmp_repo, "task-1")
     (tmp_repo / "NEXT.md").write_text(
         "[active] Implement queue closure\n"
@@ -300,7 +300,15 @@ def test_finish_prompts_for_review_queue_after_implementation(tmp_repo: Path) ->
     )
 
     assert result.exit_code == 0, result.output
-    assert "reviewer-verifier queue item" in result.output
+    assert "Generated reviewer-verifier queue item: review-task-1" in result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[ready] Review implementation task-1" in queue
+    assert "- Id: review-task-1" in queue
+    assert "- Role: reviewer-verifier" in queue
+    assert "- Layer: verification" in queue
+    assert "- DependsOn: task-1" in queue
+    assert "- SessionId: review-task-1" in queue
+    assert "- Verification: harness check all --no-auto-close" in queue
 
 
 def test_status_warns_active_queue_item_can_be_finished(tmp_repo: Path) -> None:
