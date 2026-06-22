@@ -47,6 +47,7 @@ class HarnessConfig(BaseModel):
     blocked_statuses: tuple[str, ...] = ("blocked", "archived")
     check_frequency: Literal["targeted", "phase-closeout", "always"] = "targeted"
     require_session: bool = True
+    require_queue: bool = True
     scope_budget: ScopeBudget = Field(
         default_factory=lambda: ScopeBudget(max_files=10, max_diff_lines=800)
     )

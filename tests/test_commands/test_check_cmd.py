@@ -11,6 +11,7 @@ from harness_governance.cli import cli
 from harness_governance.commands.check import (
     _check_self_docs,
     check_inventory,
+    check_queue,
     check_routing,
     check_state_contract,
     check_subagent_separation,
@@ -69,8 +70,25 @@ def test_check_packets_cli(tmp_repo: Path) -> None:
     assert ("packets" in result.output and "failed" in result.output) or "packets 检查未通过" in result.output
 
 
+def test_check_queue_requires_scheduler_file(tmp_repo: Path) -> None:
+    result = check_queue(tmp_repo)
+
+    assert not result.passed
+    assert result.findings[0].check == "queue"
+    assert "harness init" in result.findings[0].message
+
+
+def test_check_queue_passes_when_scheduler_file_exists(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text("# Queue\n", encoding="utf-8")
+
+    result = check_queue(tmp_repo)
+
+    assert result.passed
+
+
 def test_check_all_cli(tmp_repo: Path) -> None:
     # Provide a README matching on-disk skills so inventory check passes.
+    (tmp_repo / "NEXT.md").write_text("# Queue\n", encoding="utf-8")
     (tmp_repo / "README.md").write_text(
         "# README\n\n| x | x | x | x | 是 | x |\n\n启用的非 system skills：0 个\n",
         encoding="utf-8",

@@ -56,6 +56,25 @@ def _resolve_scope_budget(project_root: Path, cli_override: str | None):
     return None
 
 
+def _resolve_queue_file(project_root: Path, queue_file: Path) -> Path:
+    from ..config import load_config
+
+    cfg = load_config(project_root)
+    resolved = queue_file
+    if queue_file == Path("NEXT.md"):
+        resolved = cfg.queue_file
+    elif not queue_file.is_absolute():
+        resolved = project_root / queue_file
+
+    if cfg.require_queue and not resolved.is_file():
+        raise click.ClickException(
+            "Required scheduler queue file is missing. Run `harness init` "
+            "to create NEXT.md, restore the configured queue_file, or set "
+            "require_queue = false only with an explicit project waiver."
+        )
+    return resolved
+
+
 @click.group("runner")
 def runner_group() -> None:
     """Run the autonomous-ready loop."""
@@ -195,6 +214,7 @@ def runner_start_cmd(
     """Start the autonomous-ready loop."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     _mode: Literal["bounded", "boundary"] = mode  # type: ignore[assignment]
+    resolved_queue_file = _resolve_queue_file(project_root, queue_file)
 
     # Orchestrator mode: generate prompt, don't run executor
     if executor == "orchestrator":
@@ -211,7 +231,7 @@ def runner_start_cmd(
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(
             project_root=project_root,
-            queue_file=queue_file,
+            queue_file=resolved_queue_file,
             checkpoint_file=checkpoint_file,
             mode=_mode,
             max_rounds=max_rounds,
@@ -262,7 +282,7 @@ def runner_start_cmd(
     if dry_run:
         from ..file_ops.queue import read_queue
 
-        items = read_queue(project_root / queue_file)
+        items = read_queue(resolved_queue_file)
         target = next((i for i in items if i.ready), None) or next(
             (i for i in items if i.active), None
         )
@@ -275,7 +295,7 @@ def runner_start_cmd(
     loop = AutonomousReadyLoop(
         executor=agent,
         project_root=project_root,
-        queue_file=queue_file,
+        queue_file=resolved_queue_file,
         checkpoint_file=checkpoint_file,
         invocation_log=invocation_log,
         prompt_builder=_default_prompt,
@@ -375,7 +395,6 @@ def runner_dispatch_cmd(
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
 
     # 1. Resolve required capability tier
-    from ..models.schemas import CapabilityTier
     from ..state_machine.capability_routing import resolve_required_tier
     from ..state_machine.capability_routing import verifier_required_for_tier
 
@@ -408,7 +427,7 @@ def runner_dispatch_cmd(
         if executor:
             click.echo(f"  Executor:     {executor.name}")
         else:
-            click.echo(f"  Executor:     (none - no adapter declaration found)")
+            click.echo("  Executor:     (none - no adapter declaration found)")
         click.echo(f"  Prompt:       {prompt_text[:120]}...")
         click.echo("")
         click.echo("Available executor configurations:")

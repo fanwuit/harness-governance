@@ -14,6 +14,7 @@ import click
 
 from ..commands.entry import check_file as check_entry_file
 from ..commands.entry import discover_entry_files
+from ..config import load_config
 from ..file_ops import packet as packet_ops
 from ..messages import bilingual
 from ..models.schemas import CheckFinding, CheckResult
@@ -301,6 +302,39 @@ def check_packets(repo_root: Path) -> CheckResult:
         passed=not findings,
         findings=findings,
         inspected=len(_summaries),
+    )
+
+
+def check_queue(repo_root: Path) -> CheckResult:
+    """Check that the configured scheduler queue carrier exists."""
+    cfg = load_config(repo_root)
+    queue_path = cfg.queue_file
+    target = str(queue_path)
+    try:
+        target = str(queue_path.relative_to(repo_root.resolve()))
+    except ValueError:
+        pass
+
+    findings: list[CheckFinding] = []
+    if cfg.require_queue and not queue_path.is_file():
+        findings.append(
+            CheckFinding(
+                check="queue",
+                target=target,
+                level="error",
+                message=(
+                    "Required scheduler queue file is missing. Run `harness init` "
+                    "to create NEXT.md, restore the configured queue_file, or set "
+                    "require_queue = false only with an explicit project waiver."
+                ),
+            )
+        )
+
+    return CheckResult(
+        check="queue",
+        passed=not findings,
+        findings=tuple(findings),
+        inspected=1,
     )
 
 
@@ -1545,6 +1579,14 @@ def check_packets_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_packets(project_root))
 
 
+@check_group.command("queue")
+@click.pass_context
+def check_queue_cmd(ctx: click.Context) -> None:
+    """Scheduler queue carrier check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_queue(project_root))
+
+
 @check_group.command("entry")
 @click.pass_context
 def check_entry_cmd(ctx: click.Context) -> None:
@@ -1683,6 +1725,7 @@ def check_all_cmd(ctx: click.Context, auto_close: bool) -> None:
     results: list[CheckResult] = [
         check_routing(project_root),
         check_priority(project_root),
+        check_queue(project_root),
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
@@ -1718,6 +1761,7 @@ __all__ = [
     "check_group",
     "check_routing_cmd",
     "check_packets_cmd",
+    "check_queue_cmd",
     "check_entry_cmd",
     "check_inventory_cmd",
     "check_user_evidence_cmd",
@@ -1728,6 +1772,7 @@ __all__ = [
     "check_all_cmd",
     "check_routing",
     "check_packets",
+    "check_queue",
     "check_entry",
     "check_inventory",
     "check_user_evidence",

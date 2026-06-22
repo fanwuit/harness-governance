@@ -148,6 +148,24 @@ def test_runner_start_subprocess_no_command_raises(tmp_repo: Path) -> None:
     assert "--command is required" in result.output
 
 
+def test_runner_start_requires_queue_file(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "start",
+            "--executor",
+            "orchestrator",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Required scheduler queue file is missing" in result.output
+
+
 # ---------------------------------------------------------------------------
 # runner start -- orchestrator executor (lines 150-185)
 # ---------------------------------------------------------------------------

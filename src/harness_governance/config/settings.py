@@ -176,6 +176,7 @@ def write_default_config(
         'harness_dir = ".harness"\n'
         'check_frequency = "targeted"\n'
         "require_session = true\n"
+        "require_queue = true\n"
         "\n"
         "# Scope budget: limits per-task change size to prevent agent drift.\n"
         "# Format: max-files/max-diff-lines. Set to 0/0 to disable.\n"

@@ -474,6 +474,7 @@ def test_check_priority_fix_cmd(tmp_path: Path):
 def test_check_all_includes_priority(tmp_path: Path):
     """``harness check all`` should include priority in its aggregated output."""
     # Minimal setup so inventory check passes.
+    (tmp_path / "NEXT.md").write_text("# Queue\n", encoding="utf-8")
     (tmp_path / "README.md").write_text(
         "# Test\n\n启用的非 system skills：0 个\n\n| 名称 | 分类 | 文件 | 脚本 | 启用 |\n|---|---|---|---|---|\n",
         encoding="utf-8",

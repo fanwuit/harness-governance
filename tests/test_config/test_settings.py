@@ -43,6 +43,7 @@ class TestLoadConfigDefaults:
         assert cfg.schema_version == CURRENT_SCHEMA_VERSION
         assert cfg.agent_platform == "claude-code"
         assert cfg.require_session is True
+        assert cfg.require_queue is True
 
     def test_default_paths_are_absolute(self, tmp_path: Path) -> None:
         cfg = load_config(tmp_path)
@@ -87,6 +88,7 @@ class TestLoadConfigFromFile:
                 'harness_dir = ".hg"\n'
                 'check_frequency = "always"\n'
                 "require_session = false\n"
+                "require_queue = false\n"
             ),
         )
 
@@ -100,6 +102,7 @@ class TestLoadConfigFromFile:
         assert cfg.harness_dir == tmp_path.resolve() / ".hg"
         assert cfg.check_frequency == "always"
         assert cfg.require_session is False
+        assert cfg.require_queue is False
 
     def test_path_fields_are_absolutized(self, tmp_path: Path) -> None:
         cfg_dir = tmp_path / ".harness"
@@ -154,6 +157,7 @@ class TestLoadConfigFromFile:
         # Defaults for path fields are still resolved against root.
         assert cfg.queue_file == tmp_path.resolve() / "NEXT.md"
         assert cfg.require_session is True
+        assert cfg.require_queue is True
 
     def test_minimal_config_toml(self, tmp_path: Path) -> None:
         cfg_dir = tmp_path / ".harness"
@@ -317,6 +321,7 @@ class TestWriteDefaultConfig:
         assert "harness_dir" in data
         assert "check_frequency" in data
         assert data["require_session"] is True
+        assert data["require_queue"] is True
 
     def test_creates_parent_directory(self, tmp_path: Path) -> None:
         write_default_config(tmp_path, agent_platform="generic")

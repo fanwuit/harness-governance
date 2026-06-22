@@ -216,6 +216,12 @@ def build_status(
     warnings: list[str] = []
     if not initialized:
         warnings.append(bilingual("status.not_initialized"))
+    elif config.require_queue and not queue_path.is_file():
+        warnings.append(
+            f"Required scheduler queue file missing: {queue_path}. "
+            "Run `harness init`, restore queue_file, or set require_queue = false "
+            "only with an explicit project waiver."
+        )
     # Clean: no queue items is a valid state — no warning needed.
 
     packet_dirs = packet_ops.discover_packets(repo_root)
