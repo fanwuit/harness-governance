@@ -132,7 +132,10 @@ def test_governed_start_queue_requires_implementer_role(tmp_repo: Path) -> None:
         "- Id: review-1\n"
         "- Layer: implementation\n"
         "- Role: reviewer-verifier\n"
-        "- SessionId: review-session\n",
+        "- SessionId: review-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -158,12 +161,16 @@ def test_governed_start_queue_requires_done_dependencies(tmp_repo: Path) -> None
         "- Id: impl-1\n"
         "- Layer: implementation\n"
         "- Role: implementer\n"
-        "- SessionId: impl-session\n\n"
+        "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n\n"
         "[ready] Review task\n"
         "- Id: review-1\n"
         "- Layer: verification\n"
         "- Role: reviewer-verifier\n"
         "- SessionId: review-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
         "- DependsOn: impl-1\n",
         encoding="utf-8",
     )
@@ -190,12 +197,16 @@ def test_governed_start_queue_rejects_same_session_review(tmp_repo: Path) -> Non
         "- Id: impl-1\n"
         "- Layer: implementation\n"
         "- Role: implementer\n"
-        "- SessionId: shared-session\n\n"
+        "- SessionId: shared-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n\n"
         "[ready] Review task\n"
         "- Id: review-1\n"
         "- Layer: verification\n"
         "- Role: reviewer-verifier\n"
         "- SessionId: shared-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
         "- DependsOn: impl-1\n",
         encoding="utf-8",
     )
@@ -222,7 +233,10 @@ def test_governed_start_queue_marks_item_active(tmp_repo: Path) -> None:
         "- Id: impl-1\n"
         "- Layer: implementation\n"
         "- Role: implementer\n"
-        "- SessionId: impl-session\n",
+        "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -250,7 +264,10 @@ def test_governed_start_queue_rejects_non_governed_route(tmp_repo: Path) -> None
         "[ready] Implement task\n"
         "- Id: impl-1\n"
         "- Layer: implementation\n"
-        "- Role: implementer\n",
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -275,7 +292,7 @@ def test_governed_start_queue_rejects_non_governed_route(tmp_repo: Path) -> None
     assert "- SessionId:" not in queue
 
 
-def test_governed_start_queue_generates_session_for_ready_implementer(
+def test_governed_start_queue_requires_role_plan_for_non_trivial(
     tmp_repo: Path,
 ) -> None:
     (tmp_repo / "NEXT.md").write_text(
@@ -283,6 +300,36 @@ def test_governed_start_queue_generates_session_for_ready_implementer(
         "- Id: impl-1\n"
         "- Layer: implementation\n"
         "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "RolePlan" in result.output
+
+
+def test_governed_start_queue_generates_session_for_ready_implementer(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -314,11 +361,15 @@ def test_governed_start_queue_generates_independent_review_session(
         "- Layer: implementation\n"
         "- Role: implementer\n"
         "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n"
         "- Evidence: pytest -q\n\n"
         "[ready] Review task\n"
         "- Id: review-1\n"
         "- Layer: verification\n"
         "- Role: reviewer-verifier\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
         "- DependsOn: impl-1\n",
         encoding="utf-8",
     )

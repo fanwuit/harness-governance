@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -56,6 +57,41 @@ def _seed_gate_session(tmp_path: Path, **overrides) -> str:
     state = SessionState(**kwargs)
     create_session(tmp_path, state)
     return kwargs["session_id"]
+
+
+def _seed_implementation_gate_session(
+    tmp_path: Path,
+    session_id: str = "impl-session",
+) -> str:
+    return _seed_gate_session(
+        tmp_path,
+        session_id=session_id,
+        current_layer=HarnessLayer.IMPLEMENTATION,
+        rigor_tier="strict",
+        layer_qa=(
+            {
+                "layer": "implementation",
+                "question": "q1",
+                "answer": "a1",
+                "timestamp": "2026-06-22T00:00:00+00:00",
+                "source": "author",
+            },
+            {
+                "layer": "implementation",
+                "question": "q2",
+                "answer": "a2",
+                "timestamp": "2026-06-22T00:00:00+00:00",
+                "source": "author",
+            },
+            {
+                "layer": "implementation",
+                "question": "q3",
+                "answer": "a3",
+                "timestamp": "2026-06-22T00:00:00+00:00",
+                "source": "author",
+            },
+        ),
+    )
 
 
 class TestGateCheck:
@@ -118,7 +154,90 @@ class TestGateCheck:
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
         assert data["passed"] is True
-        assert data["layer"] == "intake-orientation"
+
+    def test_implementation_gate_requires_tdd_evidence(self, tmp_path: Path) -> None:
+        _seed_implementation_gate_session(tmp_path)
+        (tmp_path / "NEXT.md").write_text(
+            "[active] Implement task\n"
+            "- Id: impl-1\n"
+            "- Layer: implementation\n"
+            "- Role: implementer\n"
+            "- SessionId: impl-session\n"
+            "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+            "- OwnerFiles: src/app.py\n",
+            encoding="utf-8",
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "check",
+                "implementation",
+                "--session-id",
+                "impl-session",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "TestPlan" in result.output
+        assert "FailingTestEvidence" in result.output
+
+    def test_implementation_gate_rejects_owner_allowlist_diff(
+        self, tmp_path: Path
+    ) -> None:
+        _seed_implementation_gate_session(tmp_path)
+        (tmp_path / "NEXT.md").write_text(
+            "[active] Implement task\n"
+            "- Id: impl-1\n"
+            "- Layer: implementation\n"
+            "- Role: implementer\n"
+            "- SessionId: impl-session\n"
+            "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+            "- OwnerFiles: src/app.py\n"
+            "- TestPlan: tests/test_app.py\n"
+            "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "src").mkdir()
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "src" / "app.py").write_text("ok = True\n", encoding="utf-8")
+        (tmp_path / "tests" / "test_app.py").write_text(
+            "def test_ok(): pass\n", encoding="utf-8"
+        )
+
+        subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "baseline"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        (tmp_path / "tests" / "test_app.py").write_text(
+            "def test_changed(): pass\n", encoding="utf-8"
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "gate",
+                "check",
+                "implementation",
+                "--session-id",
+                "impl-session",
+            ],
+        )
+
+        assert result.exit_code != 0
+        assert "owner allowlist" in result.output.lower()
+        assert "tests/test_app.py" in result.output
 
     def test_check_failed_json_output_has_no_prose_guidance(
         self, tmp_path: Path

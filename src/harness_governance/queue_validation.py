@@ -8,6 +8,7 @@ from .config import load_config
 from .file_ops.queue import read_queue
 from .queue_policy import load_queue_policy
 from .models.schemas import CheckFinding, CheckResult, QueueItem
+from .hard_gates import is_trivial_queue_item
 
 _VALID_STATUSES = {
     "planned",
@@ -55,6 +56,13 @@ def _item_by_id(items: list[QueueItem]) -> dict[str, QueueItem]:
         if item.change_id:
             result.setdefault(item.change_id, item)
     return result
+
+
+def _is_implementation_item(item: QueueItem) -> bool:
+    return (
+        (item.layer is not None and item.layer.value == "implementation")
+        or item.role == "implementer"
+    )
 
 
 def _policy_expected_role(item: QueueItem, policy) -> str | None:
@@ -138,6 +146,41 @@ def validate_queue(repo_root: Path) -> CheckResult:
                     ),
                 )
             )
+        if not is_trivial_queue_item(item) and _is_implementation_item(item):
+            if not item.role_plan:
+                findings.append(
+                    CheckFinding(
+                        check="queue",
+                        target=target,
+                        level="error",
+                        message=(
+                            "Implementation queue item must declare RolePlan."
+                        ),
+                    )
+                )
+            if not item.test_plan:
+                findings.append(
+                    CheckFinding(
+                        check="queue",
+                        target=target,
+                        level="error",
+                        message=(
+                            "Implementation queue item must declare TestPlan."
+                        ),
+                    )
+                )
+            if not (item.failing_test_evidence or item.tdd_not_applicable):
+                findings.append(
+                    CheckFinding(
+                        check="queue",
+                        target=target,
+                        level="error",
+                        message=(
+                            "Implementation queue item must declare "
+                            "FailingTestEvidence or TddNotApplicable."
+                        ),
+                    )
+                )
 
         expected_role = _policy_expected_role(item, policy)
         if expected_role and item.role != expected_role:

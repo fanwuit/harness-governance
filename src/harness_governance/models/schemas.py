@@ -374,6 +374,10 @@ class QueueItem(BaseModel):
     depends_on: tuple[str, ...] = ()
     owner_files: tuple[str, ...] = ()
     session_id: str | None = None
+    role_plan: tuple[str, ...] = ()
+    test_plan: str | None = None
+    failing_test_evidence: str | None = None
+    tdd_not_applicable: str | None = None
     packetization: str | None = None
     evidence: str | None = None
     verification: str | None = None

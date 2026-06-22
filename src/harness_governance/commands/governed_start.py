@@ -21,6 +21,7 @@ from ..file_ops.queue import (
     read_queue,
 )
 from ..queue_validation import validate_queue
+from ..hard_gates import is_trivial_queue_item
 from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import (
@@ -181,6 +182,12 @@ def _queue_item_description(item) -> str:
 
 
 def _validate_queue_context(queue_item, items) -> None:
+    if not queue_item.role_plan and not is_trivial_queue_item(queue_item):
+        raise click.ClickException(
+            "Non-trivial queue item must declare RolePlan, for example: "
+            "RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier."
+        )
+
     dep_map = {}
     for item in items:
         for key in (item.id, item.session_id, item.change_id):

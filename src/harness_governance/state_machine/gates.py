@@ -464,6 +464,16 @@ def _gate_hook_state_contract(
     return [f"{finding.target}: {finding.message}" for finding in result.findings]
 
 
+def _gate_hook_implementation_hard_gates(
+    session: "SessionState", project_root: Path
+) -> list[str]:
+    """Require queued implementation hard-gate evidence."""
+    from ..hard_gates import implementation_gate_failures
+
+    return implementation_gate_failures(project_root, session.session_id)
+
+
+register_gate_hook(HarnessLayer.IMPLEMENTATION, _gate_hook_implementation_hard_gates)
 register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_user_evidence)
 register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_state_contract)
 

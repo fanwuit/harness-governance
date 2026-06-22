@@ -12,6 +12,7 @@ from pathlib import Path
 import click
 
 from ..messages import bilingual
+from ..hard_gates import finish_gate_failures
 from .review import close_task
 
 
@@ -54,6 +55,12 @@ def finish_cmd(
 ) -> None:
     """Finish a governed task and synchronize local state."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    failures = finish_gate_failures(project_root, session_id, evidence)
+    if failures:
+        raise click.ClickException(
+            "Finish hard gate failed:\n"
+            + "\n".join(f"- {failure}" for failure in failures)
+        )
     target = close_task(
         project_root,
         session_id,

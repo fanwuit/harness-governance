@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -32,6 +33,24 @@ def _seed_review_session(project_root: Path, session_id: str) -> None:
             routing_path=RoutingPath.GOVERNED_PATH,
             current_layer=HarnessLayer.REVIEW_NEXT,
         ),
+    )
+
+
+def _write_render_records(project_root: Path, session_id: str, queue_id: str) -> None:
+    records = project_root / ".harness" / "render-records" / f"{session_id}.ndjson"
+    records.parent.mkdir(parents=True, exist_ok=True)
+    records.write_text(
+        "\n".join(
+            json.dumps({"sessionId": session_id, "queueId": queue_id, "role": role})
+            for role in (
+                "planner",
+                "contract-test-writer",
+                "implementer",
+                "reviewer-verifier",
+            )
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -217,9 +236,12 @@ def test_finish_closes_matching_session_and_queue(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
         "[active] Implement queue closure\n"
         "- Session: task-1\n"
-        "- Layer: implementation\n",
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
         encoding="utf-8",
     )
+    _write_render_records(tmp_repo, "task-1", "task-1")
     runner = CliRunner()
     result = runner.invoke(
         cli,
@@ -229,7 +251,7 @@ def test_finish_closes_matching_session_and_queue(tmp_repo: Path) -> None:
             "finish",
             "task-1",
             "--evidence",
-            "pytest -q",
+            "targeted checks: pytest -q",
             "--risk",
             "none",
         ],
@@ -246,8 +268,98 @@ def test_finish_closes_matching_session_and_queue(tmp_repo: Path) -> None:
     assert "- Status: done" in queue
     assert "- Closed: task-1" in queue
     assert "- CompletedAt:" in queue
-    assert "- Evidence: pytest -q" in queue
+    assert "- Evidence: targeted checks: pytest -q" in queue
     assert "- Risk: none" in queue
+
+
+def test_finish_requires_role_plan_and_targeted_evidence(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Id: task-1\n"
+        "- SessionId: task-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "planner" in result.output
+    assert "targeted" in result.output.lower()
+
+
+def test_finish_rejects_matching_queue_item_without_role_plan(
+    tmp_repo: Path,
+) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Id: task-1\n"
+        "- SessionId: task-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "targeted checks: pytest -q",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "RolePlan" in result.output
+
+
+def test_finish_accepts_complete_role_and_targeted_evidence(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Id: task-1\n"
+        "- SessionId: task-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
+        encoding="utf-8",
+    )
+    _write_render_records(tmp_repo, "task-1", "task-1")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "targeted checks: pytest tests/test_gate_cmd.py",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Finished: task-1" in result.output
 
 
 def test_finish_rejects_closing_review_queue_by_item_id(tmp_repo: Path) -> None:
@@ -282,9 +394,11 @@ def test_finish_generates_review_queue_after_implementation(tmp_repo: Path) -> N
         "[active] Implement queue closure\n"
         "- Id: task-1\n"
         "- Role: implementer\n"
-        "- SessionId: task-1\n",
+        "- SessionId: task-1\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
         encoding="utf-8",
     )
+    _write_render_records(tmp_repo, "task-1", "task-1")
 
     runner = CliRunner()
     result = runner.invoke(
@@ -295,7 +409,7 @@ def test_finish_generates_review_queue_after_implementation(tmp_repo: Path) -> N
             "finish",
             "task-1",
             "--evidence",
-            "pytest -q",
+            "targeted checks: pytest -q",
         ],
     )
 
@@ -307,6 +421,7 @@ def test_finish_generates_review_queue_after_implementation(tmp_repo: Path) -> N
     assert "- Role: reviewer-verifier" in queue
     assert "- Layer: verification" in queue
     assert "- DependsOn: task-1" in queue
+    assert "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier" in queue
     assert "- SessionId: review-task-1" in queue
     assert "- Verification: harness check all --no-auto-close" in queue
 

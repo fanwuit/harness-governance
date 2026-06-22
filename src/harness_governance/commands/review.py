@@ -132,6 +132,13 @@ def close_task(
                 change_kind=matched_item.change_kind,
                 depends_on=(matched_item.id or task_id,),
                 owner_files=matched_item.owner_files,
+                role_plan=matched_item.role_plan
+                or (
+                    "planner",
+                    "contract-test-writer",
+                    "implementer",
+                    "reviewer-verifier",
+                ),
                 session_id=_review_session_id(matched_item.session_id or task_id),
                 verification="harness check all --no-auto-close",
                 stop_conditions=(

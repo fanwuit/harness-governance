@@ -583,6 +583,12 @@ __all__ = [
     help="Change packet ID override. If omitted, extracted from the queue item.",
 )
 @click.option(
+    "--session-id",
+    "session_id",
+    default=None,
+    help="Session ID for render provenance. Must match the queue SessionId when present.",
+)
+@click.option(
     "--output",
     "output_file",
     default=None,
@@ -596,6 +602,7 @@ def runner_render_cmd(
     queue_file: Path,
     queue_item_id: str | None,
     change_id: str | None,
+    session_id: str | None,
     output_file: Path | None,
 ) -> None:
     """Render a role prompt with extracted variables.
@@ -625,9 +632,16 @@ def runner_render_cmd(
             "Unable to infer role for queue render. Add Role: to the queue item "
             "or pass --role explicitly."
         )
-    if queue_item_id and role and role != render_role:
+    if queue_item_id and role and target.role and role != target.role:
         raise click.ClickException(
-            f"Explicit role {role!r} does not match queue item role {render_role!r}."
+            f"Explicit role {role!r} does not match queue item role {target.role!r}."
+        )
+
+    resolved_session_id = session_id or target.session_id
+    if target.session_id and resolved_session_id != target.session_id:
+        raise click.ClickException(
+            f"runner render sessionId {resolved_session_id!r} does not match "
+            f"queue SessionId {target.session_id!r}."
         )
 
     if change_id:
@@ -648,6 +662,16 @@ def runner_render_cmd(
         )
     else:
         click.echo(rendered)
+
+    if resolved_session_id:
+        from ..hard_gates import queue_item_key, record_render
+
+        record_render(
+            project_root,
+            session_id=resolved_session_id,
+            queue_id=queue_item_key(target),
+            role=render_role,
+        )
 
     unresolved = renderer.find_unresolved(rendered)
     if unresolved:

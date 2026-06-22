@@ -17,7 +17,10 @@ def test_queue_validate_passes_structured_items(tmp_repo: Path) -> None:
         "- Id: impl-1\n"
         "- Role: implementer\n"
         "- SessionId: impl-session\n"
-        "- Layer: implementation\n",
+        "- Layer: implementation\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -78,7 +81,10 @@ def test_queue_validate_allows_ready_role_item_without_session(tmp_repo: Path) -
     (tmp_repo / "NEXT.md").write_text(
         "[ready] Implement\n"
         "- Id: impl-1\n"
-        "- Role: implementer\n",
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
         encoding="utf-8",
     )
 
@@ -429,6 +435,9 @@ def test_queue_validate_applies_child_gate_ordering(tmp_repo: Path) -> None:
         "- GateId: implementation\n"
         "- Role: implementer\n"
         "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n"
         "- Verification: pytest -q\n\n"
         "[done] Verify gate\n"
         "- Id: verify-1\n"
@@ -480,3 +489,45 @@ def test_queue_validate_rejects_forbidden_owner_overlap(tmp_repo: Path) -> None:
 
     assert result.exit_code == 1
     assert "forbidden overlap policy" in result.output
+
+
+def test_queue_validate_rejects_implementation_without_role_plan(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement missing role plan\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
+    assert result.exit_code == 1
+    assert "RolePlan" in result.output
+
+
+def test_queue_validate_rejects_implementation_without_tdd_evidence(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement missing TDD evidence\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
+        encoding="utf-8",
+    )
+
+    result = CliRunner().invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+
+    assert result.exit_code == 1
+    assert "TestPlan" in result.output
+    assert "FailingTestEvidence" in result.output

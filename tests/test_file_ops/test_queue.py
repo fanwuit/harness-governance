@@ -154,9 +154,27 @@ def test_parse_queue_structured_role_fields() -> None:
     assert items[0].depends_on == ("impl-1", "contract-1")
     assert items[0].owner_files == ("src/app.py", "tests/test_app.py")
     assert items[0].session_id == "review-session"
-    assert items[0].verification == "pytest -q"
-    assert items[0].stop_conditions == "no skipped tests"
-    assert items[0].handoff_from == "impl-1"
+
+
+def test_parse_queue_governance_hard_gate_fields() -> None:
+    items = parse_queue(
+        "[ready] Implement governed task\n"
+        "- Id: impl-1\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py::test_contract\n"
+        "- FailingTestEvidence: pytest tests/test_app.py::test_contract failed\n"
+        "- TddNotApplicable: docs-only\n"
+    )
+
+    assert items[0].role_plan == (
+        "planner",
+        "contract-test-writer",
+        "implementer",
+        "reviewer-verifier",
+    )
+    assert items[0].test_plan == "tests/test_app.py::test_contract"
+    assert "failed" in (items[0].failing_test_evidence or "")
+    assert items[0].tdd_not_applicable == "docs-only"
 
 
 def test_parse_queue_structured_fields_are_case_insensitive() -> None:

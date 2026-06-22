@@ -31,6 +31,8 @@ _FIELD_RE = re.compile(
     r"^\s*(?:[-*]|\d+\.)?\s*"
     r"(?P<key>Id|ID|Status|Layer|Role|Change|ChangeId|ChangeID|Packetization|"
     r"ChangeKind|Change Kind|GateId|Gate ID|OwnerFiles|Owner Files|"
+    r"RolePlan|Role Plan|TestPlan|Test Plan|FailingTestEvidence|"
+    r"Failing Test Evidence|TddNotApplicable|TDD Not Applicable|"
     r"Evidence|Verification|Scope|DependsOn|Depends On|Session|SessionId|"
     r"SessionID|StopConditions|Stop Conditions|HandoffFrom|Handoff From)\s*:\s*(?P<value>.+?)\s*$",
     re.MULTILINE | re.IGNORECASE,
@@ -173,6 +175,10 @@ def _entry_to_item(raw: str) -> QueueItem:
     depends_on: tuple[str, ...] = ()
     owner_files: tuple[str, ...] = ()
     session_id: str | None = None
+    role_plan: tuple[str, ...] = ()
+    test_plan: str | None = None
+    failing_test_evidence: str | None = None
+    tdd_not_applicable: str | None = None
     packetization: str | None = None
     evidence: str | None = None
     verification: str | None = None
@@ -215,6 +221,18 @@ def _entry_to_item(raw: str) -> QueueItem:
                 for part in re.split(r"[,;]", value)
                 if part.strip()
             )
+        elif key == "roleplan":
+            role_plan = tuple(
+                part.strip().lower()
+                for part in re.split(r"\s*(?:->|,|;)\s*", value)
+                if part.strip()
+            )
+        elif key == "testplan":
+            test_plan = value.strip() or None
+        elif key == "failingtestevidence":
+            failing_test_evidence = value.strip() or None
+        elif key == "tddnotapplicable":
+            tdd_not_applicable = value.strip() or None
         elif key in {"session", "sessionid"}:
             session_id = value.strip() or None
         elif key == "packetization":
@@ -244,6 +262,10 @@ def _entry_to_item(raw: str) -> QueueItem:
         depends_on=depends_on,
         owner_files=owner_files,
         session_id=session_id,
+        role_plan=role_plan,
+        test_plan=test_plan,
+        failing_test_evidence=failing_test_evidence,
+        tdd_not_applicable=tdd_not_applicable,
         packetization=packetization,
         evidence=evidence,
         verification=verification,
@@ -280,6 +302,7 @@ def append_governed_queue_item(
             f"- Session: {session_id}",
             f"- Layer: {layer.value}",
             f"- Rigor: {rigor_tier}",
+            "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier",
             "- Verification command: harness check all",
             "- Done when: review close records verification evidence",
         )
@@ -303,6 +326,7 @@ def append_structured_queue_item(
     change_kind: str | None = None,
     depends_on: Iterable[str] = (),
     owner_files: Iterable[str] = (),
+    role_plan: Iterable[str] = (),
     session_id: str | None = None,
     verification: str | None = None,
     stop_conditions: str | None = None,
@@ -328,6 +352,8 @@ def append_structured_queue_item(
         entry.append(f"- DependsOn: {', '.join(depends_on)}")
     if owner_files:
         entry.append(f"- OwnerFiles: {', '.join(owner_files)}")
+    if role_plan:
+        entry.append(f"- RolePlan: {' -> '.join(role_plan)}")
     if session_id:
         entry.append(f"- SessionId: {session_id}")
     if verification:

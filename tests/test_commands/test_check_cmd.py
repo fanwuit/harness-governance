@@ -118,6 +118,14 @@ def _write_state_contract_evidence(repo_root: Path) -> None:
             "test_strict_governed_path_minimum_smoke",
         ),
         "tests/STATE_CONTRACTS.md": ("State Contract Closure",),
+        "tests/test_commands/test_queue_cmd.py": (
+            "test_queue_validate_rejects_implementation_without_role_plan",
+            "test_queue_validate_rejects_implementation_without_tdd_evidence",
+        ),
+        "tests/test_commands/test_verify_review_config.py": (
+            "test_finish_rejects_matching_queue_item_without_role_plan",
+            "test_finish_requires_role_plan_and_targeted_evidence",
+        ),
     }
     for rel, terms in files.items():
         path = repo_root / rel
@@ -132,7 +140,7 @@ def test_check_state_contract_passes_with_required_evidence(tmp_repo: Path) -> N
 
     assert result.passed
     assert result.check == "state-contract"
-    assert result.inspected == 4
+    assert result.inspected == 6
 
 
 def test_check_state_contract_cli_fails_when_evidence_missing(tmp_repo: Path) -> None:

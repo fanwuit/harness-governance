@@ -56,6 +56,26 @@ _REQUIREMENTS: tuple[StateContractRequirement, ...] = (
         evidence_path="tests/STATE_CONTRACTS.md",
         required_terms=("State Contract Closure",),
     ),
+    StateContractRequirement(
+        name="queue-hard-gates",
+        writer="harness queue validate",
+        consumer="harness governed-start / implementation gate",
+        evidence_path="tests/test_commands/test_queue_cmd.py",
+        required_terms=(
+            "test_queue_validate_rejects_implementation_without_role_plan",
+            "test_queue_validate_rejects_implementation_without_tdd_evidence",
+        ),
+    ),
+    StateContractRequirement(
+        name="finish-hard-gates",
+        writer="harness finish",
+        consumer="harness queue closeout / review-next",
+        evidence_path="tests/test_commands/test_verify_review_config.py",
+        required_terms=(
+            "test_finish_rejects_matching_queue_item_without_role_plan",
+            "test_finish_requires_role_plan_and_targeted_evidence",
+        ),
+    ),
 )
 
 # -- State-writing patterns in source code -----------------------------------

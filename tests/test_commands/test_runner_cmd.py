@@ -390,6 +390,73 @@ def test_runner_render_queue_item_infers_verifier_role(tmp_repo: Path) -> None:
     assert "Role: Verifier" in result.output or "role\": \"verifier\"" in result.output
 
 
+def test_runner_render_records_session_bound_role(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue-backed item\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- ChangeId: sample-change\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "render",
+            "--queue",
+            "impl-1",
+            "--role",
+            "implementer",
+            "--session-id",
+            "impl-session",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    records = tmp_repo / ".harness" / "render-records" / "impl-session.ndjson"
+    assert records.is_file()
+    payload = json.loads(records.read_text(encoding="utf-8").splitlines()[0])
+    assert payload["role"] == "implementer"
+    assert payload["queueId"] == "impl-1"
+    assert payload["sessionId"] == "impl-session"
+
+
+def test_runner_render_rejects_session_mismatch(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue-backed item\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- ChangeId: sample-change\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "render",
+            "--queue",
+            "impl-1",
+            "--role",
+            "implementer",
+            "--session-id",
+            "other-session",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "sessionId" in result.output
+
+
 # ---------------------------------------------------------------------------
 # runner parse-result (lines 332-404)
 # ---------------------------------------------------------------------------
