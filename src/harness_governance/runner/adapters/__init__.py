@@ -1,6 +1,6 @@
-"""Agent executor adapters for the autonomous runner subsystem."""
+"""Adapter namespace.
 
-from .codex_cli import CodexCliExecutor
-from .generic import SubprocessAgentExecutor
+Harness core no longer ships platform/process agent executors.
+"""
 
-__all__ = ["CodexCliExecutor", "SubprocessAgentExecutor"]
+__all__: list[str] = []

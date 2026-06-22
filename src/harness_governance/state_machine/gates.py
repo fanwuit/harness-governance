@@ -473,9 +473,19 @@ def _gate_hook_implementation_hard_gates(
     return implementation_gate_failures(project_root, session.session_id)
 
 
+def _gate_hook_native_handoff(
+    session: "SessionState", project_root: Path
+) -> list[str]:
+    """Require complete native handoff lifecycle evidence."""
+    from ..hard_gates import native_handoff_gate_failures
+
+    return native_handoff_gate_failures(project_root, session.session_id)
+
+
 register_gate_hook(HarnessLayer.IMPLEMENTATION, _gate_hook_implementation_hard_gates)
 register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_user_evidence)
 register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_state_contract)
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_native_handoff)
 
 
 # ---------------------------------------------------------------------------

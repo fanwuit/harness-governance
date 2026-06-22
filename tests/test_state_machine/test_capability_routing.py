@@ -147,14 +147,14 @@ class TestBuildProvenance:
             required_tier=CapabilityTier.EXECUTION,
             platform="codex",
             model_label="claude-sonnet-4",
-            adapter="codex-cli",
+            adapter="subagent",
         )
         assert p.role == "implementer"
         assert p.required_tier == CapabilityTier.EXECUTION
         assert p.actual_tier == CapabilityTier.EXECUTION
         assert p.platform == "codex"
         assert p.model_label == "claude-sonnet-4"
-        assert p.adapter == "codex-cli"
+        assert p.adapter == "subagent"
         assert p.verifier_required is True
 
     def test_strong_provenance_no_verifier(self) -> None:

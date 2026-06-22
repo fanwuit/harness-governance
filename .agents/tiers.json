@@ -18,6 +18,18 @@
       "required_tier": "strong",
       "adapter": "subagent",
       "model_label": "python3"
+    },
+    {
+      "role": "contract-test-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
+    },
+    {
+      "role": "reviewer-verifier",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
     }
   ]
 }

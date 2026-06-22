@@ -9,7 +9,7 @@
 
 - 不实现适配器实际调度执行（adapter dispatch）
 - 不添加前端 CLI 命令（如 harness check capability-tiers）
-- 不改变现有 AgentExecutor 接口
+- native handoff records are the execution boundary; no process executor API is part of core
 - 不编码平台特定模型排名到 harness 核心
 
 ## Options Considered / 已考虑的选项

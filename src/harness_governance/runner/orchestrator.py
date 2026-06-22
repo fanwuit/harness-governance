@@ -40,7 +40,7 @@ _PLATFORM_DISPATCH: dict[str, str] = {
         "Use Codex's built-in task/agent delegation (NOT an external process):\n"
         "   - Dispatch a subagent within the current session\n"
         "   - Pass the pre-rendered role prompt as the subagent's instructions\n"
-        "   - Do NOT use `codex exec` — that spawns a fresh CLI process, not a subagent"
+        "   - Do NOT use an external CLI process; that is not a native subagent"
     ),
     "cline": (
         "Use Cline's native task delegation:\n"
@@ -89,7 +89,7 @@ _PLATFORM_HARD_GATE: dict[str, str] = {
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Subagent findings conflict with main-window evidence\n"
-        "- Do NOT fall back to `codex exec` for this — stay in the current session"
+        "- Do NOT fall back to an external CLI process; stay in the current session"
     ),
     "cline": (
         "Run in the main Cline conversation (not a sub-task) when:\n"

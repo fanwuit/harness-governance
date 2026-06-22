@@ -751,10 +751,6 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Warning: {count} unresolved variables: {vars}",
         "zh-CN": "警告: {count} 个未解析变量: {vars}",
     },
-    "runner.command_required": {
-        "en": "--command is required when --executor=subprocess.",
-        "zh-CN": "--executor=subprocess 时必须指定 --command。",
-    },
     "runner.unknown_verification": {
         "en": "Unknown verification preset: {preset!r}. Available: {available}.",
         "zh-CN": "未知的验证 preset: {preset!r}。可用: {available}。",
@@ -770,10 +766,6 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "runner.render_unresolved": {
         "en": "Warning: {count} unresolved variables: {vars}",
         "zh-CN": "警告: {count} 个未解析变量: {vars}",
-    },
-    "runner.codex_not_found": {
-        "en": "codex CLI not found on PATH. Install Codex CLI or use SubprocessAgentExecutor with a different command.",
-        "zh-CN": "PATH 中未找到 codex CLI。请安装 Codex CLI 或使用其他命令的 SubprocessAgentExecutor。",
     },
     "runner.timed_out": {
         "en": "[harness runner] timed out after {seconds}s",

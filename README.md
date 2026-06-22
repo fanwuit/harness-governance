@@ -74,7 +74,7 @@ harness check all                   # 全部检查
 harness status                      # 仪表盘聚合输出
 harness verify <preset>             # 运行验证预设
 harness review close                # 关闭任务
-harness runner start                # 自主就绪循环
+harness runner prepare-native       # native subagent handoff request
 harness session show/list           # 会话管理
 ```
 

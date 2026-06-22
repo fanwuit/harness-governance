@@ -801,7 +801,7 @@ class TestStartInvocationProvenance:
             actual_tier="execution",
             platform="codex",
             model_label="claude-sonnet-4",
-            adapter="codex-cli",
+            adapter="subagent",
             verifier_required=True,
             owner_files=["src/foo.py"],
             changed_files=["src/foo.py", "src/bar.py"],
@@ -813,7 +813,7 @@ class TestStartInvocationProvenance:
         assert inv.actual_tier == "execution"
         assert inv.platform == "codex"
         assert inv.model_label == "claude-sonnet-4"
-        assert inv.adapter == "codex-cli"
+        assert inv.adapter == "subagent"
         assert inv.verifier_required is True
         assert inv.owner_files == ("src/foo.py",)
         assert inv.changed_files == ("src/foo.py", "src/bar.py")

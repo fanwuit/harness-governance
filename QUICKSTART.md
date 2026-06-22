@@ -197,11 +197,13 @@ harness packet check
 # → 变更包检查通过: 共 1 项。 / Change packet check passed: 1 item(s).
 ```
 
-## Optional: autonomous runner / 自主循环
+## Optional: native subagent handoff / 原生 subagent 交接
 
 ```bash
-harness runner start --executor orchestrator --dry-run
-harness runner start --executor orchestrator --output prompt.md
+harness runner prepare-native --role reviewer-verifier --queue <queue-id> --session-id <session-id>
+harness runner record-native-spawn --session-id <session-id> --role reviewer-verifier --request-id <request-id> --agent-id <native-agent-id>
+harness runner parse-result --role reviewer --session-id <session-id> --request-id <request-id> --agent-id <native-agent-id> --input result.json
+harness gate check verification --session-id <session-id>
 ```
 
 ## What's next / 下一步

@@ -90,13 +90,19 @@ class VariableExtractor:
         # Parse inline fields from the raw ready block.
         inline = extract_ready_block_fields(queue_item.raw)
         variables.role = inline.get("role", "")
-        variables.forbidden_scope = inline.get("forbidden shortcut", "") or inline.get(
-            "forbidden scope", ""
+        variables.forbidden_scope = (
+            inline.get("forbidden shortcut", "")
+            or inline.get("forbiddenshortcut", "")
+            or inline.get("forbidden scope", "")
+            or inline.get("forbiddenscope", "")
         )
         variables.verification_commands = inline.get(
             "verification command", ""
-        ) or inline.get("verification commands", "")
-        variables.done_when = inline.get("done when", "")
+        ) or inline.get("verificationcommand", "")
+        variables.verification_commands = variables.verification_commands or inline.get(
+            "verification commands", ""
+        ) or inline.get("verificationcommands", "")
+        variables.done_when = inline.get("done when", "") or inline.get("donewhen", "")
 
         # --- From the task packet (if change_id is set) ---
         if queue_item.change_id:

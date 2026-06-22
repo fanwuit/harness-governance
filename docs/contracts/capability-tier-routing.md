@@ -84,14 +84,23 @@
 }
 ```
 
-| JSON Path | JSON Type | Required | Description |
+## Alignment Anchor Fields
+
+| Field | Type | Required | Description |
 |---|---|---|---|
-| `$.platform` | string | yes | Agent platform identifier |
-| `$.adapters` | array | yes | List of adapter declarations |
-| `$.adapters[].role` | string | yes | Role name (e.g. implementer, verifier) |
-| `$.adapters[].required_tier` | string | yes | `strong`, `execution`, or `mechanical` |
-| `$.adapters[].adapter` | string | yes | Executor adapter name |
-| `$.adapters[].model_label` | string | no | Opaque model identifier |
+| `role` | str | yes | Role key used by capability-tier routing. |
+| `platform` | str | yes | Agent platform identifier. |
+| `adapter` | str | yes | Adapter label declared by the platform/project. |
+| `model_label` | str | no | Opaque model label. |
+
+JSON field requirements:
+
+- `$.platform`: string, required, agent platform identifier.
+- `$.adapters`: array, required, list of adapter declarations.
+- `$.adapters[].role`: string, required, role name.
+- `$.adapters[].required_tier`: string, required, `strong`, `execution`, or `mechanical`.
+- `$.adapters[].adapter`: string, required, adapter label.
+- `$.adapters[].model_label`: string, optional, opaque model identifier.
 
 ## Scope Out of Bounds
 

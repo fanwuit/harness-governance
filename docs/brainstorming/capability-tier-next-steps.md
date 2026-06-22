@@ -17,7 +17,7 @@
 ## Non-Goals
 - 适配器实际调度执行（adapter dispatch）不在当前 P0 范围
 - 不添加平台特定的模型排名到 harness 核心
-- 不改动现有 `AgentExecutor` 接口
+- native handoff records are the execution boundary; no process executor API is part of core
 
 ## Selected Direction
 Option A: Documentation + continue advancing governance layers.

@@ -285,7 +285,7 @@ class ProvenanceRecord(BaseModel):
     actual_tier: CapabilityTier = CapabilityTier.STRONG
     platform: str = ""  # e.g. "claude-code", "codex", "opencode"
     model_label: str = ""  # opaque model identifier (e.g. "claude-sonnet-4")
-    adapter: str = ""  # adapter name (e.g. "codex-cli", "subprocess")
+    adapter: str = ""  # adapter name (e.g. "subagent")
     owner_files: tuple[str, ...] = ()
     changed_files: tuple[str, ...] = ()
     verifier_required: bool = True

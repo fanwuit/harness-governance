@@ -1,13 +1,8 @@
-"""Tests for ``harness runner`` CLI commands (non-dry-run paths).
-
-Covers runner.py lines 150-404: subprocess execution, orchestrator mode,
-render, and parse-result commands.
-"""
+"""Tests for ``harness runner`` CLI commands."""
 
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -25,127 +20,6 @@ _READY_QUEUE = "[ready] Test task\n- Layer: implementation\n- Change: sample-cha
 def _write_ready_queue(root: Path) -> None:
     """Write a minimal NEXT.md with one [ready] item."""
     (root / "NEXT.md").write_text(_READY_QUEUE, encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
-# runner start -- subprocess executor (actual execution, lines 210-233)
-# ---------------------------------------------------------------------------
-
-
-def test_runner_start_subprocess_success(tmp_repo: Path) -> None:
-    """Run one round with subprocess executor and verify JSON output structure."""
-    _write_ready_queue(tmp_repo)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "--project-root",
-            str(tmp_repo),
-            "--json",
-            "runner",
-            "start",
-            "--executor",
-            "subprocess",
-            "--command",
-            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
-            "--max-rounds",
-            "1",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    data = json.loads(result.output)
-    assert "rounds" in data
-    assert "stopped_for" in data
-    assert "invocations" in data
-    assert data["rounds"] == 1
-    assert data["stopped_for"] == "max_rounds"
-    assert isinstance(data["invocations"], list)
-    assert len(data["invocations"]) == 1
-
-
-def test_runner_writes_checkpoint_to_change_dir(tmp_repo: Path) -> None:
-    """When packet directory exists, checkpoint/invocation go inside it."""
-    _write_ready_queue(tmp_repo)
-    # Create the change packet directory
-    change_dir = tmp_repo / "docs" / "changes" / "sample-change"
-    change_dir.mkdir(parents=True)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "--project-root",
-            str(tmp_repo),
-            "--json",
-            "runner",
-            "start",
-            "--executor",
-            "subprocess",
-            "--command",
-            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
-            "--max-rounds",
-            "1",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    # Per-change isolation: checkpoint and invocation log inside packet dir
-    assert (change_dir / ".checkpoint.md").is_file()
-    assert (change_dir / ".invocations.ndjson").is_file()
-    # Global paths should NOT have been written
-    assert not (tmp_repo / ".harness" / "run-checkpoint.md").exists()
-    assert not (tmp_repo / ".harness" / "invocations.ndjson").exists()
-
-
-def test_runner_falls_back_to_global_when_no_packet_dir(tmp_repo: Path) -> None:
-    """Without a packet directory, checkpoint/invocation go to global .harness/."""
-    _write_ready_queue(tmp_repo)
-    # Do NOT create docs/changes/sample-change/
-
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "--project-root",
-            str(tmp_repo),
-            "--json",
-            "runner",
-            "start",
-            "--executor",
-            "subprocess",
-            "--command",
-            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_READY_DONE\\")"',
-            "--max-rounds",
-            "1",
-        ],
-    )
-    assert result.exit_code == 0, result.output
-    # Global paths should be used
-    assert (tmp_repo / ".harness" / "run-checkpoint.md").is_file()
-    assert (tmp_repo / ".harness" / "invocations.ndjson").is_file()
-
-
-# ---------------------------------------------------------------------------
-# runner start -- subprocess without --command (line 191)
-# ---------------------------------------------------------------------------
-
-
-def test_runner_start_subprocess_no_command_raises(tmp_repo: Path) -> None:
-    """Subprocess executor without --command should raise ClickException."""
-    _write_ready_queue(tmp_repo)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "--project-root",
-            str(tmp_repo),
-            "runner",
-            "start",
-            "--executor",
-            "subprocess",
-        ],
-    )
-    assert result.exit_code != 0
-    assert "--command is required" in result.output
 
 
 def test_runner_start_requires_queue_file(tmp_repo: Path) -> None:
@@ -241,33 +115,6 @@ def test_runner_start_orchestrator_missing_variables(tmp_repo: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# runner start -- exit code 1 on failure (lines 244-245)
-# ---------------------------------------------------------------------------
-
-
-def test_runner_start_exit_code_1_on_failure(tmp_repo: Path) -> None:
-    """A command that emits AUTONOMOUS_FAILED should produce exit code 1."""
-    _write_ready_queue(tmp_repo)
-    runner = CliRunner()
-    result = runner.invoke(
-        cli,
-        [
-            "--project-root",
-            str(tmp_repo),
-            "runner",
-            "start",
-            "--executor",
-            "subprocess",
-            "--command",
-            f'"{sys.executable}" -c "print(\\"AUTONOMOUS_FAILED\\")"',
-            "--max-rounds",
-            "1",
-        ],
-    )
-    assert result.exit_code == 1
-
-
-# ---------------------------------------------------------------------------
 # runner render (lines 251-329)
 # ---------------------------------------------------------------------------
 
@@ -345,7 +192,10 @@ def test_runner_render_queue_item_infers_role(tmp_repo: Path) -> None:
         "- Id: review-1\n"
         "- Role: reviewer-verifier\n"
         "- SessionId: review-session\n"
-        "- ChangeId: sample-change\n",
+        "- ChangeId: sample-change\n"
+        "- ForbiddenScope: src/other.py\n"
+        "- VerificationCommands: pytest -q\n"
+        "- DoneWhen: review verdict is acceptable\n",
         encoding="utf-8",
     )
     runner = CliRunner()
@@ -371,7 +221,9 @@ def test_runner_render_queue_item_infers_verifier_role(tmp_repo: Path) -> None:
         "- Id: verify-1\n"
         "- Role: verifier\n"
         "- ChangeId: sample-change\n"
-        "- Verification: pytest -q\n",
+        "- ForbiddenScope: src/other.py\n"
+        "- VerificationCommands: pytest -q\n"
+        "- DoneWhen: verification passed\n",
         encoding="utf-8",
     )
     runner = CliRunner()
@@ -424,6 +276,63 @@ def test_runner_render_records_session_bound_role(tmp_repo: Path) -> None:
     assert payload["role"] == "implementer"
     assert payload["queueId"] == "impl-1"
     assert payload["sessionId"] == "impl-session"
+
+
+def test_runner_render_records_capability_tier_from_tiers_json(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / ".agents").mkdir()
+    (tmp_repo / ".agents" / "tiers.json").write_text(
+        json.dumps(
+            {
+                "platform": "codex",
+                "adapters": [
+                    {
+                        "role": "implementer",
+                        "required_tier": "execution",
+                        "adapter": "subagent",
+                        "model_label": "exec-model",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue-backed item\n"
+        "- Id: impl-1\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- ChangeId: sample-change\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "render",
+            "--queue",
+            "impl-1",
+            "--role",
+            "implementer",
+            "--session-id",
+            "impl-session",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    records = tmp_repo / ".harness" / "render-records" / "impl-session.ndjson"
+    payload = json.loads(records.read_text(encoding="utf-8").splitlines()[0])
+    assert payload["requiredTier"] == "execution"
+    assert payload["actualTier"] == "execution"
+    assert payload["verifierRequired"] is True
+    assert payload["platform"] == "codex"
+    assert payload["adapter"] == "subagent"
+    assert payload["modelLabel"] == "exec-model"
 
 
 def test_runner_render_rejects_session_mismatch(tmp_repo: Path) -> None:

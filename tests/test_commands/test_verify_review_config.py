@@ -39,15 +39,25 @@ def _seed_review_session(project_root: Path, session_id: str) -> None:
 def _write_render_records(project_root: Path, session_id: str, queue_id: str) -> None:
     records = project_root / ".harness" / "render-records" / f"{session_id}.ndjson"
     records.parent.mkdir(parents=True, exist_ok=True)
+    rows = (
+        ("planner", "strong", False),
+        ("contract-test-writer", "strong", False),
+        ("implementer", "execution", True),
+        ("reviewer-verifier", "strong", False),
+    )
     records.write_text(
         "\n".join(
-            json.dumps({"sessionId": session_id, "queueId": queue_id, "role": role})
-            for role in (
-                "planner",
-                "contract-test-writer",
-                "implementer",
-                "reviewer-verifier",
+            json.dumps(
+                {
+                    "sessionId": session_id,
+                    "queueId": queue_id,
+                    "role": role,
+                    "requiredTier": tier,
+                    "actualTier": tier,
+                    "verifierRequired": verifier_required,
+                }
             )
+            for role, tier, verifier_required in rows
         )
         + "\n",
         encoding="utf-8",
@@ -360,6 +370,87 @@ def test_finish_accepts_complete_role_and_targeted_evidence(tmp_repo: Path) -> N
 
     assert result.exit_code == 0, result.output
     assert "Finished: task-1" in result.output
+
+
+def test_finish_rejects_execution_render_without_strong_verifier(
+    tmp_repo: Path,
+) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Id: task-1\n"
+        "- SessionId: task-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n",
+        encoding="utf-8",
+    )
+    records = tmp_repo / ".harness" / "render-records" / "task-1.ndjson"
+    records.parent.mkdir(parents=True, exist_ok=True)
+    records.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "sessionId": "task-1",
+                        "queueId": "task-1",
+                        "role": "planner",
+                        "requiredTier": "strong",
+                        "actualTier": "strong",
+                        "verifierRequired": False,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "sessionId": "task-1",
+                        "queueId": "task-1",
+                        "role": "contract-test-writer",
+                        "requiredTier": "strong",
+                        "actualTier": "strong",
+                        "verifierRequired": False,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "sessionId": "task-1",
+                        "queueId": "task-1",
+                        "role": "implementer",
+                        "requiredTier": "execution",
+                        "actualTier": "execution",
+                        "verifierRequired": True,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "sessionId": "task-1",
+                        "queueId": "task-1",
+                        "role": "reviewer-verifier",
+                        "requiredTier": "strong",
+                        "actualTier": "execution",
+                        "verifierRequired": True,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "targeted checks: pytest tests/test_gate_cmd.py",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "independent strong verifier" in result.output.lower()
 
 
 def test_finish_rejects_closing_review_queue_by_item_id(tmp_repo: Path) -> None:

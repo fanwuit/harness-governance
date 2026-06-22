@@ -268,17 +268,21 @@ class TestGateCheck:
         (tmp_path / "tests" / "test_app.py").write_text(
             "def test_changed(): pass\n", encoding="utf-8"
         )
-        for role in (
-            "planner",
-            "contract-test-writer",
-            "implementer",
-            "reviewer-verifier",
-        ):
+        render_roles = (
+            ("planner", "strong", False),
+            ("contract-test-writer", "strong", False),
+            ("implementer", "execution", True),
+            ("reviewer-verifier", "strong", False),
+        )
+        for role, tier, verifier_required in render_roles:
             record_render(
                 tmp_path,
                 session_id="impl-session",
                 queue_id="impl-1",
                 role=role,
+                required_tier=tier,
+                actual_tier=tier,
+                verifier_required=verifier_required,
             )
 
         subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
