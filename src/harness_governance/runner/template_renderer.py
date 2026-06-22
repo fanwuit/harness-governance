@@ -69,6 +69,8 @@ _ROLE_TO_TEMPLATE: dict[str, str] = {
     "reviewer": "reviewer",
     "reviewer/verifier": "reviewer",
     "reviewer verifier": "reviewer",
+    "reviewer-verifier": "reviewer",
+    "reviewer_verifier": "reviewer",
     # Governance roles
     "adr-writer": "adr-writer",
     "adr_writer": "adr-writer",

@@ -11,6 +11,7 @@ from . import (
     layer,
     packet,
     plan,
+    queue,
     review,
     runner,
     session_cmd,
@@ -62,6 +63,7 @@ from .plan import (
     plan_init_cmd,
     plan_show_cmd,
 )
+from .queue import queue_group, queue_validate_cmd
 from .review import review_close_cmd, review_group
 from .runner import (
     runner_group,
@@ -102,6 +104,8 @@ __all__ = [
     "plan_show_cmd",
     "plan_clear_cmd",
     "plan_complete_cmd",
+    "queue_group",
+    "queue_validate_cmd",
     "check_group",
     "check_routing_cmd",
     "check_packets_cmd",
@@ -150,6 +154,7 @@ __all__ = [
     "layer",
     "packet",
     "plan",
+    "queue",
     "review",
     "runner",
     "session_cmd",

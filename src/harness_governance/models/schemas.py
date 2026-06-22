@@ -362,12 +362,23 @@ class QueueItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     raw: str
+    id: str | None = None
+    status: str = ""
     active: bool = False
     ready: bool = False
     layer: HarnessLayer | None = None
+    role: str | None = None
+    gate_id: str | None = None
     change_id: str | None = None
+    change_kind: str | None = None
+    depends_on: tuple[str, ...] = ()
+    owner_files: tuple[str, ...] = ()
+    session_id: str | None = None
     packetization: str | None = None
     evidence: str | None = None
+    verification: str | None = None
+    stop_conditions: str | None = None
+    handoff_from: str | None = None
     scope_budget: ScopeBudget | None = None
 
 
@@ -380,7 +391,11 @@ class StatusQueueItem(BaseModel):
     active: bool = False
     ready: bool = False
     layer: str | None = None
+    role: str | None = None
+    gate_id: str | None = None
     change_id: str | None = None
+    change_kind: str | None = None
+    session_id: str | None = None
 
 
 class StatusQueueSummary(BaseModel):

@@ -50,25 +50,40 @@ def extract_skill_version(content: str) -> str | None:
 _NEXT_MD_TEMPLATE = """\
 <!-- Harness Governance Queue (NEXT.md)
 
-Status labels: [ready] [active] [blocked] [done] [not-now]
-Fields:  - Layer: <layer-name>
+Status labels: [planned] [ready] [active] [blocked] [done] [not-now]
+Fields:  - Id: <queue-item-id>
+         - Layer: <layer-name>
          - Change: <change-id>       (links to docs/changes/<id>/)
-         Role: <role-name>
-         Verification command: <cmd>
-         Done when: <criteria>
-         Forbidden shortcut: <what to avoid>
+         - Role: <role-name>
+         - DependsOn: <queue-item-id>
+         - SessionId: <governance-session-id>
+         - Verification: <cmd or evidence requirement>
+         - Done when: <criteria>
+         - Forbidden shortcut: <what to avoid>
 
 Uncomment the example below or replace with your own queue items.
 -->
 
 <!--
 [ready] Example: implement feature X
+- Id: impl-feature-x
 - Layer: implementation
 - Change: feature-x
-Role: Implementer
-Verification command: npm test
-Done when: feature X works end-to-end
-Forbidden shortcut: no mock data in production
+- Role: implementer
+- SessionId: <implementation-session>
+- Verification: npm test
+- Done when: feature X works end-to-end
+- Forbidden shortcut: no mock data in production
+
+[planned] Example: review feature X
+- Id: review-feature-x
+- Layer: verification
+- Change: feature-x
+- Role: reviewer-verifier
+- DependsOn: impl-feature-x
+- SessionId: <review-session>
+- Verification: npm test
+- Done when: review evidence is recorded
 -->
 """
 

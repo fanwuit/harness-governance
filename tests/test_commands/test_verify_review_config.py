@@ -243,9 +243,64 @@ def test_finish_closes_matching_session_and_queue(tmp_repo: Path) -> None:
 
     queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
     assert "[done] Implement queue closure" in queue
+    assert "- Status: done" in queue
     assert "- Closed: task-1" in queue
+    assert "- CompletedAt:" in queue
     assert "- Evidence: pytest -q" in queue
     assert "- Risk: none" in queue
+
+
+def test_finish_rejects_closing_review_queue_by_item_id(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Review implementation\n"
+        "- Id: review-1\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "review-1",
+            "--evidence",
+            "manual review",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "must be finished by their own sessionId" in result.output
+
+
+def test_finish_prompts_for_review_queue_after_implementation(tmp_repo: Path) -> None:
+    _seed_review_session(tmp_repo, "task-1")
+    (tmp_repo / "NEXT.md").write_text(
+        "[active] Implement queue closure\n"
+        "- Id: task-1\n"
+        "- Role: implementer\n"
+        "- SessionId: task-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "finish",
+            "task-1",
+            "--evidence",
+            "pytest -q",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "reviewer-verifier queue item" in result.output
 
 
 def test_status_warns_active_queue_item_can_be_finished(tmp_repo: Path) -> None:

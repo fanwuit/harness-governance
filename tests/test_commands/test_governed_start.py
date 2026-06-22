@@ -126,6 +126,132 @@ def test_governed_start_governed_path_appends_active_queue_item(
     assert (tmp_repo / "NEXT.md").read_text(encoding="utf-8") == text
 
 
+def test_governed_start_queue_requires_implementer_role(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Review queue task\n"
+        "- Id: review-1\n"
+        "- Layer: implementation\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "role=implementer" in result.output
+
+
+def test_governed_start_queue_requires_done_dependencies(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Queue dependency not done" in result.output
+
+
+def test_governed_start_queue_rejects_same_session_review(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: shared-session\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: shared-session\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "sessionId must differ" in result.output
+
+
+def test_governed_start_queue_applies_project_policy(tmp_repo: Path) -> None:
+    harness_dir = tmp_repo / ".harness"
+    harness_dir.mkdir(parents=True, exist_ok=True)
+    (harness_dir / "queue-policy.json").write_text(
+        """{
+  "role_required_by_layer": {
+    "implementation": "implementer"
+  }
+}""",
+        encoding="utf-8",
+    )
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Bad implementer item\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Queue validation failed" in result.output
+
+
 def test_governed_start_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:
     """When the on-disk skill is older than the installed template,
     governed-start must surface a `skill_version_warning` in both

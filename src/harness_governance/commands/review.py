@@ -74,15 +74,51 @@ def close_task(
     if next_resume:
         cp.next_resume_source = next_resume
 
-    cp.dump(target)
     config = load_config(project_root)
+    items = read_queue(config.queue_file)
+    matched_item = next(
+        (
+            item
+            for item in items
+            if task_id in {item.id, item.session_id, item.change_id}
+            or re.search(
+                rf"^\s*\[(?:active|ready)\]\s+.*{re.escape(task_id)}",
+                item.raw,
+                re.IGNORECASE,
+            )
+        ),
+        None,
+    )
+    for item in items:
+        if item.role != "reviewer-verifier":
+            continue
+        if task_id in {item.id, item.change_id} and item.session_id != task_id:
+            raise click.ClickException(
+                "reviewer-verifier queue items must be finished by their "
+                "own sessionId; an implementer must not close review work."
+            )
+    cp.dump(target)
     mark_queue_item_done(
         config.queue_file,
         task_id=task_id,
         evidence=evidence,
         risks=risks,
+        session_id=task_id,
+        completed_at=timestamp,
     )
     _close_matching_session(project_root, task_id, timestamp)
+    if matched_item and matched_item.role == "implementer":
+        has_review_queue = any(
+            item.role == "reviewer-verifier"
+            and matched_item.id
+            and matched_item.id in item.depends_on
+            for item in items
+        )
+        if not has_review_queue:
+            click.echo(
+                "Implementation finished without a reviewer-verifier queue item; "
+                "add one or document a role-isolation waiver."
+            )
     return target
 
 

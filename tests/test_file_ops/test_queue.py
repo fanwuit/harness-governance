@@ -110,3 +110,34 @@ def test_parse_queue_mixed_formats() -> None:
     assert len(items) == 2
     assert items[0].ready is True
     assert items[1].active is True
+
+
+def test_parse_queue_structured_role_fields() -> None:
+    items = parse_queue(
+        "[planned] Review implementation\n"
+        "- Id: review-1\n"
+        "- Status: ready\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- GateId: review\n"
+        "- ChangeId: change-1\n"
+        "- DependsOn: impl-1, contract-1\n"
+        "- OwnerFiles: src/app.py, tests/test_app.py\n"
+        "- SessionId: review-session\n"
+        "- Verification: pytest -q\n"
+        "- StopConditions: no skipped tests\n"
+        "- HandoffFrom: impl-1\n"
+    )
+
+    assert len(items) == 1
+    assert items[0].id == "review-1"
+    assert items[0].status == "ready"
+    assert items[0].role == "reviewer-verifier"
+    assert items[0].gate_id == "review"
+    assert items[0].change_id == "change-1"
+    assert items[0].depends_on == ("impl-1", "contract-1")
+    assert items[0].owner_files == ("src/app.py", "tests/test_app.py")
+    assert items[0].session_id == "review-session"
+    assert items[0].verification == "pytest -q"
+    assert items[0].stop_conditions == "no skipped tests"
+    assert items[0].handoff_from == "impl-1"

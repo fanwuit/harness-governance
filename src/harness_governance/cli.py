@@ -49,6 +49,7 @@ from .commands.isolation import isolation_group
 from .commands.layer import layer_group
 from .commands.packet import packet_group
 from .commands.plan import plan_group
+from .commands.queue import queue_group
 from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.session_cmd import session_group
@@ -122,6 +123,7 @@ cli.add_command(packet_group)
 cli.add_command(entry_group)
 cli.add_command(finish_cmd)
 cli.add_command(plan_group)
+cli.add_command(queue_group)
 cli.add_command(check_group)
 cli.add_command(status_cmd)
 cli.add_command(verify_cmd)

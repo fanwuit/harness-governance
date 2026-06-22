@@ -19,6 +19,7 @@ from ..file_ops import packet as packet_ops
 from ..messages import bilingual
 from ..models.schemas import CheckFinding, CheckResult
 from ..priority import check_priority
+from ..queue_validation import check_role_isolation
 from ..state_machine.engine import (
     StateMachineEngine,
     TransitionContext,
@@ -1587,6 +1588,14 @@ def check_queue_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_queue(project_root))
 
 
+@check_group.command("role-isolation")
+@click.pass_context
+def check_role_isolation_cmd(ctx: click.Context) -> None:
+    """Queue-backed implementation/review role isolation check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_role_isolation(project_root))
+
+
 @check_group.command("entry")
 @click.pass_context
 def check_entry_cmd(ctx: click.Context) -> None:
@@ -1726,6 +1735,7 @@ def check_all_cmd(ctx: click.Context, auto_close: bool) -> None:
         check_routing(project_root),
         check_priority(project_root),
         check_queue(project_root),
+        check_role_isolation(project_root),
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
@@ -1762,6 +1772,7 @@ __all__ = [
     "check_routing_cmd",
     "check_packets_cmd",
     "check_queue_cmd",
+    "check_role_isolation_cmd",
     "check_entry_cmd",
     "check_inventory_cmd",
     "check_user_evidence_cmd",
@@ -1773,6 +1784,7 @@ __all__ = [
     "check_routing",
     "check_packets",
     "check_queue",
+    "check_role_isolation",
     "check_entry",
     "check_inventory",
     "check_user_evidence",

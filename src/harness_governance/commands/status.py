@@ -291,7 +291,9 @@ def build_status(
                 active=i.active,
                 ready=i.ready,
                 layer=i.layer.value if i.layer else None,
+                role=i.role,
                 change_id=i.change_id,
+                session_id=i.session_id,
             )
             for i in items
         ),

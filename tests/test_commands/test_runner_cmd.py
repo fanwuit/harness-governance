@@ -339,6 +339,32 @@ def test_runner_render_no_ready_items(tmp_repo: Path) -> None:
     assert "No [ready] or [active] item" in result.output
 
 
+def test_runner_render_queue_item_infers_role(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Review queue-backed item\n"
+        "- Id: review-1\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n"
+        "- ChangeId: sample-change\n",
+        encoding="utf-8",
+    )
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "runner",
+            "render",
+            "--queue",
+            "review-1",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert len(result.output.strip()) > 0
+    assert "Role: Reviewer" in result.output or "Role: reviewer" in result.output
+
+
 # ---------------------------------------------------------------------------
 # runner parse-result (lines 332-404)
 # ---------------------------------------------------------------------------

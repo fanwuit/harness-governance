@@ -128,7 +128,7 @@ class VariableExtractor:
         * ``planner``  → also fills ``project_context``.
         * Other roles  → no extras.
         """
-        if role in ("reviewer", "fact-finder-reviewer"):
+        if role in ("reviewer", "reviewer-verifier", "fact-finder-reviewer"):
             variables = self.extract_with_git_diff(project_root, queue_item)
         else:
             variables = self.extract(project_root, queue_item)

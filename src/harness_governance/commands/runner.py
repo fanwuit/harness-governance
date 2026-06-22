@@ -75,6 +75,21 @@ def _resolve_queue_file(project_root: Path, queue_file: Path) -> Path:
     return resolved
 
 
+def _find_queue_item(items, item_id: str):
+    lowered = item_id.strip().lower()
+    for item in items:
+        candidates = (
+            item.id,
+            item.session_id,
+            item.change_id,
+        )
+        if any(candidate and candidate.lower() == lowered for candidate in candidates):
+            return item
+        if item.raw.lower().startswith("[") and lowered in item.raw.lower():
+            return item
+    return None
+
+
 @click.group("runner")
 def runner_group() -> None:
     """Run the autonomous-ready loop."""
@@ -340,13 +355,16 @@ def runner_start_cmd(
 @click.option(
     "--role",
     "role",
-    required=True,
+    required=False,
+    default=None,
     type=click.Choice(
         [
             "planner",
             "contract-writer",
             "implementer",
+            "product-implementer",
             "reviewer",
+            "reviewer-verifier",
             "verifier",
             "adr-writer",
             "fact-finder-reviewer",
@@ -518,13 +536,16 @@ __all__ = [
 @click.option(
     "--role",
     "role",
-    required=True,
+    required=False,
+    default=None,
     type=click.Choice(
         [
             "planner",
             "contract-writer",
             "implementer",
+            "product-implementer",
             "reviewer",
+            "reviewer-verifier",
             "verifier",
             "adr-writer",
             "fact-finder-reviewer",
@@ -536,7 +557,7 @@ __all__ = [
     help="Role template to render.",
 )
 @click.option(
-    "--queue",
+    "--queue-file",
     "queue_file",
     default="NEXT.md",
     show_default=True,
@@ -544,10 +565,16 @@ __all__ = [
     help="Queue file (NEXT.md).",
 )
 @click.option(
+    "--queue",
+    "queue_item_id",
+    default=None,
+    help="Queue item id to render. If omitted, render the first ready/active item.",
+)
+@click.option(
     "--change-id",
     "change_id",
     default=None,
-    help="Change packet ID. If omitted, extracted from the first ready item.",
+    help="Change packet ID override. If omitted, extracted from the queue item.",
 )
 @click.option(
     "--output",
@@ -559,8 +586,9 @@ __all__ = [
 @click.pass_context
 def runner_render_cmd(
     ctx: click.Context,
-    role: str,
+    role: str | None,
     queue_file: Path,
+    queue_item_id: str | None,
     change_id: str | None,
     output_file: Path | None,
 ) -> None:
@@ -574,23 +602,44 @@ def runner_render_cmd(
     from ..file_ops.queue import read_queue
 
     items = read_queue(project_root / queue_file)
-    target = next((i for i in items if i.ready), None) or next(
-        (i for i in items if i.active), None
-    )
+    if queue_item_id:
+        target = _find_queue_item(items, queue_item_id)
+        if target is None:
+            raise click.ClickException(f"Queue item not found: {queue_item_id}")
+    else:
+        target = next((i for i in items if i.ready), None) or next(
+            (i for i in items if i.active), None
+        )
     if target is None:
         raise click.ClickException(bilingual("runner.no_ready_item"))
 
+    render_role = role or target.role
+    if render_role is None:
+        raise click.ClickException(
+            "Unable to infer role for queue render. Add Role: to the queue item "
+            "or pass --role explicitly."
+        )
+    if queue_item_id and role and role != render_role:
+        raise click.ClickException(
+            f"Explicit role {role!r} does not match queue item role {render_role!r}."
+        )
+
+    if change_id:
+        target = target.model_copy(update={"change_id": change_id})
+
     extractor = VariableExtractor()
-    variables = extractor.extract_for_role(project_root, target, role)
+    variables = extractor.extract_for_role(project_root, target, render_role)
 
     renderer = TemplateRenderer()
-    rendered = renderer.render(role, variables)
+    rendered = renderer.render(render_role, variables)
 
     if output_file:
         output_path = (project_root / output_file).resolve()
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(rendered, encoding="utf-8")
-        click.echo(bilingual("runner.render_written", role=role, path=str(output_path)))
+        click.echo(
+            bilingual("runner.render_written", role=render_role, path=str(output_path))
+        )
     else:
         click.echo(rendered)
 
