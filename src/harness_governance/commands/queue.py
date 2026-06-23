@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,7 +41,7 @@ def _find_item(items, item_id: str):
 def _validate_review_start(items, item, session_id: str) -> None:
     if item is None or item.role != "reviewer-verifier":
         return
-    by_id = {}
+    by_id: dict[str, Any] = {}
     for candidate in items:
         for key in (candidate.id, candidate.session_id, candidate.change_id):
             if key:

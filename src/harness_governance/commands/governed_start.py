@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import click
 
@@ -188,7 +188,7 @@ def _validate_queue_context(queue_item, items) -> None:
             "RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier."
         )
 
-    dep_map = {}
+    dep_map: dict[str, Any] = {}
     for item in items:
         for key in (item.id, item.session_id, item.change_id):
             if key:
@@ -234,15 +234,15 @@ def _validate_queue_context(queue_item, items) -> None:
 def _validate_resolved_queue_session(queue_item, items, session_id: str) -> None:
     if queue_item.role != "reviewer-verifier":
         return
-    dep_map = {}
+    dep_map: dict[str, Any] = {}
     for item in items:
         for key in (item.id, item.session_id, item.change_id):
             if key:
                 dep_map.setdefault(key, item)
     impl_deps = [
-        dep_map.get(dep_id)
+        d
         for dep_id in queue_item.depends_on
-        if dep_map.get(dep_id) and dep_map.get(dep_id).role == "implementer"
+        if (d := dep_map.get(dep_id)) is not None and d.role == "implementer"
     ]
     for dep in impl_deps:
         if dep.session_id and session_id == dep.session_id:
