@@ -5,6 +5,12 @@ description: 项目健康监控 / Project health monitor — 文档漂移、耗�
 
 <!-- harness-skill-version: 0.8.0 -->
 
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
+
 
 ## 📊 MONITOR — 项目健康检查 / Project Health Check
 

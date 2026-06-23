@@ -7,14 +7,21 @@ canonical disclosure block for the governed path.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import click
 
 from ..messages import bilingual
 from ..config import load_config
-from ..file_ops.queue import append_governed_queue_item
+from ..file_ops.queue import (
+    append_governed_queue_item,
+    mark_queue_item_status,
+    read_queue,
+)
+from ..queue_validation import validate_queue
+from ..hard_gates import git_changed_files, is_trivial_queue_item
 from ..models.schemas import AgentAssessment, RoutingInput, RoutingResult
 from ..session import SessionState, create_session, generate_session_id
 from ..state_machine.classification import (
@@ -147,6 +154,103 @@ def _next_layer(current: HarnessLayer | None, rigor_tier: str) -> HarnessLayer |
     return path[index + 1]
 
 
+def _find_queue_item(items, item_id: str):
+    lowered = item_id.strip().lower()
+    for item in items:
+        if item.id and item.id.lower() == lowered:
+            return item
+        if item.session_id and item.session_id.lower() == lowered:
+            return item
+        if item.change_id and item.change_id.lower() == lowered:
+            return item
+        if lowered in item.raw.lower():
+            return item
+    return None
+
+
+def _queue_item_description(item) -> str:
+    if not item.raw.strip():
+        return ""
+    first_line = item.raw.splitlines()[0].strip()
+    first_line = re.sub(r"^\s*(?:\d+\.|[-*])\s*", "", first_line)
+    return re.sub(
+        r"^\[(?:planned|ready|active|blocked|done|not-now|archived)\]\s*",
+        "",
+        first_line,
+        flags=re.IGNORECASE,
+    ).strip()
+
+
+def _validate_queue_context(queue_item, items) -> None:
+    if not queue_item.role_plan and not is_trivial_queue_item(queue_item):
+        raise click.ClickException(
+            "Non-trivial queue item must declare RolePlan, for example: "
+            "RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier."
+        )
+
+    dep_map: dict[str, Any] = {}
+    for item in items:
+        for key in (item.id, item.session_id, item.change_id):
+            if key:
+                dep_map.setdefault(key, item)
+
+    if queue_item.layer is not None:
+        if (
+            queue_item.layer.value == "implementation"
+            and queue_item.role != "implementer"
+        ):
+            raise click.ClickException(
+                "Implementation queue item must declare role=implementer."
+            )
+        if queue_item.layer.value == "verification" and queue_item.role not in {
+            "reviewer-verifier",
+            "verifier",
+        }:
+            raise click.ClickException(
+                "Verification queue item must declare role=reviewer-verifier or role=verifier."
+            )
+
+    resolved_deps = [dep_map.get(dep_id) for dep_id in queue_item.depends_on]
+    for dep_id, dep in zip(queue_item.depends_on, resolved_deps, strict=False):
+        if dep is None:
+            raise click.ClickException(f"Queue dependency not found: {dep_id}")
+        if dep.status != "done":
+            raise click.ClickException(f"Queue dependency not done: {dep_id}")
+
+    if queue_item.role == "reviewer-verifier":
+        impl_deps = [dep for dep in resolved_deps if dep and dep.role == "implementer"]
+        if not impl_deps:
+            raise click.ClickException(
+                "Review queue item must dependsOn an implementation item."
+            )
+        if queue_item.session_id:
+            for dep in impl_deps:
+                if dep.session_id and queue_item.session_id == dep.session_id:
+                    raise click.ClickException(
+                        "reviewer-verifier sessionId must differ from implementation."
+                    )
+
+
+def _validate_resolved_queue_session(queue_item, items, session_id: str) -> None:
+    if queue_item.role != "reviewer-verifier":
+        return
+    dep_map: dict[str, Any] = {}
+    for item in items:
+        for key in (item.id, item.session_id, item.change_id):
+            if key:
+                dep_map.setdefault(key, item)
+    impl_deps = [
+        d
+        for dep_id in queue_item.depends_on
+        if (d := dep_map.get(dep_id)) is not None and d.role == "implementer"
+    ]
+    for dep in impl_deps:
+        if dep.session_id and session_id == dep.session_id:
+            raise click.ClickException(
+                "reviewer-verifier sessionId must differ from implementation."
+            )
+
+
 def _check_skill_freshness(project_root: Path) -> str | None:
     """Return a one-line warning if the on-disk skill is older than the
     installed template, else None.
@@ -208,6 +312,8 @@ def _evaluate(input_model: RoutingInput, project_root: Path) -> RoutingResult:
         agent_risk=assessment.risk if assessment else None,
         agent_change_kind=assessment.change_kind if assessment else "",
         agent_recommended_rigor=assessment.recommended_rigor if assessment else None,
+        agent_operation=assessment.operation if assessment else None,
+        agent_writes_files=assessment.writes_files if assessment else None,
     )
     disclosure = decision.to_disclosure(input_model.companion_skills)
     rec_key = _build_recommendation(decision.path)
@@ -297,6 +403,12 @@ def _load_agent_assessment(path: Path) -> AgentAssessment:
     default="",
     help="Agent-assessed change kind, for example single-file-doc or local-test.",
 )
+@click.option(
+    "--queue",
+    "queue_item_id",
+    default=None,
+    help="Queue item id to use as the governing task context.",
+)
 @click.pass_context
 def governed_start_cmd(
     ctx: click.Context,
@@ -311,13 +423,49 @@ def governed_start_cmd(
     recommended_route: str | None,
     risk: str | None,
     change_kind: str,
+    queue_item_id: str | None,
 ) -> None:
     """Classify an incoming task and produce the canonical disclosure."""
+    project_root: Path = ctx.obj["project_root"]
+    queue_item = None
+    queue_items = []
+    if queue_item_id:
+        config = load_config(project_root)
+        queue_items = read_queue(config.queue_file)
+        queue_item = _find_queue_item(queue_items, queue_item_id)
+        if queue_item is None:
+            raise click.ClickException(f"Queue item not found: {queue_item_id}")
+        queue_validation = validate_queue(project_root)
+        if not queue_validation.passed:
+            problems = "\n".join(
+                f"- [{finding.level}] {finding.target}: {finding.message}"
+                for finding in queue_validation.findings
+            )
+            raise click.ClickException(f"Queue validation failed:\n{problems}")
+        _validate_queue_context(queue_item, queue_items)
+
     loaded_assessment = (
         _load_agent_assessment(assessment_path) if assessment_path is not None else None
     )
+    if queue_item is not None:
+        explicit_route = (
+            RoutingPath(recommended_route)
+            if recommended_route is not None
+            else loaded_assessment.recommended_route
+            if loaded_assessment is not None
+            else None
+        )
+        if (
+            explicit_route is not None
+            and explicit_route is not RoutingPath.GOVERNED_PATH
+        ):
+            raise click.ClickException(
+                "--queue requires governed-path; queue start is an execution binding."
+            )
     assessment_route = (
-        RoutingPath(recommended_route)
+        RoutingPath.GOVERNED_PATH
+        if queue_item is not None
+        else RoutingPath(recommended_route)
         if recommended_route is not None
         else loaded_assessment.recommended_route
         if loaded_assessment is not None
@@ -358,6 +506,8 @@ def governed_start_cmd(
         )
 
     resolved_description = description
+    if queue_item is not None and not resolved_description:
+        resolved_description = _queue_item_description(queue_item) or queue_item.raw
     if not resolved_description and assessment is not None:
         resolved_description = (
             assessment.user_request or assessment.agent_interpretation
@@ -405,7 +555,6 @@ def governed_start_cmd(
         rigor_tier=effective_rigor,
         agent_assessment=assessment,
     )
-    project_root: Path = ctx.obj["project_root"]
     result = _evaluate(payload, project_root)
 
     # Resolve rigor tier for session storage.
@@ -416,7 +565,13 @@ def governed_start_cmd(
     if result.path is RoutingPath.GOVERNED_PATH:
         from datetime import datetime, timezone
 
-        session_id = generate_session_id(resolved_description)
+        session_id = (
+            queue_item.session_id
+            if queue_item and queue_item.session_id
+            else generate_session_id(resolved_description)
+        )
+        if queue_item is not None:
+            _validate_resolved_queue_session(queue_item, queue_items, session_id)
         session = SessionState(
             session_id=session_id,
             created_at=datetime.now(timezone.utc).isoformat(),
@@ -425,16 +580,29 @@ def governed_start_cmd(
             current_layer=result.current_layer,
             companion_skills=payload.companion_skills,
             rigor_tier=resolved_rigor.value,
+            git_status_baseline=tuple(git_changed_files(project_root)),
         )
         session_path = create_session(project_root, session)
         config = load_config(project_root)
-        append_governed_queue_item(
-            config.queue_file,
-            session_id=session_id,
-            description=resolved_description,
-            layer=result.current_layer or HarnessLayer.INTAKE_ORIENTATION,
-            rigor_tier=resolved_rigor.value,
-        )
+        if queue_item is None:
+            append_governed_queue_item(
+                config.queue_file,
+                session_id=session_id,
+                description=resolved_description,
+                layer=result.current_layer or HarnessLayer.INTAKE_ORIENTATION,
+                rigor_tier=resolved_rigor.value,
+            )
+        else:
+            mark_queue_item_status(
+                config.queue_file,
+                task_id=queue_item.id
+                or queue_item.session_id
+                or queue_item.change_id
+                or queue_item_id
+                or session_id,
+                status="active",
+                session_id=session_id,
+            )
         import logging
 
         logging.getLogger("harness").info("session created: %s", session_path)

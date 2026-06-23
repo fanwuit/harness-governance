@@ -7,6 +7,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from harness_governance.cli import cli
+from harness_governance.commands.check import check_routing
 from harness_governance.commands.init import detect_platform
 from harness_governance.config.defaults import PLATFORM_SKILL_PATHS
 
@@ -22,6 +23,16 @@ def test_init_writes_config_and_skill(tmp_repo: Path) -> None:
     assert "harness governed-start" in result.output
     assert "harness status" in result.output
     assert "harness layer guide" in result.output
+
+
+def test_init_generated_skills_pass_routing_check(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    routing = check_routing(tmp_repo)
+
+    assert routing.passed, [f.message for f in routing.findings]
 
 
 def test_init_is_idempotent(tmp_repo: Path) -> None:
@@ -242,6 +253,23 @@ def test_init_creates_next_md(tmp_repo: Path) -> None:
     assert "[ready]" in content
 
 
+def test_init_next_md_examples_do_not_validate_as_real_queue(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    validate = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
+    assert validate.exit_code == 0, validate.output
+    assert "Example" not in validate.output
+
+    isolation = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "check", "role-isolation"]
+    )
+    assert isolation.exit_code == 0, isolation.output
+
+
 def test_init_does_not_overwrite_existing_next_md(tmp_repo: Path) -> None:
     next_file = tmp_repo / "NEXT.md"
     next_file.write_text("[ready] My existing task\n", encoding="utf-8")
@@ -256,6 +284,82 @@ def test_init_creates_changes_dir(tmp_repo: Path) -> None:
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
     assert result.exit_code == 0, result.output
     assert (tmp_repo / "docs" / "changes").is_dir()
+
+
+def test_init_creates_user_evidence_template(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    template = tmp_repo / "docs" / "verification" / "user-evidence-template.md"
+    assert template.is_file()
+    text = template.read_text(encoding="utf-8")
+    assert "## User-Perceived Integration Evidence" in text
+    assert "Anti-Self-Proof Assertion" in text
+
+
+def test_init_creates_state_contract_test_scaffold(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
+    assert result.exit_code == 0, result.output
+
+    scaffold = tmp_repo / "tests" / "test_state_contract_scaffold.py"
+    assert scaffold.is_file()
+    text = scaffold.read_text(encoding="utf-8")
+    assert "State Contract Closure" in text
+    assert "writer -> consumer" in text
+    assert "harness state-contract check" in text
+
+
+def test_init_creates_tiers_json(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode"]
+    )
+    assert result.exit_code == 0, result.output
+
+    tiers = tmp_repo / ".opencode" / "tiers.json"
+    assert tiers.is_file()
+    import json
+
+    data = json.loads(tiers.read_text(encoding="utf-8"))
+    assert "platform" in data
+    assert len(data["adapters"]) > 0
+    assert data["adapters"][0]["required_tier"] in ("strong", "execution", "mechanical")
+
+
+def test_init_tiers_json_respects_platform(tmp_repo: Path) -> None:
+    """codex platform writes to .agents/, opencode writes to .opencode/."""
+    runner = CliRunner()
+
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--platform", "codex"]
+    )
+    assert result.exit_code == 0
+    assert (tmp_repo / ".agents" / "tiers.json").is_file()
+
+    # Re-init with different platform
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "opencode", "--force"],
+    )
+    assert result.exit_code == 0
+    assert (tmp_repo / ".opencode" / "tiers.json").is_file()
+
+
+def test_init_minimal_skips_tiers_json(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+    assert not (tmp_repo / ".agents" / "tiers.json").exists()
+
+
+def test_init_minimal_skips_state_contract_test_scaffold(tmp_repo: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--minimal"])
+    assert result.exit_code == 0, result.output
+
+    assert not (tmp_repo / "tests" / "test_state_contract_scaffold.py").exists()
 
 
 def test_init_cursor_config_valid(tmp_repo: Path) -> None:

@@ -22,6 +22,14 @@ def test_status_empty_repo(tmp_repo: Path) -> None:
     )
 
 
+def test_status_warns_when_initialized_queue_missing(tmp_repo: Path) -> None:
+    (tmp_repo / ".harness").mkdir()
+
+    payload = build_status(tmp_repo)
+
+    assert any("Required scheduler queue file missing" in w for w in payload.warnings)
+
+
 def test_status_aggregates_queue_and_packets(tmp_repo: Path) -> None:
     seed_session(tmp_repo)
     (tmp_repo / "NEXT.md").write_text(

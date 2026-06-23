@@ -1,9 +1,15 @@
-﻿---
+---
 name: harness-governance-standard
 description: 标准治理模式 — 日常功能开发、中等复杂度改动。12 层可用，允许适度合并。 / Standard governance for daily feature development, moderate complexity. 12 layers with flexibility.
 ---
 
 <!-- harness-skill-version: 0.8.0 -->
+
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
 
 
 ## 🟡 STANDARD MODE — 全 12 层标准治理 / All 12 Layers Standard Governance
@@ -78,6 +84,21 @@ Do not skip this step. Fast path returns briefly; trivial / governed must output
 
 When omitted, `--contracts` and `--external` are auto-inferred from the description. Prefer explicit flags when you know them.
 省略时 `--contracts` 和 `--external` 会从描述自动推断。已知时优先显式传参。
+
+
+## Platform Slash UX
+
+Platform slash-style requests should map to the same CLI commands; slash text is
+only a user-facing trigger, not a separate governance path.
+
+| User request | Command |
+|---|---|
+| `/harness start <task>` | `harness governed-start "<task>"` |
+| `/harness next` | `harness next` |
+| `/harness wizard` | `harness layer wizard` |
+| `/harness ship` | `harness ship` |
+| `/harness status` | `harness status` |
+
 
 ## Change packets
 

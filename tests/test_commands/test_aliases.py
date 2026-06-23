@@ -91,6 +91,8 @@ def test_ship_alias_does_not_publish_and_fails_without_session(tmp_repo: Path) -
     assert payload["session_id"] is None
     assert payload["passed"] is False
     assert payload["release_verification_available"] is False
+    assert any(check["check"] == "user-evidence" for check in payload["checks"])
+    assert any(check["check"] == "subagent-separation" for check in payload["checks"])
 
 
 def test_ship_alias_mentions_release_verification_only_for_self_repo(
@@ -106,4 +108,5 @@ def test_ship_alias_mentions_release_verification_only_for_self_repo(
     )
 
     assert result.exit_code == 1, result.output
-    assert "harness verify local --release" in result.output
+    assert "release tag" in result.output
+    assert "harness verify local" in result.output

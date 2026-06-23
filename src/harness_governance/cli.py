@@ -17,7 +17,7 @@ Wires the :mod:`click` groups together.  v0.8.0 ships 19 command groups:
 * ``harness config init``
 * ``harness runner start``
 * ``harness gate {check,status,reset,timing}``
-* ``harness layer {advance,show,guide}``
+* ``harness layer {advance,show,guide,ask,wizard}``
 * ``harness session {show,list,archive}``
 * ``harness tech-stack {capture,check,add,show,lint,docstyle}``
 * ``harness isolation`` — role isolation workspace inspection
@@ -40,6 +40,7 @@ from .commands.check import check_group
 from .commands.config_cmd import config_group
 from .commands.drift import drift_group
 from .commands.entry import entry_group
+from .commands.finish import finish_cmd
 from .commands.gate import gate_group
 from .commands.governed_start import governed_start_cmd
 from .commands.hook import hook_group
@@ -48,10 +49,12 @@ from .commands.isolation import isolation_group
 from .commands.layer import layer_group
 from .commands.packet import packet_group
 from .commands.plan import plan_group
+from .commands.queue import queue_group
 from .commands.review import review_group
 from .commands.runner import runner_group
 from .commands.session_cmd import session_group
 from .commands.skill_chain import skill_chain_group
+from .commands.spec import spec_group
 from .commands.state_contract import state_contract_group
 from .commands.status import status_cmd
 from .commands.tech_stack import tech_stack_group
@@ -118,7 +121,9 @@ cli.add_command(next_cmd)
 cli.add_command(ship_cmd)
 cli.add_command(packet_group)
 cli.add_command(entry_group)
+cli.add_command(finish_cmd)
 cli.add_command(plan_group)
+cli.add_command(queue_group)
 cli.add_command(check_group)
 cli.add_command(status_cmd)
 cli.add_command(verify_cmd)
@@ -128,6 +133,7 @@ cli.add_command(runner_group)
 cli.add_command(layer_group)
 cli.add_command(gate_group)
 cli.add_command(session_group)
+cli.add_command(spec_group)
 cli.add_command(state_contract_group)
 cli.add_command(tech_stack_group)
 cli.add_command(isolation_group)

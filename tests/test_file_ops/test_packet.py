@@ -45,6 +45,7 @@ def test_init_packet_creates_all_files(tmp_repo: Path) -> None:
         "design.md",
         "tasks.md",
         "contracts.md",
+        "tests.md",
         "verification.md",
     ):
         assert (result.packet_dir / filename).is_file()
@@ -54,6 +55,7 @@ def test_init_packet_creates_all_files(tmp_repo: Path) -> None:
         "design.md",
         "tasks.md",
         "contracts.md",
+        "tests.md",
         "verification.md",
     }
 
@@ -83,6 +85,15 @@ def _fill_valid_packet(packet_dir_path: Path) -> None:
     """Fill contracts.md and verification.md so a packet passes check."""
     (packet_dir_path / "contracts.md").write_text(
         "# Contracts\n\n- Artifact: schema\n- Path: schema.json\n",
+        encoding="utf-8",
+    )
+    (packet_dir_path / "tests.md").write_text(
+        "# Tests\n\n"
+        "## Test Owner\n\n- Test Owner: test-writer invocation test-1\n\n"
+        "## Test Types\n\n- Unit: applicable\n- Integration: not applicable\n- E2E: not applicable\n\n"
+        "## Test Files\n\n- Path: tests/test_demo.py\n\n"
+        "## Red Green Evidence\n\n- Expected failing command before product implementation: pytest tests/test_demo.py\n"
+        "- Green command: pytest tests/test_demo.py\n",
         encoding="utf-8",
     )
     (packet_dir_path / "verification.md").write_text(
@@ -170,6 +181,55 @@ def test_check_packet_flags_missing_verification_evidence(tmp_repo: Path) -> Non
     )
     errors, _ = check_packet(packet_dir(tmp_repo, "no-verify"), project_root=tmp_repo)
     assert any("verification" in err for err in errors)
+
+
+def test_check_packet_flags_missing_tests_file(tmp_repo: Path) -> None:
+    init_packet(tmp_repo, "old-packet")
+    _fill_valid_packet(packet_dir(tmp_repo, "old-packet"))
+    (tmp_repo / "docs" / "changes" / "old-packet" / "tests.md").unlink()
+
+    errors, _ = check_packet(packet_dir(tmp_repo, "old-packet"), project_root=tmp_repo)
+
+    assert any("tests.md" in err for err in errors)
+
+
+def test_check_packet_flags_incomplete_test_plan(tmp_repo: Path) -> None:
+    init_packet(tmp_repo, "bad-tests")
+    _fill_valid_packet(packet_dir(tmp_repo, "bad-tests"))
+    (tmp_repo / "docs" / "changes" / "bad-tests" / "tests.md").write_text(
+        "# Tests\n\n## Test Types\n\n- Unit: applicable\n",
+        encoding="utf-8",
+    )
+
+    errors, _ = check_packet(packet_dir(tmp_repo, "bad-tests"), project_root=tmp_repo)
+
+    assert any("test owner" in err.lower() for err in errors)
+    assert any(
+        "test files" in err.lower() or "blocked reason" in err.lower() for err in errors
+    )
+
+
+def test_check_packet_requires_test_writer_for_done_packet(tmp_repo: Path) -> None:
+    init_packet(tmp_repo, "done-without-test-writer")
+    _fill_valid_packet(packet_dir(tmp_repo, "done-without-test-writer"))
+    packet_path = packet_dir(tmp_repo, "done-without-test-writer")
+    (packet_path / "proposal.md").write_text(
+        "# Proposal\n\nStatus: done\n", encoding="utf-8"
+    )
+    (packet_path / "tests.md").write_text(
+        "# Tests\n\n"
+        "## Test Owner\n\n- Test Owner: local owner\n\n"
+        "## Test Types\n\n- Unit: applicable\n- Integration: not applicable\n- E2E: not applicable\n\n"
+        "## Test Files\n\n- Path: tests/test_demo.py\n\n"
+        "## Red Green Evidence\n\n"
+        "- Expected failing command before product implementation: pytest tests/test_demo.py\n"
+        "- Green command: pytest tests/test_demo.py\n",
+        encoding="utf-8",
+    )
+
+    errors, _ = check_packet(packet_path, project_root=tmp_repo)
+
+    assert any("test-writer" in err for err in errors)
 
 
 def test_check_packet_allows_unable_to_verify(tmp_repo: Path) -> None:

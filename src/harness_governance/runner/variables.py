@@ -50,6 +50,7 @@ class RoleVariables:
     forbidden_scope: str = ""
     verification_commands: str = ""
     done_when: str = ""
+    test_plan: str = ""
 
     # --- Reviewer / Fact Finder only ---
     git_diff: str = ""
@@ -89,13 +90,21 @@ class VariableExtractor:
         # Parse inline fields from the raw ready block.
         inline = extract_ready_block_fields(queue_item.raw)
         variables.role = inline.get("role", "")
-        variables.forbidden_scope = inline.get("forbidden shortcut", "") or inline.get(
-            "forbidden scope", ""
+        variables.forbidden_scope = (
+            inline.get("forbidden shortcut", "")
+            or inline.get("forbiddenshortcut", "")
+            or inline.get("forbidden scope", "")
+            or inline.get("forbiddenscope", "")
         )
         variables.verification_commands = inline.get(
             "verification command", ""
-        ) or inline.get("verification commands", "")
-        variables.done_when = inline.get("done when", "")
+        ) or inline.get("verificationcommand", "")
+        variables.verification_commands = (
+            variables.verification_commands
+            or inline.get("verification commands", "")
+            or inline.get("verificationcommands", "")
+        )
+        variables.done_when = inline.get("done when", "") or inline.get("donewhen", "")
 
         # --- From the task packet (if change_id is set) ---
         if queue_item.change_id:
@@ -127,7 +136,12 @@ class VariableExtractor:
         * ``planner``  → also fills ``project_context``.
         * Other roles  → no extras.
         """
-        if role in ("reviewer", "fact-finder-reviewer"):
+        if role in (
+            "reviewer",
+            "reviewer-verifier",
+            "verifier",
+            "fact-finder-reviewer",
+        ):
             variables = self.extract_with_git_diff(project_root, queue_item)
         else:
             variables = self.extract(project_root, queue_item)
@@ -143,6 +157,7 @@ class VariableExtractor:
         """Read packet files and fill task-packet-derived variables."""
         tasks_path = pkt / "tasks.md"
         contracts_path = pkt / "contracts.md"
+        tests_path = pkt / "tests.md"
         design_path = pkt / "design.md"
 
         if tasks_path.is_file():
@@ -186,6 +201,9 @@ class VariableExtractor:
 
         if contracts_path.is_file():
             variables.contracts = contracts_path.read_text(encoding="utf-8")
+
+        if tests_path.is_file():
+            variables.test_plan = tests_path.read_text(encoding="utf-8")
 
         # Design doc as fallback scope source
         if not variables.scope and design_path.is_file():

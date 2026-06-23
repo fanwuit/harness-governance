@@ -1,0 +1,35 @@
+{
+  "platform": "opencode",
+  "adapters": [
+    {
+      "role": "implementer",
+      "required_tier": "execution",
+      "adapter": "subagent",
+      "model_label": "python3"
+    },
+    {
+      "role": "verifier",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
+    },
+    {
+      "role": "planner",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
+    },
+    {
+      "role": "contract-test-writer",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
+    },
+    {
+      "role": "reviewer-verifier",
+      "required_tier": "strong",
+      "adapter": "subagent",
+      "model_label": "python3"
+    }
+  ]
+}

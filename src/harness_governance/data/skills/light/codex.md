@@ -1,9 +1,15 @@
-﻿---
+---
 name: harness-governance-light
 description: 轻量治理模式 — 修 bug、小改动、配置调整。仅 6 层快速通道。 / Light governance for bug fixes, small changes, config adjustments. Fast-track 6 layers.
 ---
 
 <!-- harness-skill-version: 0.8.0 -->
+
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
 
 
 ## 🔵 LIGHT MODE — 核心 6 层快速通道 / Core 6-Layer Fast Track
@@ -74,6 +80,19 @@ Do not skip this step. Fast path returns briefly; trivial / governed must output
 
 When omitted, `--contracts` and `--external` are auto-inferred from the description. Prefer explicit flags when you know them.
 省略时 `--contracts` 和 `--external` 会从描述自动推断。已知时优先显式传参。
+
+## Platform Slash UX
+
+Codex slash-style requests should map to the same CLI commands; slash text is
+only a user-facing trigger, not a separate governance path.
+
+| User request | Command |
+|---|---|
+| `/harness start <task>` | `harness governed-start "<task>"` |
+| `/harness next` | `harness next` |
+| `/harness wizard` | `harness layer wizard` |
+| `/harness ship` | `harness ship` |
+| `/harness status` | `harness status` |
 
 ## Change packets
 

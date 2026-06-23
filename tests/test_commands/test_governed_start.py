@@ -56,7 +56,7 @@ def test_governed_start_classifies_public_api_as_governed(tmp_repo: Path) -> Non
     assert "Disclosure" in result.output
     assert "Layer path:" in result.output
     assert "intake-orientation -> idea -> fact-discovery" in result.output
-    assert "Next layer: idea" in result.output
+    assert "下一层: idea" in result.output or "Next layer: idea" in result.output
     assert "harness layer show" in result.output
     assert "harness gate status" in result.output
 
@@ -124,6 +124,311 @@ def test_governed_start_governed_path_appends_active_queue_item(
     )
     assert second.exit_code == 0, second.output
     assert (tmp_repo / "NEXT.md").read_text(encoding="utf-8") == text
+
+
+def test_governed_start_queue_requires_implementer_role(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Review queue task\n"
+        "- Id: review-1\n"
+        "- Layer: implementation\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "role=implementer" in result.output
+
+
+def test_governed_start_queue_requires_done_dependencies(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Queue dependency not done" in result.output
+
+
+def test_governed_start_queue_rejects_same_session_review(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: shared-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: shared-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "sessionId must differ" in result.output
+
+
+def test_governed_start_queue_marks_item_active(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Implement task" in queue
+    assert "- Status: active" in queue
+    assert "- SessionId: impl-session" in queue
+
+
+def test_governed_start_queue_rejects_non_governed_route(tmp_repo: Path) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+            "--recommended-route",
+            "fast-path",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--queue requires governed-path" in result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[ready] Implement task" in queue
+    assert "- SessionId:" not in queue
+
+
+def test_governed_start_queue_requires_role_plan_for_non_trivial(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "RolePlan" in result.output
+
+
+def test_governed_start_queue_generates_session_for_ready_implementer(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Implement task" in queue
+    assert "- Status: active" in queue
+    assert "- SessionId:" in queue
+
+
+def test_governed_start_queue_generates_independent_review_session(
+    tmp_repo: Path,
+) -> None:
+    (tmp_repo / "NEXT.md").write_text(
+        "[done] Implement task\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: implementer\n"
+        "- SessionId: impl-session\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- TestPlan: tests/test_app.py\n"
+        "- FailingTestEvidence: pytest tests/test_app.py failed\n"
+        "- Evidence: pytest -q\n\n"
+        "[ready] Review task\n"
+        "- Id: review-1\n"
+        "- Layer: verification\n"
+        "- Role: reviewer-verifier\n"
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier\n"
+        "- DependsOn: impl-1\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "review-1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    queue = (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[active] Review task" in queue
+    assert "- SessionId:" in queue
+    assert "- SessionId: impl-session" in queue
+    review_block = queue.split("[active] Review task", 1)[1]
+    assert "- SessionId: impl-session" not in review_block
+
+
+def test_governed_start_queue_applies_project_policy(tmp_repo: Path) -> None:
+    harness_dir = tmp_repo / ".harness"
+    harness_dir.mkdir(parents=True, exist_ok=True)
+    (harness_dir / "queue-policy.json").write_text(
+        """{
+  "role_required_by_layer": {
+    "implementation": "implementer"
+  }
+}""",
+        encoding="utf-8",
+    )
+    (tmp_repo / "NEXT.md").write_text(
+        "[ready] Bad implementer item\n"
+        "- Id: impl-1\n"
+        "- Layer: implementation\n"
+        "- Role: reviewer-verifier\n"
+        "- SessionId: review-session\n",
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "--project-root",
+            str(tmp_repo),
+            "governed-start",
+            "--queue",
+            "impl-1",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Queue validation failed" in result.output
 
 
 def test_governed_start_warns_on_stale_skill(tmp_repo: Path, monkeypatch) -> None:

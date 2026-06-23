@@ -233,8 +233,10 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Do you believe all implementation prerequisites are met? / 你是否认为所有实施前提条件都已满足？",
             "Is this a throwaway prototype or will it produce real/persisted artifacts? / 这是丢弃式原型还是会产生真实产物？",
             "Any concerns about the implementation environment or tooling? / 对实施环境或工具有任何顾虑吗？",
+            "What is the real user entry for user-perceived functionality, or why is it not applicable? / 用户可感知功能的真实用户入口是什么，或为什么不适用？",
+            "Which backend, persisted, or external state proves the result is not a mock? / 哪个后端、持久化或外部状态证明结果不是 mock？",
         ),
-        min_questions_answered=_q(3),
+        min_questions_answered=_q(5),
         required_artifacts=(
             ".harness/sessions/*.json",
             "tests/**/*.py",
@@ -271,8 +273,11 @@ GATE_CATALOG: dict[HarnessLayer, LayerGateDefinition] = {
             "Any additional verification steps beyond the defined commands? / 除了已定义的命令外，还有额外的验证步骤吗？",
             "Should I record screenshots or traces? / 需要我录制截图或跟踪吗？",
             "If verification fails: investigate the cause, or report and pause? / 如果验证失败：调查原因，还是报告并暂停？",
+            "Which UI state is the user-perceived result? / 哪个 UI 状态是用户感知结果？",
+            "Does verification prove request payload/readback/reopened UI match the current UI value? / 验证是否证明请求 payload、读回和重新打开的 UI 与当前 UI 值一致？",
+            "Could any test-only path be mistaken for the product path? / 是否存在测试专用路径冒充产品路径？",
         ),
-        min_questions_answered=_q(3),
+        min_questions_answered=_q(6),
         required_artifacts=("docs/verification/*.md",),
         confirmation_items=(
             "All verification commands executed, results are fresh",
@@ -437,6 +442,50 @@ def _ensure_hooks_loaded() -> None:
     _hooks_loaded = True
 
 
+def _gate_hook_user_evidence(_session: "SessionState", project_root: Path) -> list[str]:
+    """Require user-perceived evidence before verification closes."""
+    from ..commands.check import check_user_evidence
+
+    result = check_user_evidence(project_root)
+    if result.passed:
+        return []
+    return [f"{finding.target}: {finding.message}" for finding in result.findings]
+
+
+def _gate_hook_state_contract(
+    _session: "SessionState", project_root: Path
+) -> list[str]:
+    """Require state-contract closure evidence before verification closes."""
+    from ..commands.check import check_state_contract
+
+    result = check_state_contract(project_root)
+    if result.passed:
+        return []
+    return [f"{finding.target}: {finding.message}" for finding in result.findings]
+
+
+def _gate_hook_implementation_hard_gates(
+    session: "SessionState", project_root: Path
+) -> list[str]:
+    """Require queued implementation hard-gate evidence."""
+    from ..hard_gates import implementation_gate_failures
+
+    return implementation_gate_failures(project_root, session.session_id)
+
+
+def _gate_hook_native_handoff(session: "SessionState", project_root: Path) -> list[str]:
+    """Require complete native handoff lifecycle evidence."""
+    from ..hard_gates import native_handoff_gate_failures
+
+    return native_handoff_gate_failures(project_root, session.session_id)
+
+
+register_gate_hook(HarnessLayer.IMPLEMENTATION, _gate_hook_implementation_hard_gates)
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_user_evidence)
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_state_contract)
+register_gate_hook(HarnessLayer.VERIFICATION, _gate_hook_native_handoff)
+
+
 # ---------------------------------------------------------------------------
 # Layer gate engine — programmatic gate verification
 # ---------------------------------------------------------------------------
@@ -498,8 +547,20 @@ class LayerGateEngine:
         tier = RigorTier(session.rigor_tier)
         required = gate_def.min_questions_answered.get(tier, 1)
 
-        # Count answered questions for this layer from the session Q&A log.
-        qa_count = sum(1 for qa in session.layer_qa if qa.get("layer") == layer.value)
+        # v0.9.0: Answer provenance — count only ``source=author`` for the
+        # gate threshold.  Agent-inferred answers are reported for visibility
+        # but do NOT count toward passing the gate.
+        author_answers = sum(
+            1
+            for qa in session.layer_qa
+            if qa.get("layer") == layer.value and qa.get("source", "author") == "author"
+        )
+        inferred_answers = sum(
+            1
+            for qa in session.layer_qa
+            if qa.get("layer") == layer.value and qa.get("source") == "agent_inference"
+        )
+        qa_count = author_answers + inferred_answers
 
         # Check required artifacts on disk.
         artifacts_found: list[str] = []
@@ -519,8 +580,8 @@ class LayerGateEngine:
             if not list(project_root.glob(pattern)):
                 blocking_missing.append(pattern)
 
-        # Q&A threshold must be met and all blocking artifacts must exist.
-        passed = qa_count >= required and len(blocking_missing) == 0
+        # Q&A threshold must be met with *author* answers only.
+        passed = author_answers >= required and len(blocking_missing) == 0
 
         # Execute registered gate hooks and collect failure messages.
         confirmation_items_unmet: list[str] = []
@@ -548,6 +609,8 @@ class LayerGateEngine:
             passed=passed,
             questions_answered=qa_count,
             questions_required=required,
+            questions_author_answered=author_answers,
+            questions_agent_inferred=inferred_answers,
             artifacts_found=tuple(artifacts_found),
             artifacts_missing=tuple(artifacts_missing),
             confirmation_items_met=gate_def.confirmation_items,

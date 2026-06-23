@@ -1,10 +1,16 @@
-﻿---
+---
 name: harness-governance-strict
 description: 严格治理模式 — 大型平台、系统重构、从零构建。全部 12 层强制执行。 / Strict governance for large platforms, system rewrites, build-from-scratch. All 12 layers enforced.
 alwaysApply: true
 ---
 
 <!-- harness-skill-version: 0.8.0 -->
+
+## Harness Precondition
+
+Before any implementation, bug fix, refactor, debugging, verification, or file modification, run `harness governed-start` first and follow its disclosure. Harness entry routing has priority over companion skills.
+
+Canonical governance checkpoints referenced by routing checks: Intake / Orientation, Fact Discovery, Implementation Readiness.
 
 
 ## ⛔ STRICT MODE — 全 12 层强制执行 / All 12 Layers Enforced
@@ -87,6 +93,21 @@ Do not skip this step. Fast path returns briefly; trivial / governed must output
 
 When omitted, `--contracts` and `--external` are auto-inferred from the description. Prefer explicit flags when you know them.
 省略时 `--contracts` 和 `--external` 会从描述自动推断。已知时优先显式传参。
+
+
+## Platform Slash UX
+
+Platform slash-style requests should map to the same CLI commands; slash text is
+only a user-facing trigger, not a separate governance path.
+
+| User request | Command |
+|---|---|
+| `/harness start <task>` | `harness governed-start "<task>"` |
+| `/harness next` | `harness next` |
+| `/harness wizard` | `harness layer wizard` |
+| `/harness ship` | `harness ship` |
+| `/harness status` | `harness status` |
+
 
 ## Change packets
 

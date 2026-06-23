@@ -4,12 +4,14 @@ from . import (
     check,
     config_cmd,
     entry,
+    finish,
     governed_start,
     hook,
     init,
     layer,
     packet,
     plan,
+    queue,
     review,
     runner,
     session_cmd,
@@ -39,6 +41,7 @@ from .entry import (
     entry_group,
     entry_record_cmd,
 )
+from .finish import finish_cmd
 from .governed_start import governed_start_cmd
 from .hook import hook_group, hook_install_cmd
 from .init import InitResult, detect_platform, init_cmd, write_skill_file
@@ -60,6 +63,7 @@ from .plan import (
     plan_init_cmd,
     plan_show_cmd,
 )
+from .queue import queue_group, queue_validate_cmd
 from .review import review_close_cmd, review_group
 from .runner import (
     runner_group,
@@ -91,6 +95,7 @@ __all__ = [
     "entry_group",
     "entry_check_cmd",
     "entry_record_cmd",
+    "finish_cmd",
     "check_entry_file",
     "discover_entry_files",
     "plan_group",
@@ -99,6 +104,8 @@ __all__ = [
     "plan_show_cmd",
     "plan_clear_cmd",
     "plan_complete_cmd",
+    "queue_group",
+    "queue_validate_cmd",
     "check_group",
     "check_routing_cmd",
     "check_packets_cmd",
@@ -140,12 +147,14 @@ __all__ = [
     "check",
     "config_cmd",
     "entry",
+    "finish",
     "governed_start",
     "hook",
     "init",
     "layer",
     "packet",
     "plan",
+    "queue",
     "review",
     "runner",
     "session_cmd",

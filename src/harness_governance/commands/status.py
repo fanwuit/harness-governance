@@ -123,6 +123,14 @@ def _infer_current_layer(items: Iterable[QueueItem]) -> str | None:
     return None
 
 
+def _extract_session_id(raw: str) -> str | None:
+    for line in raw.splitlines():
+        m = re.match(r"^\s*-?\s*Session:\s*(.+)$", line, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
 def _find_latest_checkpoint(
     repo_root: Path,
     harness_dir: Path,
@@ -208,6 +216,12 @@ def build_status(
     warnings: list[str] = []
     if not initialized:
         warnings.append(bilingual("status.not_initialized"))
+    elif config.require_queue and not queue_path.is_file():
+        warnings.append(
+            f"Required scheduler queue file missing: {queue_path}. "
+            "Run `harness init`, restore queue_file, or set require_queue = false "
+            "only with an explicit project waiver."
+        )
     # Clean: no queue items is a valid state — no warning needed.
 
     packet_dirs = packet_ops.discover_packets(repo_root)
@@ -236,6 +250,16 @@ def build_status(
     # Only flag verification staleness if the project is initialized.
     if initialized and verification.stale:
         warnings.append("Verification is missing, failed, or stale.")
+    for item in items:
+        if not item.active:
+            continue
+        session_id = _extract_session_id(item.raw)
+        if session_id:
+            warnings.append(
+                "Active task pending closeout: run "
+                f"`harness finish {session_id} --evidence <result> --risk none` "
+                "when verification is complete."
+            )
 
     current_layer = _infer_current_layer(items) or "unknown"
 
@@ -267,7 +291,9 @@ def build_status(
                 active=i.active,
                 ready=i.ready,
                 layer=i.layer.value if i.layer else None,
+                role=i.role,
                 change_id=i.change_id,
+                session_id=i.session_id,
             )
             for i in items
         ),

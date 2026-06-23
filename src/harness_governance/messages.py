@@ -173,8 +173,16 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "zh-CN": "门控锁: {locked}/{total}",
     },
     "alias.ship.release_verify_hint": {
-        "en": "Before pushing a release tag for this repository: run `harness verify local --release` or install `harness hook install --tag-release`.",
-        "zh-CN": "推送本仓库 release tag 前: 运行 `harness verify local --release`，或安装 `harness hook install --tag-release`。",
+        "en": "Before pushing a release tag: run `harness verify local` and consider installing a pre-push hook.",
+        "zh-CN": "推送 release tag 前: 运行 `harness verify local` 并考虑安装 pre-push hook。",
+    },
+    "alias.ship.hook_hint": {
+        "en": "No pre-push hook found. Install one with `harness hook install --tag-release` to automate release verification.",
+        "zh-CN": "未找到 pre-push hook。运行 `harness hook install --tag-release` 安装以自动验证发布。",
+    },
+    "alias.ship.fail_hint": {
+        "en": "Fix the failing checks above before proceeding with a release. Re-run `harness ship` after fixing.",
+        "zh-CN": "在发布前请先修复上述失败的检查项，修复后重新运行 `harness ship`。",
     },
     "governed_start.disclosure": {
         "en": "Disclosure:",
@@ -656,6 +664,35 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Recorded review/next state for {task_id} in {path}",
         "zh-CN": "已将 {task_id} 的 review/next 状态写入 {path}",
     },
+    "review.auto_close.summary": {
+        "en": "Auto-close: {active} active, {closed} closed",
+        "zh-CN": "自动收口: {active} 个 active, {closed} 个已关闭",
+    },
+    "review.auto_close.closed": {
+        "en": "  ✓ closed: {description}",
+        "zh-CN": "  ✓ 已关闭: {description}",
+    },
+    "review.auto_close.dry_run": {
+        "en": "  would close: {description}",
+        "zh-CN": "  将关闭: {description}",
+    },
+    "review.auto_close.none": {
+        "en": "No tasks to auto-close.",
+        "zh-CN": "没有可自动关闭的任务。",
+    },
+    "review.auto_close.no_active": {
+        "en": "No active tasks found.",
+        "zh-CN": "未找到 active 任务。",
+    },
+    # runner dispatch ---------------------------------------------------------
+    "runner.dispatch.header": {
+        "en": "=== Dispatch Plan (dry-run) ===",
+        "zh-CN": "=== 调度计划（dry-run） ===",
+    },
+    "runner.dispatch.no_adapter": {
+        "en": "No adapter declaration found for role '{role}' at tier '{tier}'.",
+        "zh-CN": "未找到角色 '{role}' 在层级 '{tier}' 的适配器声明。",
+    },
     # config ---------------------------------------------------------------
     "config.created": {
         "en": "Created: {path}",
@@ -714,10 +751,6 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "Warning: {count} unresolved variables: {vars}",
         "zh-CN": "警告: {count} 个未解析变量: {vars}",
     },
-    "runner.command_required": {
-        "en": "--command is required when --executor=subprocess.",
-        "zh-CN": "--executor=subprocess 时必须指定 --command。",
-    },
     "runner.unknown_verification": {
         "en": "Unknown verification preset: {preset!r}. Available: {available}.",
         "zh-CN": "未知的验证 preset: {preset!r}。可用: {available}。",
@@ -733,10 +766,6 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "runner.render_unresolved": {
         "en": "Warning: {count} unresolved variables: {vars}",
         "zh-CN": "警告: {count} 个未解析变量: {vars}",
-    },
-    "runner.codex_not_found": {
-        "en": "codex CLI not found on PATH. Install Codex CLI or use SubprocessAgentExecutor with a different command.",
-        "zh-CN": "PATH 中未找到 codex CLI。请安装 Codex CLI 或使用其他命令的 SubprocessAgentExecutor。",
     },
     "runner.timed_out": {
         "en": "[harness runner] timed out after {seconds}s",
@@ -856,9 +885,77 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
         "en": "No author questions found for layer: {layer}.",
         "zh-CN": "未找到 {layer} 的作者问题。",
     },
+    "layer.ask.aborted": {
+        "en": "Question prompt aborted for {layer}. In non-interactive runs, use `harness layer answer` or `harness layer wizard --json`.",
+        "zh-CN": "{layer} 的问题提示已中断。非交互运行请使用 `harness layer answer` 或 `harness layer wizard --json`。",
+    },
+    "layer.selector.hint": {
+        "en": "Use Up/Down or j/k, then Enter. Number keys also work.",
+        "zh-CN": "使用 ↑/↓ 或 j/k 后按 Enter；也可以直接按数字。",
+    },
+    "layer.wizard.advance_prompt": {
+        "en": "Gate passed. Advance to {layer}?",
+        "zh-CN": "门控已通过。推进到 {layer} 吗？",
+    },
+    "layer.wizard.question": {
+        "en": "Question: {question}",
+        "zh-CN": "问题: {question}",
+    },
+    "layer.wizard.suggested_answer": {
+        "en": "Suggested answer: {answer}",
+        "zh-CN": "建议答案: {answer}",
+    },
+    "layer.wizard.question_action_prompt": {
+        "en": "Choose how to answer this question:",
+        "zh-CN": "请选择如何回答此问题:",
+    },
+    "layer.wizard.choice.confirm": {
+        "en": "confirm - use suggested answer",
+        "zh-CN": "confirm — 使用建议答案",
+    },
+    "layer.wizard.choice.edit": {
+        "en": "edit - type a different answer",
+        "zh-CN": "edit — 输入不同答案",
+    },
+    "layer.wizard.choice.skip": {
+        "en": "skip - leave unanswered",
+        "zh-CN": "skip — 暂不回答",
+    },
+    "layer.wizard.choice.question_back": {
+        "en": "back - return to previous question",
+        "zh-CN": "back — 返回上一题",
+    },
+    "layer.wizard.edit_prompt": {
+        "en": "Answer for: {question}",
+        "zh-CN": "回答: {question}",
+    },
+    "layer.wizard.choice.yes": {
+        "en": "yes - advance now",
+        "zh-CN": "yes — 现在推进",
+    },
+    "layer.wizard.choice.no": {
+        "en": "no - stop here",
+        "zh-CN": "no — 停在这里",
+    },
+    "layer.wizard.choice.back": {
+        "en": "back - revise answers",
+        "zh-CN": "back — 返回修改回答",
+    },
+    "layer.wizard.back": {
+        "en": "Revise answers with `harness layer answer`, then rerun `harness layer wizard`.",
+        "zh-CN": "使用 `harness layer answer` 修改回答，然后重新运行 `harness layer wizard`。",
+    },
+    "layer.wizard.no_next": {
+        "en": "No next layer for this session path.",
+        "zh-CN": "此会话路径没有下一层。",
+    },
     "layer.skip_gate_requires_confirmed": {
         "en": "--skip-gate requires --confirmed (safety interlock).",
         "zh-CN": "--skip-gate 必须配合 --confirmed 使用（安全联动）。",
+    },
+    "layer.confirmed_required_for_strict": {
+        "en": "--confirmed is required to advance layers in standard/strict governance (use --confirmed to record author approval).",
+        "zh-CN": "标准/严格治理模式下推进层需要 --confirmed（使用 --confirmed 记录作者确认）。",
     },
     "layer.gate_blocked": {
         "en": "Advance blocked: complete the current layer's gate requirements first, or use --skip-gate --confirmed to override.",
@@ -876,6 +973,14 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "gate.check.failed": {
         "en": "Gate {layer}: FAILED ({questions}/{required} questions answered; artifacts missing: {missing})",
         "zh-CN": "门控 {layer}: 失败 ({questions}/{required} 问题已答; 缺失工件: {missing})",
+    },
+    "gate.check.answer_breakdown": {
+        "en": "  Author: {author}/{required}  |  Agent-inferred: {inferred}",
+        "zh-CN": "  作者回答: {author}/{required}  |  智能体推断: {inferred}",
+    },
+    "gate.check.agent_inferred_ignored": {
+        "en": "  ({n} agent-inferred answer(s) are informational and do not count toward the gate threshold)",
+        "zh-CN": "  （{n} 条智能体推断答案仅供参考，不计入门控阈值）",
     },
     "gate.failure.details_header": {
         "en": "Missing requirements:",
@@ -1202,6 +1307,23 @@ _MESSAGES: dict[str, Mapping[str, str]] = {
     "skill_chain.clean": {
         "en": "✓ Skill chain integrity verified.",
         "zh-CN": "✓ 技能调用链完整性已验证。",
+    },
+    # spec ----------------------------------------------------------------
+    "spec.created": {
+        "en": "Spec created: {path}",
+        "zh-CN": "规格已创建: {path}",
+    },
+    "spec.exists": {
+        "en": "Spec already exists: {path}",
+        "zh-CN": "规格文件已存在: {path}",
+    },
+    "spec.list_header": {
+        "en": "Spec files ({count}):",
+        "zh-CN": "规格文件（共 {count} 个）:",
+    },
+    "spec.list_empty": {
+        "en": "No spec files found in .harness/specs/.",
+        "zh-CN": ".harness/specs/ 中未找到规格文件。",
     },
 }
 

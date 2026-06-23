@@ -18,6 +18,15 @@ def _fill_valid_packet(packet_dir: Path) -> None:
         "# Contracts\n\n- Artifact: schema\n- Path: schema.json\n",
         encoding="utf-8",
     )
+    (packet_dir / "tests.md").write_text(
+        "# Tests\n\n"
+        "## Test Owner\n\n- Test Owner: test-writer invocation test-1\n\n"
+        "## Test Types\n\n- Unit: applicable\n- Integration: not applicable\n- E2E: not applicable\n\n"
+        "## Test Files\n\n- Path: tests/test_demo.py\n\n"
+        "## Red Green Evidence\n\n- Expected failing command before product implementation: pytest tests/test_demo.py\n"
+        "- Green command: pytest tests/test_demo.py\n",
+        encoding="utf-8",
+    )
     (packet_dir / "verification.md").write_text(
         "# Verification\n\n## Commands\n\n- pytest -q\n\n## Results\n\n- pass\n",
         encoding="utf-8",
@@ -137,5 +146,6 @@ def test_packet_init_json(tmp_repo: Path) -> None:
         "design.md",
         "tasks.md",
         "contracts.md",
+        "tests.md",
         "verification.md",
     }

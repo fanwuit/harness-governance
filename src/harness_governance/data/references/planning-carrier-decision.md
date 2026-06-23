@@ -10,7 +10,7 @@ For choosing between project queue, planning files, change packet, execution pro
 |---|---|---|---|
 | 项目已有 `NEXT.md`、issue queue、checkpoint 或 scheduler | Project queue | `review-next-governance` / project rules | 不再额外创建 `task_plan.md`，除非用户明确要求。 |
 | 复杂多步任务，但项目没有队列系统 | Planning files | `planning-with-files` | 使用 `task_plan.md`、`findings.md`、`progress.md`。 |
-| 任务跨多个 harness layer，或需要 proposal/design/contracts/verification 合并存档 | Change packet | `harness-engineering` | 使用本项目 `docs/changes/<id>/` 模板，不兼容 `openspec/`。 |
+| 任务跨多个 harness layer，或需要 proposal/design/contracts/verification 合并存档 | Change packet | `harness governed-start` / `harness packet init` | 使用本项目 `docs/changes/<id>/` 模板，不兼容 `openspec/`。 |
 | 已批准计划需要交给 fresh workers、subagents 或 integrator | Execution prompt pack | `execution-prompt-authoring` | 只打包执行提示词，不批准 scope。 |
 | Implementation ready，但需要拆给 worker 执行 | Task packet | `governed-implementation-entry` / `execution-prompt-authoring` | 必须包含 owner files、contracts、stop conditions、verification、done-when。 |
 | 只是一次性小修或单命令问题 | No durable carrier | Current owner skill | 仍在最终回复中记录验证和风险。 |

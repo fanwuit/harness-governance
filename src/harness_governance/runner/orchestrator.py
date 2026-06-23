@@ -18,7 +18,12 @@ from pathlib import Path
 from typing import Literal
 
 from ..file_ops.queue import read_queue
-from ..models.schemas import QueueItem
+from ..models.schemas import CapabilityTier, QueueItem
+from ..state_machine.capability_routing import (
+    resolve_adapter,
+    resolve_required_tier,
+    verifier_required_for_tier,
+)
 from .template_renderer import TemplateRenderer
 from .variables import VariableExtractor
 
@@ -33,7 +38,7 @@ _PLATFORM_DISPATCH: dict[str, str] = {
         "Use Codex's built-in task/agent delegation (NOT an external process):\n"
         "   - Dispatch a subagent within the current session\n"
         "   - Pass the pre-rendered role prompt as the subagent's instructions\n"
-        "   - Do NOT use `codex exec` — that spawns a fresh CLI process, not a subagent"
+        "   - Do NOT use an external CLI process; that is not a native subagent"
     ),
     "cline": (
         "Use Cline's native task delegation:\n"
@@ -82,7 +87,7 @@ _PLATFORM_HARD_GATE: dict[str, str] = {
         "- Release or phase closeout is involved\n"
         "- Security, persistence, deployment, or cross-repository behavior changes\n"
         "- Subagent findings conflict with main-window evidence\n"
-        "- Do NOT fall back to `codex exec` for this — stay in the current session"
+        "- Do NOT fall back to an external CLI process; stay in the current session"
     ),
     "cline": (
         "Run in the main Cline conversation (not a sub-task) when:\n"
@@ -137,6 +142,8 @@ class OrchestratorPrompt:
     roles_needed: list[str]
     queue_item_raw: str
     missing_variables: list[str]
+    role_capabilities: dict[str, str] | None = None
+    """Map of role → required CapabilityTier value for each dispatched role."""
 
 
 class OrchestratorPromptBuilder:
@@ -204,6 +211,19 @@ class OrchestratorPromptBuilder:
         # 2. Determine required roles from the ready item
         roles_needed = self._determine_roles(queue_item)
 
+        # 2b. Resolve capability tier and adapter model for each role
+        from ..config import load_config
+
+        cfg = load_config(project_root)
+        role_caps: dict[str, str] = {}
+        role_models: dict[str, str] = {}
+        for role in roles_needed:
+            tier = resolve_required_tier(role, cfg)
+            role_caps[role] = tier.value
+            adapter = resolve_adapter(role, tier, project_root=project_root)
+            if adapter:
+                role_models[role] = adapter.get("model_label", "")
+
         # 3. Extract variables and render role prompts
         rendered_prompts: dict[str, str] = {}
         all_missing: list[str] = []
@@ -228,6 +248,8 @@ class OrchestratorPromptBuilder:
             mode=mode,
             max_rounds=max_rounds,
             platform=effective_platform,
+            role_capabilities=role_caps,
+            role_models=role_models,
         )
 
         return OrchestratorPrompt(
@@ -235,6 +257,7 @@ class OrchestratorPromptBuilder:
             roles_needed=roles_needed,
             queue_item_raw=queue_item.raw,
             missing_variables=all_missing,
+            role_capabilities=role_caps,
         )
 
     # Internal helpers -------------------------------------------------------
@@ -257,7 +280,8 @@ class OrchestratorPromptBuilder:
             "contract/test writer": ["contract-writer"],
             "implementer": ["implementer"],
             "reviewer": ["reviewer"],
-            "reviewer/verifier": ["reviewer"],
+            "reviewer/verifier": ["reviewer", "verifier"],
+            "verifier": ["verifier"],
             # Governance roles
             "adr writer": ["adr-writer"],
             "adr-writer": ["adr-writer"],
@@ -298,6 +322,8 @@ class OrchestratorPromptBuilder:
         mode: str,
         max_rounds: int,
         platform: str = "generic",
+        role_capabilities: dict[str, str] | None = None,
+        role_models: dict[str, str] | None = None,
     ) -> str:
         """Assemble the complete orchestrator prompt document."""
         sections: list[str] = []
@@ -324,6 +350,7 @@ class OrchestratorPromptBuilder:
             "contract-writer": "CONTRACT_WRITER_PROMPT",
             "implementer": "IMPLEMENTER_PROMPT",
             "reviewer": "REVIEWER_PROMPT",
+            "verifier": "VERIFIER_PROMPT",
             # Governance
             "adr-writer": "ADR_WRITER_PROMPT",
             "fact-finder-reviewer": "FACT_FINDER_REVIEWER_PROMPT",
@@ -349,11 +376,26 @@ class OrchestratorPromptBuilder:
                 sections.append(f"\n# Current Checkpoint\n\n{cp_text}\n")
 
         # Execution parameters
+        params = [
+            f"- Mode: `{mode}`",
+            f"- Max rounds: `{max_rounds}`",
+            f"- Project root: `{project_root}`",
+        ]
+        if role_capabilities:
+            params.append("")
+            params.append("### Capability Tier Requirements")
+            for role, tier in sorted(role_capabilities.items()):
+                needs_v = verifier_required_for_tier(CapabilityTier(tier))
+                v_str = "requires independent strong verifier" if needs_v else ""
+                model_label = (role_models or {}).get(role, "")
+                model_str = f" (model: {model_label})" if model_label else ""
+                parts = [f"- `{role}` → **{tier}**{model_str}"]
+                if v_str:
+                    parts.append(f"  - {v_str}")
+                params.extend(parts)
+
         sections.append(
-            f"\n---\n\n# Execution Parameters\n\n"
-            f"- Mode: `{mode}`\n"
-            f"- Max rounds: `{max_rounds}`\n"
-            f"- Project root: `{project_root}`\n"
+            "\n---\n\n# Execution Parameters\n\n" + "\n".join(params) + "\n"
         )
 
         return "\n".join(sections)

@@ -252,6 +252,9 @@ def classify(
     agent_risk: str | None = None,
     agent_change_kind: str = "",
     agent_recommended_rigor: str | None = None,
+    # v0.9.0: answer-provenance classification inputs
+    agent_operation: str | None = None,
+    agent_writes_files: bool | None = None,
 ) -> RoutingDecision:
     """Classify a request into Fast/Trivial/Governed.
 
@@ -278,12 +281,35 @@ def classify(
     -----
     * Fast path: no file changes, no durable artifacts (pure Q&A,
       read-only lookup, plan/advice with no implementation).
-    * Trivial safe change: low-risk, single target, no public
+    * Trivial safe change: low-risk, single-target, no public
       contract impact, clear verification.
     * Governed path: everything else.
     """
     resolved_rigor = resolve_rigor(agent_recommended_rigor or rigor, description)
     description_lc = description.lower()
+
+    # v0.9.0: Force question/read_only/no-write to fast-path unless a
+    # hard governed override (public contract, external side-effect,
+    # unclear risk) applies.
+    is_question_or_read_only = agent_operation in ("question", "read_only")
+    no_writes = agent_writes_files is False or (
+        agent_writes_files is None and not has_file_changes
+    )
+    if is_question_or_read_only and no_writes:
+        if (
+            not is_public_contract
+            and not has_external_side_effect
+            and not is_unclear_or_high_risk
+        ):
+            logger.info("classified as fast-path (question/read-only, no writes)")
+            return RoutingDecision(
+                path=RoutingPath.FAST_PATH,
+                rationale=(
+                    "Agent operation is question or read-only with no file writes; "
+                    "fast-path unless a hard governed override applies."
+                ),
+                rigor_tier=resolved_rigor,
+            )
 
     if agent_recommended_route is not None:
         return _classify_from_agent_assessment(

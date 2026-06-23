@@ -11,6 +11,7 @@ from harness_governance.cli import cli
 from harness_governance.commands.layer import (
     _extract_author_questions,
     _extract_guide_section,
+    _format_choice_menu,
 )
 from harness_governance.session import SessionState, create_session, load_session
 from harness_governance.state_machine.classification import RoutingPath
@@ -72,7 +73,14 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert "idea" in result.output.lower() or "advanced" in result.output.lower()
@@ -113,6 +121,56 @@ class TestLayerAdvance:
         )
         assert gate.exit_code == 0, gate.output
 
+    def test_answer_replaces_existing_layer_question(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-answer-replace-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+
+        first = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "answer",
+                "idea",
+                "--question",
+                "Core problem?",
+                "--answer",
+                "First answer",
+            ],
+        )
+        assert first.exit_code == 0, first.output
+        second = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "answer",
+                "idea",
+                "--question",
+                "Core problem?",
+                "--answer",
+                "Updated answer",
+            ],
+        )
+        assert second.exit_code == 0, second.output
+        assert (
+            "1 answer" in second.output
+            or "1 answer(s)" in second.output
+            or "1 条" in second.output
+        )
+
+        state = load_session(tmp_path, session_id)
+        idea_answers = [qa for qa in state.layer_qa if qa["layer"] == "idea"]
+        assert len(idea_answers) == 1
+        assert idea_answers[0]["answer"] == "Updated answer"
+
     def test_ask_records_author_questions_interactively(self, tmp_path: Path) -> None:
         session_id = _seed_session(
             tmp_path,
@@ -137,6 +195,255 @@ class TestLayerAdvance:
         state = load_session(tmp_path, session_id)
         assert len(state.layer_qa) == 4
         assert all(qa["layer"] == "intake-orientation" for qa in state.layer_qa)
+
+    def test_ask_skips_already_answered_questions(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-ask-skip-test",
+            layer_qa=(
+                {
+                    "layer": "idea",
+                    "question": "Can you state the core problem in one sentence? / 你能用一句话描述核心问题或意图吗？",
+                    "answer": "Existing",
+                    "timestamp": "2026-06-16T10:00:00Z",
+                },
+            ),
+            current_layer=HarnessLayer.IDEA,
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "ask", "idea"],
+            input="Feature\n",
+        )
+        assert result.exit_code == 0, result.output
+
+        state = load_session(tmp_path, session_id)
+        idea_answers = [qa for qa in state.layer_qa if qa["layer"] == "idea"]
+        assert len(idea_answers) == 2
+        assert idea_answers[0]["answer"] == "Existing"
+        assert idea_answers[1]["answer"] == "Feature"
+
+    def test_ask_reports_abort_guidance_for_noninteractive_input(
+        self, tmp_path: Path
+    ) -> None:
+        _seed_session(
+            tmp_path,
+            session_id="20260616-ask-abort-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "ask", "intake-orientation"],
+            input="",
+        )
+
+        assert result.exit_code != 0
+        assert "Question prompt aborted" in result.output
+        assert "harness layer answer" in result.output
+
+    def test_wizard_json_reports_state_without_prompting(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-json-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "wizard",
+                "intake-orientation",
+            ],
+            input="",
+        )
+
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["layer"] == "intake-orientation"
+        assert payload["questions_recorded"] == 0
+        assert payload["gate_passed"] is False
+        assert payload["pending_question"]["question"].startswith(
+            "What is the current task"
+        )
+        assert payload["pending_question"]["suggested_answer"] == "Test"
+        assert [action["key"] for action in payload["pending_question"]["actions"]] == [
+            "confirm",
+            "edit",
+            "skip",
+            "back",
+        ]
+        assert payload["pending_advance"] is None
+        state = load_session(tmp_path, session_id)
+        assert state.layer_qa == ()
+
+    def test_wizard_json_reports_pending_advance_without_advancing(
+        self, tmp_path: Path
+    ) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-json-advance-test",
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "wizard",
+                "intake-orientation",
+            ],
+            input="",
+        )
+
+        assert result.exit_code == 0, result.output
+        payload = json.loads(result.output)
+        assert payload["gate_passed"] is True
+        assert payload["next_layer"] == "idea"
+        assert payload["pending_question"] is None
+        assert payload["pending_advance"]["layer"] == "idea"
+        assert [action["key"] for action in payload["pending_advance"]["actions"]] == [
+            "yes",
+            "no",
+            "back",
+        ]
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.INTAKE_ORIENTATION
+
+    def test_wizard_can_record_answers_and_advance(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-advance-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
+            input="1\n1\n1\n1\n1\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Suggested answer" in result.output
+        assert "Gate passed" in result.output
+        assert "Layer advanced" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 4
+        assert state.layer_qa[0]["answer"] == "Test"
+
+    def test_wizard_edit_records_edited_answer(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-edit-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="2\nEdited core problem\n1\n2\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 2
+        assert state.layer_qa[0]["answer"] == "Edited core problem"
+
+    def test_wizard_skip_does_not_record_or_pass_gate(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-skip-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="3\n1\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "FAILED" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 1
+        assert state.layer_qa[0]["question"].startswith("Feature, bug fix")
+
+    def test_wizard_back_revisits_previous_question(self, tmp_path: Path) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-back-test",
+            current_layer=HarnessLayer.IDEA,
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "idea"],
+            input="1\n4\n2\nRevised core problem\n1\n2\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.IDEA
+        assert len(state.layer_qa) == 2
+        assert state.layer_qa[0]["answer"] == "Revised core problem"
+
+    def test_choice_menu_formats_selected_row_with_highlight(self) -> None:
+        lines = _format_choice_menu(
+            (
+                ("confirm", "confirm - use suggested answer"),
+                ("edit", "edit - type a different answer"),
+                ("skip", "skip - leave unanswered"),
+                ("back", "back - return to previous question"),
+            ),
+            selected_index=1,
+        )
+
+        assert lines[0] == "  1. confirm - use suggested answer"
+        assert lines[1] == "> \x1b[7m2. edit - type a different answer\x1b[0m"
+        assert lines[3] == "  4. back - return to previous question"
+
+    def test_wizard_defaults_to_stop_when_selection_input_ends(
+        self, tmp_path: Path
+    ) -> None:
+        session_id = _seed_session(
+            tmp_path,
+            session_id="20260616-wizard-no-choice-test",
+            layer_qa=(),
+            rigor_tier="strict",
+        )
+        runner = CliRunner()
+        result = runner.invoke(
+            cli,
+            ["--project-root", str(tmp_path), "layer", "wizard", "intake-orientation"],
+            input="1\n1\n1\n1\n",
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "harness layer advance idea --confirmed" in result.output
+        state = load_session(tmp_path, session_id)
+        assert state.current_layer == HarnessLayer.INTAKE_ORIENTATION
+        assert len(state.layer_qa) == 4
 
     def test_intake_alias_records_author_questions(self, tmp_path: Path) -> None:
         session_id = _seed_session(
@@ -171,7 +478,14 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0
         assert "already" in result.output.lower() or "已在" in result.output
@@ -189,7 +503,15 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
@@ -218,7 +540,15 @@ class TestLayerAdvance:
         sid = _seed_session(tmp_path)
         runner = CliRunner()
         runner.invoke(
-            cli, ["--project-root", str(tmp_path), "layer", "advance", "idea"]
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         # Verify the session file was updated with the transition.
         from harness_governance.session import load_session
@@ -363,9 +693,11 @@ class TestLayerAdvanceConfirmed:
         )
         assert result.exit_code == 0, result.output
 
-    def test_advance_without_confirmed_still_works(self, tmp_path: Path) -> None:
-        """--confirmed is optional — advance still succeeds without it."""
-        _seed_session(tmp_path)
+    def test_advance_without_confirmed_still_works_for_light(
+        self, tmp_path: Path
+    ) -> None:
+        """--confirmed not required for light-tier governance."""
+        _seed_session(tmp_path, rigor_tier="light")
         runner = CliRunner()
         result = runner.invoke(
             cli,
@@ -392,8 +724,9 @@ class TestLayerAdvanceConfirmed:
         state = load_session(tmp_path, sid)
         assert state.transitions[-1].context_flags.get("author_confirmed") is True
 
-    def test_unconfirmed_not_in_flags(self, tmp_path: Path) -> None:
-        sid = _seed_session(tmp_path)
+    def test_unconfirmed_not_in_flags_for_light(self, tmp_path: Path) -> None:
+        """Without --confirmed in light tier, flag is absent from transition."""
+        sid = _seed_session(tmp_path, rigor_tier="light")
         runner = CliRunner()
         runner.invoke(
             cli,
@@ -415,7 +748,7 @@ class TestLayerAdvanceGateEnforcement:
 
     def test_advance_blocked_by_gate_when_qa_insufficient(self, tmp_path: Path) -> None:
         """Without enough Q&A, the gate fails and advance is blocked."""
-        # Create session with NO layer_qa — gate should fail.
+        # Create session with NO layer_qa and strict rigor — gate should fail.
         state = SessionState(
             session_id="gate-block-test",
             created_at="2026-06-16T10:00:00+00:00",
@@ -429,12 +762,22 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code != 0, (
             f"Gate should have blocked advance, got: {result.output}"
         )
-        assert "Questions answered: 0/4" in result.output
+        assert (
+            "0/4 问题已答" in result.output
+            or "Questions answered: 0/4" in result.output
+        )
         assert "Red flags we do not accept" in result.output
         assert "Required actions" in result.output
         assert "harness layer guide intake-orientation" in result.output
@@ -446,7 +789,14 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         # Verify lock file was written for the passed layer.
@@ -514,7 +864,15 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "layer", "advance", "idea"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code != 0
         data = json.loads(result.output)

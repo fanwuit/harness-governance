@@ -6,6 +6,7 @@ Each subcommand mirrors a legacy script and produces a structured
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -13,10 +14,12 @@ import click
 
 from ..commands.entry import check_file as check_entry_file
 from ..commands.entry import discover_entry_files
+from ..config import load_config
 from ..file_ops import packet as packet_ops
 from ..messages import bilingual
 from ..models.schemas import CheckFinding, CheckResult
 from ..priority import check_priority
+from ..queue_validation import check_role_isolation
 from ..state_machine.engine import (
     StateMachineEngine,
     TransitionContext,
@@ -36,6 +39,162 @@ _OLD_CHAIN = re.compile(
     r"(?:->|\n\s*->\s*\n)\s*Contract\s*(?:->|\n\s*->\s*\n)\s*Implementation\s*"
     r"(?:->|\n\s*->\s*\n)\s*Verification\s*(?:->|\n\s*->\s*\n)\s*Review / Next",
     re.MULTILINE,
+)
+_USER_EVIDENCE_SECTION = "User-Perceived Integration Evidence"
+_USER_EVIDENCE_NA_SECTION = "User-Perceived Integration Not Applicable"
+_USER_EVIDENCE_FIELDS = (
+    "Evidence level",
+    "Real User Entry",
+    "User-Visible State",
+    "Persistence/External State",
+    "Anti-Self-Proof Assertion",
+    "Forbidden Test Shortcuts",
+    "Command",
+    "Result",
+)
+_USER_EVIDENCE_NA_FIELDS = (
+    "Reason",
+    "Replacement verification",
+    "Residual risk",
+)
+_USER_EVIDENCE_LEVELS = {"smoke", "contract", "real-user acceptance"}
+_USER_EVIDENCE_TRIGGER_TERMS = (
+    "mvp",
+    "closed loop",
+    "user-visible save",
+    "save",
+    "publish",
+    "import",
+    "export",
+    "login",
+    "payment",
+    "pay",
+    "upload",
+    "run",
+    "preview",
+    "generate",
+    "sync",
+    "闭环",
+    "保存",
+    "发布",
+    "导入",
+    "导出",
+    "登录",
+    "支付",
+    "上传",
+    "运行",
+    "预览",
+    "生成",
+    "同步",
+)
+_USER_EVIDENCE_CLOSURE_CLAIMS = (
+    "mvp complete",
+    "closed loop complete",
+    "user-visible save complete",
+)
+_USER_EVIDENCE_FORBIDDEN_SHORTCUTS = (
+    ".lifecycle-actions",
+    "button:first",
+    "hidden test panel",
+    "hidden test panels",
+    "test-only",
+    "fixture-only",
+    "acceptance drawer",
+    "mock/fallback",
+    "mock all",
+    "assert called",
+    "skip e2e",
+    "todo evidence",
+    "not tested",
+)
+_SUBAGENT_SECTION = "Subagent Separation"
+_SUBAGENT_FIELDS = (
+    "Required",
+    "Contract Owner",
+    "Test/Evidence Owner",
+    "Implementer",
+    "Verifier",
+    "Waiver",
+)
+_SUBAGENT_WAIVER_FIELDS = (
+    "Waiver",
+    "Replacement Verification",
+    "Residual Risk",
+)
+_SUBAGENT_TRIGGER_TERMS = (
+    "strict",
+    "p0",
+    "p1",
+    "public contract",
+    "schema",
+    "api",
+    "cli contract",
+    "acceptance contract",
+    "persistence",
+    "external state",
+    "save",
+    "publish",
+    "login",
+    "payment",
+    "upload",
+    "import",
+    "export",
+    "mvp",
+    "closed loop",
+    "ship ready",
+    "release ready",
+    "user-visible save complete",
+    "验收契约",
+    "保存",
+    "发布",
+    "登录",
+    "支付",
+    "上传",
+    "导入",
+    "导出",
+)
+_SUBAGENT_CLOSURE_CLAIMS = (
+    "mvp complete",
+    "closed loop complete",
+    "ship ready",
+    "release ready",
+    "user-visible save complete",
+)
+_SUBAGENT_OWNERSHIP_PATTERNS = (
+    (
+        re.compile(
+            r"\bproduct-implementer\b.{0,80}\b(?:modified|changed|edited|wrote)\b"
+            r".{0,80}\b(?:contracts?\.md|tests?\.md|contract|test plan)\b",
+            re.I | re.S,
+        ),
+        "ownership violation: product-implementer modified contracts.md or tests.md",
+    ),
+    (
+        re.compile(
+            r"\bimplementer\b.{0,80}\b(?:modified|changed|edited|wrote)\b"
+            r".{0,80}\b(?:contract|evidence)\b",
+            re.I | re.S,
+        ),
+        "ownership violation: implementer modified contract/evidence files",
+    ),
+    (
+        re.compile(
+            r"\b(?:test/evidence owner|evidence owner|test owner)\b.{0,80}"
+            r"\b(?:modified|changed|edited|wrote)\b.{0,80}"
+            r"\b(?:implementation|source|runtime)\b",
+            re.I | re.S,
+        ),
+        "ownership violation: test/evidence owner modified implementation files",
+    ),
+    (
+        re.compile(
+            r"\bverifier\b.{0,80}\b(?:modified|changed|edited|wrote)\b"
+            r".{0,80}\b(?:implementation|source|runtime)\b.{0,120}"
+            r"\b(?:ship ready|release ready|mvp complete|closed loop complete)\b",
+            re.I | re.S,
+        ),
+        "ownership violation: verifier modified implementation and claimed closure",
+    ),
 )
 
 
@@ -147,6 +306,39 @@ def check_packets(repo_root: Path) -> CheckResult:
     )
 
 
+def check_queue(repo_root: Path) -> CheckResult:
+    """Check that the configured scheduler queue carrier exists."""
+    cfg = load_config(repo_root)
+    queue_path = cfg.queue_file
+    target = str(queue_path)
+    try:
+        target = str(queue_path.relative_to(repo_root.resolve()))
+    except ValueError:
+        pass
+
+    findings: list[CheckFinding] = []
+    if cfg.require_queue and not queue_path.is_file():
+        findings.append(
+            CheckFinding(
+                check="queue",
+                target=target,
+                level="error",
+                message=(
+                    "Required scheduler queue file is missing. Run `harness init` "
+                    "to create NEXT.md, restore the configured queue_file, or set "
+                    "require_queue = false only with an explicit project waiver."
+                ),
+            )
+        )
+
+    return CheckResult(
+        check="queue",
+        passed=not findings,
+        findings=tuple(findings),
+        inspected=1,
+    )
+
+
 def check_entry(repo_root: Path) -> CheckResult:
     """Run the implementation entry record check."""
     files = discover_entry_files(repo_root)
@@ -166,6 +358,559 @@ def check_entry(repo_root: Path) -> CheckResult:
         passed=not all_errors,
         findings=tuple(findings),
         inspected=len(files),
+    )
+
+
+def _is_user_evidence_template(path: Path) -> bool:
+    return "template" in path.name.lower()
+
+
+def _user_evidence_files(repo_root: Path) -> list[Path]:
+    files: set[Path] = set()
+    for path in repo_root.glob("docs/verification/*.md"):
+        if not _is_user_evidence_template(path):
+            files.add(path)
+    for path in repo_root.glob("docs/changes/*/verification.md"):
+        if not _is_user_evidence_template(path):
+            files.add(path)
+    return sorted(files)
+
+
+def _change_docs(repo_root: Path) -> list[Path]:
+    return sorted(
+        p
+        for p in repo_root.glob("docs/changes/*/*.md")
+        if p.is_file() and not _is_user_evidence_template(p)
+    )
+
+
+def _section_body(text: str, heading: str) -> str | None:
+    pattern = re.compile(
+        rf"^##\s+{re.escape(heading)}\s*$"
+        rf"(?P<body>.*?)(?=^##\s+|\Z)",
+        re.IGNORECASE | re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(text)
+    return match.group("body") if match else None
+
+
+def _field_value(section: str, field: str) -> str | None:
+    pattern = re.compile(
+        rf"^[ \t]*-[ \t]+{re.escape(field)}:[ \t]*(?P<value>.*)$", re.I | re.M
+    )
+    match = pattern.search(section)
+    if not match:
+        return None
+    return match.group("value").strip()
+
+
+def _has_user_evidence_trigger(text: str) -> bool:
+    lower = text.lower()
+    return any(term in lower for term in _USER_EVIDENCE_TRIGGER_TERMS)
+
+
+def _has_subagent_trigger(text: str) -> bool:
+    lower = text.lower()
+    return any(term in lower for term in _SUBAGENT_TRIGGER_TERMS)
+
+
+def _has_closure_claim(text: str) -> bool:
+    lower = text.lower()
+    return any(term in lower for term in _USER_EVIDENCE_CLOSURE_CLAIMS)
+
+
+def _forbidden_shortcuts(text: str) -> list[str]:
+    lower = text.lower()
+    return [term for term in _USER_EVIDENCE_FORBIDDEN_SHORTCUTS if term in lower]
+
+
+def _subagent_evidence_files(repo_root: Path) -> list[Path]:
+    return _user_evidence_files(repo_root)
+
+
+def _invocation_logs_for_evidence(repo_root: Path, evidence_file: Path) -> list[Path]:
+    logs = [repo_root / ".harness" / "invocations.ndjson"]
+    try:
+        rel_parts = evidence_file.relative_to(repo_root).parts
+    except ValueError:
+        rel_parts = ()
+    if len(rel_parts) >= 4 and rel_parts[:2] == ("docs", "changes"):
+        logs.insert(
+            0, repo_root / "docs" / "changes" / rel_parts[2] / ".invocations.ndjson"
+        )
+    return logs
+
+
+def _read_invocation_records(paths: list[Path]) -> list[dict[str, object]]:
+    records: list[dict[str, object]] = []
+    for path in paths:
+        if not path.is_file():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(data, dict):
+                records.append(data)
+    return records
+
+
+def _record_role(record: dict[str, object]) -> str:
+    value = record.get("role") or record.get("subagent_role") or record.get("owner")
+    return str(value or "").lower()
+
+
+def _record_invocation_id(record: dict[str, object]) -> str:
+    value = (
+        record.get("invocation_id")
+        or record.get("invocationId")
+        or record.get("id")
+        or record.get("run_id")
+    )
+    return str(value or "")
+
+
+def _extract_invocation_hint(value: str | None) -> str:
+    if not value:
+        return ""
+    match = re.search(r"\binvocation\s+([A-Za-z0-9_.:-]+)", value, re.I)
+    if match:
+        return match.group(1)
+    return value.strip()
+
+
+def _role_has_invocation(
+    records: list[dict[str, object]],
+    role_terms: tuple[str, ...],
+    field_value: str | None,
+) -> bool:
+    hint = _extract_invocation_hint(field_value).lower()
+    for record in records:
+        role = _record_role(record)
+        if not any(term in role for term in role_terms):
+            continue
+        if not hint:
+            return True
+        invocation_id = _record_invocation_id(record).lower()
+        if invocation_id and invocation_id in hint:
+            return True
+        if hint in json.dumps(record, ensure_ascii=False).lower():
+            return True
+    return False
+
+
+def _same_invocation(left: str | None, right: str | None) -> bool:
+    left_hint = _extract_invocation_hint(left)
+    right_hint = _extract_invocation_hint(right)
+    return bool(left_hint and right_hint and left_hint == right_hint)
+
+
+def _has_nonempty_waiver(section: str) -> bool:
+    waiver = _field_value(section, "Waiver")
+    return bool(waiver and waiver.strip())
+
+
+def _rel(repo_root: Path, path: Path) -> str:
+    try:
+        return str(path.relative_to(repo_root))
+    except ValueError:
+        return str(path)
+
+
+def _scan_evidence_artifacts_safe(repo_root: Path, evidence_doc: Path) -> list[str]:
+    """Scan test artifacts for forbidden patterns; graceful on any error."""
+    try:
+        from .evidence_scanner import scan_evidence_artifacts
+
+        return scan_evidence_artifacts(repo_root, evidence_doc)
+    except Exception:
+        return []
+
+
+def _validate_user_evidence_file(repo_root: Path, path: Path) -> list[CheckFinding]:
+    text = path.read_text(encoding="utf-8")
+    rel = _rel(repo_root, path)
+    findings: list[CheckFinding] = []
+    evidence = _section_body(text, _USER_EVIDENCE_SECTION)
+    not_applicable = _section_body(text, _USER_EVIDENCE_NA_SECTION)
+
+    artifact_findings = _scan_evidence_artifacts_safe(repo_root, path)
+    for msg in artifact_findings:
+        findings.append(
+            CheckFinding(
+                check="user-evidence",
+                target=rel,
+                level="error",
+                message=msg,
+            )
+        )
+
+    if evidence is None and not_applicable is None:
+        if _has_user_evidence_trigger(text):
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "user-perceived work requires either "
+                        "User-Perceived Integration Evidence or "
+                        "User-Perceived Integration Not Applicable"
+                    ),
+                )
+            )
+        return findings
+
+    if evidence is not None:
+        values: dict[str, str | None] = {
+            field: _field_value(evidence, field) for field in _USER_EVIDENCE_FIELDS
+        }
+        for field, value in values.items():
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="user-evidence",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required and cannot be empty",
+                    )
+                )
+
+        level = (values.get("Evidence level") or "").lower()
+        if level and level not in _USER_EVIDENCE_LEVELS:
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "Evidence level must be smoke, contract, "
+                        "or real-user acceptance"
+                    ),
+                )
+            )
+        if _has_closure_claim(text) and level != "real-user acceptance":
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "MVP/closed-loop/user-visible completion claims require "
+                        "real-user acceptance evidence"
+                    ),
+                )
+            )
+
+    if not_applicable is not None:
+        for field in _USER_EVIDENCE_NA_FIELDS:
+            value = _field_value(not_applicable, field)
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="user-evidence",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required and cannot be empty",
+                    )
+                )
+
+    for shortcut in _forbidden_shortcuts(text):
+        findings.append(
+            CheckFinding(
+                check="user-evidence",
+                target=rel,
+                level="error",
+                message=f"forbidden test shortcut or self-proof term: {shortcut}",
+            )
+        )
+
+    return findings
+
+
+def check_user_evidence(repo_root: Path) -> CheckResult:
+    """Check user-perceived integration evidence documents.
+
+    First version is intentionally document-level: it validates structured
+    evidence in ``docs/verification/*.md`` and change-packet
+    ``verification.md`` files. Template files are ignored.
+    """
+    findings: list[CheckFinding] = []
+    evidence_files = _user_evidence_files(repo_root)
+
+    for path in evidence_files:
+        findings.extend(_validate_user_evidence_file(repo_root, path))
+
+    for path in _change_docs(repo_root):
+        if path.name == "verification.md":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if not _has_user_evidence_trigger(text):
+            continue
+        verification = path.parent / "verification.md"
+        if not verification.is_file():
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change mentions user-perceived work but has no "
+                        "verification.md evidence file"
+                    ),
+                )
+            )
+            continue
+        verification_text = verification.read_text(encoding="utf-8")
+        if (
+            _section_body(verification_text, _USER_EVIDENCE_SECTION) is None
+            and _section_body(verification_text, _USER_EVIDENCE_NA_SECTION) is None
+        ):
+            findings.append(
+                CheckFinding(
+                    check="user-evidence",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change mentions user-perceived work but verification.md "
+                        "does not declare user-perceived evidence or Not Applicable"
+                    ),
+                )
+            )
+
+    return CheckResult(
+        check="user-evidence",
+        passed=not any(f.level == "error" for f in findings),
+        findings=tuple(findings),
+        inspected=len(evidence_files),
+    )
+
+
+def _validate_subagent_separation_file(
+    repo_root: Path, path: Path
+) -> list[CheckFinding]:
+    text = path.read_text(encoding="utf-8")
+    rel = _rel(repo_root, path)
+    findings: list[CheckFinding] = []
+    section = _section_body(text, _SUBAGENT_SECTION)
+
+    if section is None:
+        if _has_subagent_trigger(text):
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "triggering governed work requires a "
+                        "Subagent Separation evidence section"
+                    ),
+                )
+            )
+        return findings
+
+    required = (_field_value(section, "Required") or "").lower()
+    if required not in {"yes", "no"}:
+        findings.append(
+            CheckFinding(
+                check="subagent-separation",
+                target=rel,
+                level="error",
+                message="Required must be yes or no",
+            )
+        )
+
+    if required == "yes":
+        values = {field: _field_value(section, field) for field in _SUBAGENT_FIELDS}
+        has_waiver = _has_nonempty_waiver(section)
+        for field, value in values.items():
+            if field == "Waiver":
+                continue
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="subagent-separation",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required when Required is yes",
+                    )
+                )
+
+        if has_waiver:
+            for field in ("Replacement Verification", "Residual Risk"):
+                value = _field_value(section, field)
+                if not value:
+                    findings.append(
+                        CheckFinding(
+                            check="subagent-separation",
+                            target=rel,
+                            level="error",
+                            message=f"{field} is required when waiver is used",
+                        )
+                    )
+        else:
+            records = _read_invocation_records(
+                _invocation_logs_for_evidence(repo_root, path)
+            )
+            if not records:
+                findings.append(
+                    CheckFinding(
+                        check="subagent-separation",
+                        target=rel,
+                        level="error",
+                        message="independent role invocation evidence is required",
+                    )
+                )
+            else:
+                role_requirements = (
+                    ("Contract Owner", ("contract",)),
+                    ("Test/Evidence Owner", ("evidence", "fact-finder", "test")),
+                    ("Implementer", ("implementer",)),
+                    ("Verifier", ("verifier", "reviewer")),
+                )
+                for field, role_terms in role_requirements:
+                    if not _role_has_invocation(records, role_terms, values.get(field)):
+                        findings.append(
+                            CheckFinding(
+                                check="subagent-separation",
+                                target=rel,
+                                level="error",
+                                message=f"{field} lacks matching invocation evidence",
+                            )
+                        )
+
+        if (
+            _same_invocation(
+                values.get("Test/Evidence Owner"), values.get("Implementer")
+            )
+            and not has_waiver
+        ):
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "Test/Evidence Owner and Implementer cannot use the "
+                        "same invocation without waiver"
+                    ),
+                )
+            )
+
+        if (
+            _same_invocation(values.get("Implementer"), values.get("Verifier"))
+            and not has_waiver
+        ):
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=rel,
+                    level="error",
+                    message=(
+                        "Verifier and Implementer cannot use the same invocation "
+                        "without waiver"
+                    ),
+                )
+            )
+
+    if required == "no":
+        for field in _SUBAGENT_WAIVER_FIELDS:
+            value = _field_value(section, field)
+            if not value:
+                findings.append(
+                    CheckFinding(
+                        check="subagent-separation",
+                        target=rel,
+                        level="error",
+                        message=f"{field} is required when Required is no",
+                    )
+                )
+
+    for pattern, message in _SUBAGENT_OWNERSHIP_PATTERNS:
+        if pattern.search(text):
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=rel,
+                    level="error",
+                    message=message,
+                )
+            )
+
+    lower = text.lower()
+    if (
+        any(claim in lower for claim in _SUBAGENT_CLOSURE_CLAIMS)
+        and _field_value(section, "Verifier") is None
+        and "by verifier" not in lower
+    ):
+        findings.append(
+            CheckFinding(
+                check="subagent-separation",
+                target=rel,
+                level="error",
+                message="closure claims require verifier authority",
+            )
+        )
+
+    return findings
+
+
+def check_subagent_separation(repo_root: Path) -> CheckResult:
+    """Check document-level subagent separation evidence.
+
+    The first version validates structured Markdown evidence and existing
+    invocation logs. It does not dispatch subagents or infer git-level file
+    ownership.
+    """
+    findings: list[CheckFinding] = []
+    evidence_files = _subagent_evidence_files(repo_root)
+
+    for path in evidence_files:
+        findings.extend(_validate_subagent_separation_file(repo_root, path))
+
+    for path in _change_docs(repo_root):
+        if path.name == "verification.md":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if not _has_subagent_trigger(text):
+            continue
+        verification = path.parent / "verification.md"
+        if not verification.is_file():
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change requires subagent separation evidence but has "
+                        "no verification.md file"
+                    ),
+                )
+            )
+            continue
+        verification_text = verification.read_text(encoding="utf-8")
+        if _section_body(verification_text, _SUBAGENT_SECTION) is None:
+            findings.append(
+                CheckFinding(
+                    check="subagent-separation",
+                    target=_rel(repo_root, verification),
+                    level="error",
+                    message=(
+                        "change requires subagent separation evidence but "
+                        "verification.md omits Subagent Separation"
+                    ),
+                )
+            )
+
+    return CheckResult(
+        check="subagent-separation",
+        passed=not any(f.level == "error" for f in findings),
+        findings=tuple(findings),
+        inspected=len(evidence_files),
     )
 
 
@@ -235,6 +980,42 @@ def check_inventory(repo_root: Path) -> CheckResult:
         passed=not any(f.level == "error" for f in findings),
         findings=tuple(findings),
         inspected=len(enabled),
+    )
+
+
+def check_state_contract(repo_root: Path) -> CheckResult:
+    """Check persisted-state writer/consumer closure evidence."""
+    from .state_contract import evaluate_state_contract
+
+    passed, rows = evaluate_state_contract(repo_root)
+    findings: list[CheckFinding] = []
+    for row in rows:
+        if row["passed"]:
+            continue
+        evidence_path = str(row["evidence_path"])
+        missing_terms = row["missing_terms"]
+        if isinstance(missing_terms, list) and missing_terms:
+            detail = "missing required terms: " + ", ".join(
+                str(term) for term in missing_terms
+            )
+        else:
+            detail = "missing required evidence file"
+        findings.append(
+            CheckFinding(
+                check="state-contract",
+                target=evidence_path,
+                level="error",
+                message=(
+                    f"state-contract requirement '{row['name']}' failed: {detail}"
+                ),
+            )
+        )
+
+    return CheckResult(
+        check="state-contract",
+        passed=passed,
+        findings=tuple(findings),
+        inspected=len(rows),
     )
 
 
@@ -801,6 +1582,22 @@ def check_packets_cmd(ctx: click.Context) -> None:
     _emit(ctx, check_packets(project_root))
 
 
+@check_group.command("queue")
+@click.pass_context
+def check_queue_cmd(ctx: click.Context) -> None:
+    """Scheduler queue carrier check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_queue(project_root))
+
+
+@check_group.command("role-isolation")
+@click.pass_context
+def check_role_isolation_cmd(ctx: click.Context) -> None:
+    """Queue-backed implementation/review role isolation check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_role_isolation(project_root))
+
+
 @check_group.command("entry")
 @click.pass_context
 def check_entry_cmd(ctx: click.Context) -> None:
@@ -815,6 +1612,30 @@ def check_inventory_cmd(ctx: click.Context) -> None:
     """Skill inventory check."""
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     _emit(ctx, check_inventory(project_root))
+
+
+@check_group.command("user-evidence")
+@click.pass_context
+def check_user_evidence_cmd(ctx: click.Context) -> None:
+    """User-perceived integration evidence check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_user_evidence(project_root))
+
+
+@check_group.command("subagent-separation")
+@click.pass_context
+def check_subagent_separation_cmd(ctx: click.Context) -> None:
+    """Subagent separation evidence check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_subagent_separation(project_root))
+
+
+@check_group.command("state-contract")
+@click.pass_context
+def check_state_contract_cmd(ctx: click.Context) -> None:
+    """Persisted-state writer/consumer closure check."""
+    project_root: Path = ctx.obj.get("project_root", Path.cwd())
+    _emit(ctx, check_state_contract(project_root))
 
 
 @check_group.command("docs")
@@ -894,9 +1715,20 @@ def check_priority_cmd(ctx: click.Context, fix_mode: bool) -> None:
 
 
 @check_group.command("all")
+@click.option(
+    "--auto-close/--no-auto-close",
+    "auto_close",
+    default=True,
+    help="Auto-close completed tasks after all checks pass (default: on).",
+)
 @click.pass_context
-def check_all_cmd(ctx: click.Context) -> None:
-    """Run every check; aggregate pass/fail."""
+def check_all_cmd(ctx: click.Context, auto_close: bool) -> None:
+    """Run every check; aggregate pass/fail.
+
+    After a successful run, active tasks whose sessions indicate
+    completion are auto-closed (see ``harness review auto-close``).
+    Use ``--no-auto-close`` to skip this.
+    """
     project_root: Path = ctx.obj.get("project_root", Path.cwd())
     if not ctx.obj.get("json_output"):
         freq = _get_check_frequency(project_root)
@@ -904,9 +1736,14 @@ def check_all_cmd(ctx: click.Context) -> None:
     results: list[CheckResult] = [
         check_routing(project_root),
         check_priority(project_root),
+        check_queue(project_root),
+        check_role_isolation(project_root),
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
+        check_state_contract(project_root),
+        check_user_evidence(project_root),
+        check_subagent_separation(project_root),
         check_docs(project_root),
     ]
     aggregate = CheckResult(
@@ -917,20 +1754,44 @@ def check_all_cmd(ctx: click.Context) -> None:
     )
     _emit(ctx, aggregate)
 
+    # Only reached when all checks pass (otherwise _emit raises Exit).
+    if auto_close:
+        from .review import auto_close_active_tasks
+
+        active, closed = auto_close_active_tasks(project_root)
+        if closed:
+            click.echo(
+                bilingual(
+                    "review.auto_close.summary",
+                    active=active,
+                    closed=closed,
+                )
+            )
+
 
 __all__ = [
     "check_group",
     "check_routing_cmd",
     "check_packets_cmd",
+    "check_queue_cmd",
+    "check_role_isolation_cmd",
     "check_entry_cmd",
     "check_inventory_cmd",
+    "check_user_evidence_cmd",
+    "check_subagent_separation_cmd",
+    "check_state_contract_cmd",
     "check_docs_cmd",
     "check_priority_cmd",
     "check_all_cmd",
     "check_routing",
     "check_packets",
+    "check_queue",
+    "check_role_isolation",
     "check_entry",
     "check_inventory",
+    "check_user_evidence",
+    "check_subagent_separation",
+    "check_state_contract",
     "check_docs",
     "check_priority",
 ]

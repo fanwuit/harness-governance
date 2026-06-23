@@ -184,6 +184,8 @@ class TestRunnerRenderGovernance:
             "- Layer: adr\n"
             "- Change: adr-db-migration\n"
             "Role: ADR Writer\n"
+            "Forbidden scope: application runtime code\n"
+            "Verification commands: inspect ADR diff\n"
             "Done when: ADR approved\n",
             encoding="utf-8",
         )

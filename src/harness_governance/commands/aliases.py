@@ -18,6 +18,8 @@ from .check import (
     check_packets,
     check_priority,
     check_routing,
+    check_subagent_separation,
+    check_user_evidence,
 )
 from .governed_start import governed_start_cmd
 from .verify import is_harness_governance_repo
@@ -156,6 +158,8 @@ def ship_cmd(ctx: click.Context) -> None:
         check_packets(project_root),
         check_entry(project_root),
         check_inventory(project_root),
+        check_user_evidence(project_root),
+        check_subagent_separation(project_root),
         check_docs(project_root),
     ]
     checks_passed = all(result.passed for result in results)
@@ -211,6 +215,11 @@ def ship_cmd(ctx: click.Context) -> None:
         )
     if release_verification_available:
         click.echo(bilingual("alias.ship.release_verify_hint"))
+    if passed:
+        if not (project_root / ".git" / "hooks" / "pre-push").is_file():
+            click.echo(bilingual("alias.ship.hook_hint"))
+    else:
+        click.echo(bilingual("alias.ship.fail_hint"))
     if not passed:
         raise click.exceptions.Exit(code=1)
 

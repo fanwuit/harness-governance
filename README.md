@@ -74,9 +74,13 @@ harness check all                   # 全部检查
 harness status                      # 仪表盘聚合输出
 harness verify <preset>             # 运行验证预设
 harness review close                # 关闭任务
-harness runner start                # 自主就绪循环
+harness runner prepare-native       # native subagent handoff request
 harness session show/list           # 会话管理
 ```
+
+Maintainer command identifiers checked by `harness check docs --self`:
+`governed_start`, `hook`, `state_contract`, `tech_stack`, `isolation`,
+`drift`, `alignment`, `skill_chain`.
 
 ## Architecture / 架构
 
@@ -99,7 +103,7 @@ src/harness_governance/
   runner/                    ← autonomous loop + orchestrator + result parser
   data/
     skills/{strict,standard,light,monitor}/  ← 32 skill files (8 platforms × 4 tiers)
-    role-prompts/             ← 10 subagent role templates
+    role-prompts/             ← 13 subagent role templates
     references/               ← layer-author-guide, layer-progression, etc.
   messages.py                ← bilingual i18n (~170 message IDs)
 ```

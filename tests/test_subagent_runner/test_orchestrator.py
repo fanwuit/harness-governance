@@ -282,3 +282,26 @@ class TestOrchestratorPlatformDispatch:
         builder = OrchestratorPromptBuilder()
         prompt = builder.build(project_root=project, platform=None)
         assert "native subagent mechanism" in prompt.text
+
+    def test_capability_tier_in_prompt(self, project: Path) -> None:
+        """Capability tier requirements appear in the assembled prompt."""
+        builder = OrchestratorPromptBuilder()
+        prompt = builder.build(project_root=project)
+        assert "Capability Tier Requirements" in prompt.text
+        assert "implementer" in prompt.text
+        assert "execution" in prompt.text
+
+    def test_capability_tier_in_metadata(self, project: Path) -> None:
+        """role_capabilities metadata is populated on the prompt object."""
+        builder = OrchestratorPromptBuilder()
+        prompt = builder.build(project_root=project)
+        assert prompt.role_capabilities is not None
+        assert "implementer" in prompt.role_capabilities
+        assert prompt.role_capabilities["implementer"] == "execution"
+
+    def test_verifier_requirement_in_prompt(self, project: Path) -> None:
+        """Lower tiers note verifier requirement in prompt."""
+        builder = OrchestratorPromptBuilder()
+        prompt = builder.build(project_root=project)
+        # implementer is execution → requires independent strong verifier
+        assert "requires independent strong verifier" in prompt.text

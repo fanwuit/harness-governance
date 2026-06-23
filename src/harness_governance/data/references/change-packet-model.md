@@ -2,7 +2,7 @@
 
 ## Purpose / 目的
 
-Use a change packet as a temporary, durable work folder for complex changes. It keeps proposal, design, tasks, contracts, and verification context together while the harness layer model remains the authority.
+Use a change packet as a temporary, durable work folder for complex changes. It keeps proposal, design, tasks, contracts, tests, and verification context together while the harness layer model remains the authority.
 
 将变更包（change packet）作为复杂变更的临时、持久化工作文件夹。它将提案、设计、任务、契约和验证上下文集中管理，同时 harness 层模型仍然是权威。
 
@@ -57,6 +57,7 @@ docs/changes/
     design.md
     tasks.md
     contracts.md
+    tests.md
     verification.md
   archive/
     <YYYY-MM-DD>-<change-id>/
@@ -64,6 +65,7 @@ docs/changes/
       design.md
       tasks.md
       contracts.md
+      tests.md
       verification.md
 ```
 
@@ -82,11 +84,12 @@ Use the bundled templates when a complex task needs a packet:
 当复杂任务需要包时，使用捆绑模板：
 
 ```text
-harness-engineering/templates/change-packet/
+src/harness_governance/data/templates/change-packet/
   proposal.md
   design.md
   tasks.md
   contracts.md
+  tests.md
   verification.md
 ```
 
@@ -110,6 +113,7 @@ The command writes `docs/changes/<change-id>/` using the native templates. It do
 | `design.md` | Boundaries, responsibilities, data/control flow, alternatives, ADR candidates. |
 | `tasks.md` | Layered task list with current blocking layer and ready/blocked state. |
 | `contracts.md` | Schemas, fixtures, examples, API shapes, probes, checks, and acceptance criteria. |
+| `tests.md` | Test owner, unit/integration/E2E applicability, test files or waiver, and red/green commands. |
 | `verification.md` | Commands, evidence, failures, freshness, screenshots, traces, and remaining risk. |
 
 Keep each file short. Move stable conclusions into the long-lived project sources instead of letting the packet become permanent documentation.
@@ -141,8 +145,8 @@ This borrows the useful part of spec delta thinking while keeping the output in 
 | Architecture | Record boundaries, data flow, ownership, and ADR candidates. |
 | ADR | Link to accepted decisions; do not replace ADRs with packet prose. |
 | Contract | Link to schemas, fixtures, examples, probes, and checks. |
-| Readiness | Confirm target-local rules, verification commands, and scope limits. |
-| Implementation | Track only approved implementation slices. Do not expand scope from tasks alone. |
+| Readiness | Confirm target-local rules, test plan, verification commands, and scope limits. |
+| Implementation | Run test-writer first, record expected red evidence or waiver, then product-implementer works only on approved implementation slices. Do not expand scope from tasks alone. |
 | Verification | Record fresh evidence and unresolved failures. |
 | Review / Next | Archive stable conclusions back to official project state. |
 
@@ -199,9 +203,10 @@ The checker enforces only mechanical packet hygiene:
 
 检查器仅强制执行机械包卫生：
 
-- required files exist: `proposal.md`, `design.md`, `tasks.md`, `contracts.md`, `verification.md`;
+- required files exist: `proposal.md`, `design.md`, `tasks.md`, `contracts.md`, `tests.md`, `verification.md`;
 - `tasks.md` contains a checkbox checklist;
 - `contracts.md` declares a contract artifact or an explicit blocked reason;
+- `tests.md` declares a test owner, unit/integration/E2E applicability, test files or blocked reason, and red/green commands, or a waiver with replacement verification and residual risk;
 - `verification.md` records a command, result, or unable-to-verify reason;
 - every `Status:` value is one of `draft`, `ready`, `active`, `blocked`, `done`, `archived`;
 - archived packets link stable conclusions back to ADR, README, contract, verification, queue, or project index.

@@ -222,6 +222,43 @@ class TestLayerGateEngine:
         assert len(status.artifacts_found) > 0
         assert len(status.artifacts_missing) == 0
 
+    def test_verification_gate_requires_state_contract_evidence(
+        self, tmp_path: Path
+    ) -> None:
+        (tmp_path / "docs" / "verification").mkdir(parents=True)
+        (tmp_path / "docs" / "verification" / "technical.md").write_text(
+            """# Technical verification
+
+## User-Perceived Integration Not Applicable
+- Reason: CLI governance check only.
+- Replacement verification: pytest tests/test_commands/test_check_cmd.py
+- Residual risk: Low; no product UI path.
+""",
+            encoding="utf-8",
+        )
+        qa = tuple(
+            {
+                "layer": "verification",
+                "question": f"Q{i}",
+                "answer": "A",
+                "timestamp": "",
+            }
+            for i in range(6)
+        )
+        session = self._make_session(
+            current_layer=HarnessLayer.VERIFICATION,
+            layer_qa=qa,
+        )
+
+        engine = LayerGateEngine()
+        status = engine.check(session, tmp_path, HarnessLayer.VERIFICATION)
+
+        assert status.passed is False
+        assert any(
+            "tests/test_commands/test_layer_cmd.py" in item
+            for item in status.confirmation_items_unmet
+        )
+
 
 class TestLockFileManager:
     def test_write_and_read_lock(self, tmp_path: Path) -> None:

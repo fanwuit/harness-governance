@@ -132,8 +132,12 @@ class TestListRoles:
         roles = renderer.list_roles()
         assert "implementer" in roles
         assert "reviewer" in roles
+        assert "verifier" in roles
         assert "planner" in roles
+        assert "spec-writer" in roles
         assert "contract-writer" in roles
+        assert "test-writer" in roles
+        assert "product-implementer" in roles
         assert "orchestrator" in roles
 
     def test_lists_governance_roles(self, renderer: TemplateRenderer) -> None:
@@ -150,6 +154,8 @@ class TestListRoles:
         assert "adr_writer" in roles
         assert "adr writer" in roles
         assert "fact_finder_reviewer" in roles
+        assert "verify" in roles
+        assert "verification" in roles
         assert "fact finder" in roles
         assert "readiness_gate_writer" in roles
         assert "document_gardener" in roles
@@ -327,8 +333,11 @@ class TestPlaceholderSubstitution:
 
     ALL_ROLES_WITH_PLACEHOLDERS = [
         "planner",
+        "spec-writer",
         "contract-writer",
+        "test-writer",
         "implementer",
+        "product-implementer",
         "reviewer",
         "adr-writer",
         "fact-finder-reviewer",

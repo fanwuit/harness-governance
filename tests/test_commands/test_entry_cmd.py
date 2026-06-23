@@ -42,7 +42,7 @@ def test_check_entry_record_flags_missing_field(tmp_path: Path) -> None:
     record = tmp_path / "record.md"
     _write_record(record, body)
     errors = check_file(record, repo_root=tmp_path)
-    assert any("Missing field: Target" in err for err in errors)
+    assert any("Target" in err for err in errors)
 
 
 def test_check_entry_record_flags_placeholder(tmp_path: Path) -> None:

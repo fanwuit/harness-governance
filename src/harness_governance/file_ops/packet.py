@@ -55,6 +55,36 @@ _VERIFICATION_REASON_RE = re.compile(
     re.IGNORECASE,
 )
 _UNABLE_TO_VERIFY_RE = re.compile(r"unable to verify", re.IGNORECASE)
+_TEST_OWNER_RE = re.compile(
+    r"^\s*-\s*(?:test owner|owner)\s*:\s*\S",
+    re.IGNORECASE | re.MULTILINE,
+)
+_TEST_WRITER_RE = re.compile(r"\btest-writer\b", re.IGNORECASE)
+_TEST_TYPE_RE = re.compile(
+    r"^\s*-\s*(?:unit|integration|e2e)\s*:\s*(?:applicable|not applicable|n/a|na)\b",
+    re.IGNORECASE | re.MULTILINE,
+)
+_TEST_FILE_RE = re.compile(
+    r"^\s*-\s*(?:path|test file|test files|fixture|e2e spec)\s*:\s*\S",
+    re.IGNORECASE | re.MULTILINE,
+)
+_TEST_RED_RE = re.compile(
+    r"expected failing command before product implementation\s*:\s*\S",
+    re.IGNORECASE,
+)
+_TEST_GREEN_RE = re.compile(
+    r"(?:green command|passing command|verification command)\s*:\s*\S",
+    re.IGNORECASE,
+)
+_TEST_WAIVER_RE = re.compile(r"^\s*-\s*waiver\s*:\s*\S", re.IGNORECASE | re.MULTILINE)
+_TEST_REPLACEMENT_RE = re.compile(
+    r"^\s*-\s*replacement verification\s*:\s*\S",
+    re.IGNORECASE | re.MULTILINE,
+)
+_TEST_RESIDUAL_RISK_RE = re.compile(
+    r"^\s*-\s*residual risk\s*:\s*\S",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 # Backlink keywords for archived packets.
 _BACKLINK_TARGET_RE = re.compile(
@@ -217,6 +247,7 @@ def check_packet(
         errors.append(bilingual("packet.label_missing_checkbox", label=label))
 
     status_value = "draft"
+    status_values: set[str] = set()
     for filename, text in texts.items():
         for match in _STATUS_RE.finditer(text):
             value = match.group(1).lower()
@@ -230,7 +261,10 @@ def check_packet(
                     )
                 )
             else:
-                status_value = value
+                status_values.add(value)
+
+    if status_values:
+        status_value = _dominant_status(status_values)
 
     contracts_text = texts.get("contracts.md", "")
     if (
@@ -239,6 +273,10 @@ def check_packet(
         and not _has_blocked_reason(contracts_text)
     ):
         errors.append(bilingual("packet.label_missing_contract_artifact", label=label))
+
+    tests_text = texts.get("tests.md", "")
+    if tests_text:
+        errors.extend(_validate_tests_plan(label, tests_text, status_value))
 
     verification_text = texts.get("verification.md", "")
     if verification_text and not _has_verification_evidence(verification_text):
@@ -311,6 +349,55 @@ def _has_verification_evidence(text: str) -> bool:
     ):
         return True
     return False
+
+
+def _validate_tests_plan(label: str, text: str, status_value: str) -> list[str]:
+    if _has_test_waiver(text):
+        return []
+
+    errors: list[str] = []
+    if not _TEST_OWNER_RE.search(text):
+        errors.append(
+            f"{label}: tests.md must declare a non-empty Test Owner "
+            "(for example: '- Test Owner: test-writer invocation <id>')."
+        )
+    if len(_TEST_TYPE_RE.findall(text)) < 3:
+        errors.append(
+            f"{label}: tests.md must declare Unit, Integration, and E2E "
+            "test types as applicable or not applicable."
+        )
+    if not _TEST_FILE_RE.search(text) and not _has_blocked_reason(text):
+        errors.append(
+            f"{label}: tests.md must list test files/fixtures or a blocked reason."
+        )
+    if not _TEST_RED_RE.search(text):
+        errors.append(
+            f"{label}: tests.md must declare the expected failing command "
+            "before product implementation."
+        )
+    if not _TEST_GREEN_RE.search(text):
+        errors.append(f"{label}: tests.md must declare the green test command.")
+    if status_value in {"active", "done"} and not _TEST_WRITER_RE.search(text):
+        errors.append(
+            f"{label}: implementation packets must show test-writer completion "
+            "or a tests.md waiver."
+        )
+    return errors
+
+
+def _has_test_waiver(text: str) -> bool:
+    return bool(
+        _TEST_WAIVER_RE.search(text)
+        and _TEST_REPLACEMENT_RE.search(text)
+        and _TEST_RESIDUAL_RISK_RE.search(text)
+    )
+
+
+def _dominant_status(values: set[str]) -> str:
+    for status in ("archived", "done", "active", "blocked", "ready", "draft"):
+        if status in values:
+            return status
+    return "draft"
 
 
 def _is_archived(
