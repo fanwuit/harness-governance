@@ -14,9 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Sequence
 
-from ..config import load_config
 from ..models.schemas import (
-    AdapterRoute,
     CapabilityTier,
     HarnessConfig,
     ProvenanceRecord,
@@ -29,7 +27,9 @@ from .agent_declarations import (
 )
 
 
-def resolve_required_tier(role: str, config: HarnessConfig | None = None) -> CapabilityTier:
+def resolve_required_tier(
+    role: str, config: HarnessConfig | None = None
+) -> CapabilityTier:
     """Return the minimum required :class:`CapabilityTier` for *role*.
 
     Checks project config overrides first, then the built-in

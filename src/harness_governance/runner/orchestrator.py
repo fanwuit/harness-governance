@@ -19,11 +19,9 @@ from typing import Literal
 
 from ..file_ops.queue import read_queue
 from ..models.schemas import CapabilityTier, QueueItem
-from ..state_machine.agent_declarations import discover_declarations
 from ..state_machine.capability_routing import (
     resolve_adapter,
     resolve_required_tier,
-    role_policy_summary,
     verifier_required_for_tier,
 )
 from .template_renderer import TemplateRenderer
@@ -219,7 +217,6 @@ class OrchestratorPromptBuilder:
         cfg = load_config(project_root)
         role_caps: dict[str, str] = {}
         role_models: dict[str, str] = {}
-        declarations = discover_declarations(project_root)
         for role in roles_needed:
             tier = resolve_required_tier(role, cfg)
             role_caps[role] = tier.value

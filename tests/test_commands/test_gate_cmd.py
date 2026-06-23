@@ -117,7 +117,10 @@ class TestGateCheck:
         )
         assert result.exit_code == 1, result.output
         assert "FAILED" in result.output or "失败" in result.output
-        assert "0/4 问题已答" in result.output or "Questions answered: 0/4" in result.output
+        assert (
+            "0/4 问题已答" in result.output
+            or "Questions answered: 0/4" in result.output
+        )
         assert "Red flags we do not accept" in result.output
         assert "Required actions" in result.output
         assert "harness layer guide intake-orientation" in result.output
@@ -213,7 +216,21 @@ class TestGateCheck:
         )
 
         subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "ci@example.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "CI"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
         subprocess.run(
             ["git", "commit", "-m", "baseline"],
             cwd=tmp_path,
@@ -286,7 +303,21 @@ class TestGateCheck:
             )
 
         subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
-        subprocess.run(["git", "add", "."], cwd=tmp_path, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "add", "."], cwd=tmp_path, check=True, capture_output=True
+        )
+        subprocess.run(
+            ["git", "config", "user.email", "ci@example.com"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "CI"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
         subprocess.run(
             ["git", "commit", "-m", "baseline"],
             cwd=tmp_path,
