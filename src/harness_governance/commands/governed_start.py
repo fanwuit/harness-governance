@@ -195,7 +195,10 @@ def _validate_queue_context(queue_item, items) -> None:
                 dep_map.setdefault(key, item)
 
     if queue_item.layer is not None:
-        if queue_item.layer.value == "implementation" and queue_item.role != "implementer":
+        if (
+            queue_item.layer.value == "implementation"
+            and queue_item.role != "implementer"
+        ):
             raise click.ClickException(
                 "Implementation queue item must declare role=implementer."
             )
@@ -452,7 +455,10 @@ def governed_start_cmd(
             if loaded_assessment is not None
             else None
         )
-        if explicit_route is not None and explicit_route is not RoutingPath.GOVERNED_PATH:
+        if (
+            explicit_route is not None
+            and explicit_route is not RoutingPath.GOVERNED_PATH
+        ):
             raise click.ClickException(
                 "--queue requires governed-path; queue start is an execution binding."
             )

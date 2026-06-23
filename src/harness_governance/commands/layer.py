@@ -189,7 +189,11 @@ def layer_advance_cmd(
     # v0.9.0: --confirmed required for standard/strict layer advancement
     # (author must explicitly approve the transition).
     rigor_for_confirmed = RigorTier(state.rigor_tier)
-    if not confirmed and not skip_gate and rigor_for_confirmed in (RigorTier.STANDARD, RigorTier.STRICT):
+    if (
+        not confirmed
+        and not skip_gate
+        and rigor_for_confirmed in (RigorTier.STANDARD, RigorTier.STRICT)
+    ):
         raise click.UsageError(bilingual("layer.confirmed_required_for_strict"))
 
     from_layer = state.current_layer
@@ -468,7 +472,11 @@ def layer_answer_cmd(
         )
         return
 
-    source_label = {"author": "author", "agent_inference": "agent-inferred", "author_imported": "author-imported"}
+    source_label = {
+        "author": "author",
+        "agent_inference": "agent-inferred",
+        "author_imported": "author-imported",
+    }
     click.echo(
         bilingual(
             "layer.answer_recorded",
@@ -1023,9 +1031,7 @@ def _prompt_author_answer(question: str, target: HarnessLayer) -> str:
     click.echo(f"{question}: ", nl=False)
     answer = stdin.readline()
     if answer == "":
-        raise click.ClickException(
-            bilingual("layer.ask.aborted", layer=target.value)
-        )
+        raise click.ClickException(bilingual("layer.ask.aborted", layer=target.value))
     click.echo(answer.rstrip("\n"))
     return answer.rstrip("\n")
 
@@ -1042,7 +1048,12 @@ def _suggest_author_answer(
             return state.description
         if "queue" in q or "队列" in question:
             return "Use the active session and current project roadmap if present."
-        if "constraints" in q or "risks" in q or "约束" in question or "风险" in question:
+        if (
+            "constraints" in q
+            or "risks" in q
+            or "约束" in question
+            or "风险" in question
+        ):
             return "No additional constraints or risks are known yet."
         if "continuation" in q or "延续" in question:
             return "New task unless the author states it continues previous work."
@@ -1061,9 +1072,7 @@ def _prompt_question_action(
 ) -> tuple[str, str | None]:
     """Prompt for one wizard Author Question action and optional answer."""
     click.echo(bilingual("layer.wizard.question", question=question))
-    click.echo(
-        bilingual("layer.wizard.suggested_answer", answer=suggested_answer)
-    )
+    click.echo(bilingual("layer.wizard.suggested_answer", answer=suggested_answer))
     action = _select_choice(
         bilingual("layer.wizard.question_action_prompt"),
         _wizard_question_choices(),

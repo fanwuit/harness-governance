@@ -435,7 +435,9 @@ def _invocation_logs_for_evidence(repo_root: Path, evidence_file: Path) -> list[
     except ValueError:
         rel_parts = ()
     if len(rel_parts) >= 4 and rel_parts[:2] == ("docs", "changes"):
-        logs.insert(0, repo_root / "docs" / "changes" / rel_parts[2] / ".invocations.ndjson")
+        logs.insert(
+            0, repo_root / "docs" / "changes" / rel_parts[2] / ".invocations.ndjson"
+        )
     return logs
 
 

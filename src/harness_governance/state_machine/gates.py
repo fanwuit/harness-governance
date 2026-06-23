@@ -473,9 +473,7 @@ def _gate_hook_implementation_hard_gates(
     return implementation_gate_failures(project_root, session.session_id)
 
 
-def _gate_hook_native_handoff(
-    session: "SessionState", project_root: Path
-) -> list[str]:
+def _gate_hook_native_handoff(session: "SessionState", project_root: Path) -> list[str]:
     """Require complete native handoff lifecycle evidence."""
     from ..hard_gates import native_handoff_gate_failures
 
@@ -555,14 +553,12 @@ class LayerGateEngine:
         author_answers = sum(
             1
             for qa in session.layer_qa
-            if qa.get("layer") == layer.value
-            and qa.get("source", "author") == "author"
+            if qa.get("layer") == layer.value and qa.get("source", "author") == "author"
         )
         inferred_answers = sum(
             1
             for qa in session.layer_qa
-            if qa.get("layer") == layer.value
-            and qa.get("source") == "agent_inference"
+            if qa.get("layer") == layer.value and qa.get("source") == "agent_inference"
         )
         qa_count = author_answers + inferred_answers
 

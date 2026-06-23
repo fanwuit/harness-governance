@@ -760,12 +760,7 @@ class TestStartInvocationProvenance:
 
     def _load_last_invocation(self, tmp_path: Path) -> SkillInvocation | None:
         """Read back the most recently persisted invocation from NDJSON."""
-        chain_path = (
-            tmp_path
-            / ".harness"
-            / "skill-chains"
-            / f"{SESSION_ID}.ndjson"
-        )
+        chain_path = tmp_path / ".harness" / "skill-chains" / f"{SESSION_ID}.ndjson"
         if not chain_path.is_file():
             return None
         import json
@@ -933,4 +928,6 @@ class TestGateHookCapabilityTier:
         session = FakeSession("self-verify")
         failures = _gate_hook_capability_tier(session, tmp_path)
         failures_text = " ".join(failures).lower()
-        assert any(word in failures_text for word in ("self-verify", "cannot", "independent"))
+        assert any(
+            word in failures_text for word in ("self-verify", "cannot", "independent")
+        )

@@ -101,15 +101,15 @@ _STATEFUL_COMMANDS: dict[str, tuple[str, str]] = {
 }
 
 _WRITER_PATTERNS: tuple[str, ...] = (
-    r'\.write_text\(',
-    r'json\.dump\b',
-    r'json\.dumps\b',
-    r'session\.write\b',
-    r'create_session\b',
-    r'append_invocation_log\b',
-    r'\.harness.*\.ndjson',
-    r'LockFileManager\(',
-    r'record_full_invocation\b',
+    r"\.write_text\(",
+    r"json\.dump\b",
+    r"json\.dumps\b",
+    r"session\.write\b",
+    r"create_session\b",
+    r"append_invocation_log\b",
+    r"\.harness.*\.ndjson",
+    r"LockFileManager\(",
+    r"record_full_invocation\b",
 )
 
 _GATE_LAYER_PATTERN = re.compile(
@@ -118,9 +118,7 @@ _GATE_LAYER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-_CLI_COMMAND_PATTERN = re.compile(
-    r"cli\.add_command\((\w+)\)"
-)
+_CLI_COMMAND_PATTERN = re.compile(r"cli\.add_command\((\w+)\)")
 
 # Evidence test patterns: (test_file_glob, required_term) pairs keyed by
 # command name.  When no evidence pattern is registered, the scanner
@@ -128,9 +126,13 @@ _CLI_COMMAND_PATTERN = re.compile(
 _EVIDENCE_PATTERNS: dict[str, list[tuple[str, str]]] = {
     "layer": [("tests/test_commands/test_layer_cmd.py", "TestLayerAdvance")],
     "gate": [("tests/test_commands/test_layer_cmd.py", "layer")],
-    "state_contract": [("tests/test_commands/test_state_contract_cmd.py", "state_contract_check")],
+    "state_contract": [
+        ("tests/test_commands/test_state_contract_cmd.py", "state_contract_check")
+    ],
     "check": [("tests/test_commands/test_check_cmd.py", "state-contract")],
-    "governed_start": [("tests/test_commands/test_governed_start.py", "governed_start")],
+    "governed_start": [
+        ("tests/test_commands/test_governed_start.py", "governed_start")
+    ],
     "tech_stack": [("tests/test_commands/test_tech_stack_cmd.py", "tech_stack")],
     "runner": [("tests/test_subagent_runner/", "invocation")],
     "review": [("tests/test_commands/test_verify_review_config.py", "review")],
@@ -205,7 +207,9 @@ def _auto_discover_requirements(repo_root: Path) -> list[StateContractRequiremen
     writers = _find_stateful_writers(repo_root)
 
     for module_name, desc, has_state_write in writers:
-        evidence_path, required_term = _find_evidence_for_command(repo_root, module_name)
+        evidence_path, required_term = _find_evidence_for_command(
+            repo_root, module_name
+        )
 
         if evidence_path:
             rel_path = evidence_path.relative_to(repo_root)

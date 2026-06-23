@@ -100,7 +100,9 @@ def write_request(
         "preparedAt": datetime.now(timezone.utc).isoformat(),
     }
     p.request_path.parent.mkdir(parents=True, exist_ok=True)
-    p.request_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    p.request_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     _append_lifecycle(project_root, session_id, {"event": "prepared", **payload})
     return payload
 
@@ -223,7 +225,9 @@ def latest_spawn(
     return None
 
 
-def latest_completion(project_root: Path, session_id: str, request_id: str) -> dict | None:
+def latest_completion(
+    project_root: Path, session_id: str, request_id: str
+) -> dict | None:
     for record in reversed(lifecycle_records(project_root, session_id)):
         if record.get("event") == "completed" and record.get("requestId") == request_id:
             return record

@@ -42,10 +42,7 @@ class TestRoleCapabilityPolicy:
         assert ROLE_CAPABILITY_POLICY["test-writer"] == CapabilityTier.STRONG
 
     def test_document_gardener_is_mechanical(self) -> None:
-        assert (
-            ROLE_CAPABILITY_POLICY["document-gardener"]
-            == CapabilityTier.MECHANICAL
-        )
+        assert ROLE_CAPABILITY_POLICY["document-gardener"] == CapabilityTier.MECHANICAL
 
     def test_planner_is_strong(self) -> None:
         assert ROLE_CAPABILITY_POLICY["planner"] == CapabilityTier.STRONG
@@ -57,18 +54,12 @@ class TestRoleCapabilityPolicy:
         assert ROLE_CAPABILITY_POLICY["reviewer"] == CapabilityTier.STRONG
 
     def test_contract_writer_is_strong(self) -> None:
-        assert (
-            ROLE_CAPABILITY_POLICY["contract-writer"]
-            == CapabilityTier.STRONG
-        )
+        assert ROLE_CAPABILITY_POLICY["contract-writer"] == CapabilityTier.STRONG
 
     def test_resolve_required_tier_default(self) -> None:
         assert resolve_required_tier("implementer") == CapabilityTier.EXECUTION
         assert resolve_required_tier("planner") == CapabilityTier.STRONG
-        assert (
-            resolve_required_tier("document-gardener")
-            == CapabilityTier.MECHANICAL
-        )
+        assert resolve_required_tier("document-gardener") == CapabilityTier.MECHANICAL
 
     def test_resolve_required_tier_with_config_override(self) -> None:
         config = HarnessConfig(

@@ -161,7 +161,10 @@ def test_runner_render_output_file(tmp_repo: Path) -> None:
     assert out_path.is_file()
     content = out_path.read_text(encoding="utf-8")
     assert len(content) > 0
-    assert "implementer 提示已渲染并写入" in result.output or "Rendered implementer prompt written to" in result.output
+    assert (
+        "implementer 提示已渲染并写入" in result.output
+        or "Rendered implementer prompt written to" in result.output
+    )
 
 
 def test_runner_render_no_ready_items(tmp_repo: Path) -> None:
@@ -239,7 +242,7 @@ def test_runner_render_queue_item_infers_verifier_role(tmp_repo: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert "Role: Verifier" in result.output or "role\": \"verifier\"" in result.output
+    assert "Role: Verifier" in result.output or 'role": "verifier"' in result.output
 
 
 def test_runner_render_records_session_bound_role(tmp_repo: Path) -> None:

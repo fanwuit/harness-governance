@@ -44,7 +44,9 @@ def is_harness_governance_repo(project_root: Path) -> bool:
     if not pyproject.is_file() or not package_root.is_dir():
         return False
     text = pyproject.read_text(encoding="utf-8")
-    return 'name = "harness-governance"' in text or "name = 'harness-governance'" in text
+    return (
+        'name = "harness-governance"' in text or "name = 'harness-governance'" in text
+    )
 
 
 @click.command("verify")

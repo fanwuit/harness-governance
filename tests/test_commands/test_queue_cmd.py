@@ -97,9 +97,7 @@ def test_queue_validate_allows_ready_role_item_without_session(tmp_repo: Path) -
 
 def test_queue_validate_fails_active_role_item_without_session(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Implement\n"
-        "- Id: impl-1\n"
-        "- Role: implementer\n",
+        "[active] Implement\n- Id: impl-1\n- Role: implementer\n",
         encoding="utf-8",
     )
 
@@ -113,10 +111,7 @@ def test_queue_validate_fails_active_role_item_without_session(tmp_repo: Path) -
 
 def test_queue_validate_fails_done_role_item_without_session(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
-        "[done] Implement\n"
-        "- Id: impl-1\n"
-        "- Role: implementer\n"
-        "- Evidence: pytest -q\n",
+        "[done] Implement\n- Id: impl-1\n- Role: implementer\n- Evidence: pytest -q\n",
         encoding="utf-8",
     )
 
@@ -172,7 +167,9 @@ def test_check_role_isolation_passes_review_dependency(tmp_repo: Path) -> None:
     assert result.exit_code == 0, result.output
 
 
-def test_check_role_isolation_allows_ready_review_without_session(tmp_repo: Path) -> None:
+def test_check_role_isolation_allows_ready_review_without_session(
+    tmp_repo: Path,
+) -> None:
     (tmp_repo / "NEXT.md").write_text(
         "[done] Implement\n"
         "- Id: impl-1\n"
@@ -217,7 +214,9 @@ def test_check_role_isolation_rejects_active_review_without_session(
     assert "must declare its own sessionId" in result.output
 
 
-def test_check_role_isolation_rejects_done_item_without_evidence(tmp_repo: Path) -> None:
+def test_check_role_isolation_rejects_done_item_without_evidence(
+    tmp_repo: Path,
+) -> None:
     (tmp_repo / "NEXT.md").write_text(
         "[done] Implement\n"
         "- Id: impl-1\n"
@@ -276,15 +275,11 @@ def test_queue_add_list_next_start_finish_block(tmp_repo: Path) -> None:
     )
     assert block_add.exit_code == 0, block_add.output
 
-    list_result = runner.invoke(
-        cli, ["--project-root", str(tmp_repo), "queue", "list"]
-    )
+    list_result = runner.invoke(cli, ["--project-root", str(tmp_repo), "queue", "list"])
     assert list_result.exit_code == 0, list_result.output
     assert "impl-1" in list_result.output
 
-    next_result = runner.invoke(
-        cli, ["--project-root", str(tmp_repo), "queue", "next"]
-    )
+    next_result = runner.invoke(cli, ["--project-root", str(tmp_repo), "queue", "next"])
     assert next_result.exit_code == 0, next_result.output
     assert "impl-1" in next_result.output
 

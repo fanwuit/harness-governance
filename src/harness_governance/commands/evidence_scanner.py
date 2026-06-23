@@ -84,9 +84,7 @@ def scan_evidence_artifacts(repo_root: Path, evidence_doc: Path) -> list[str]:
     no findings. Never raises on malformed/missing artifacts.
     """
     findings: list[str] = []
-    har_files, trace_files, test_sources = _discover_artifacts(
-        repo_root, evidence_doc
-    )
+    har_files, trace_files, test_sources = _discover_artifacts(repo_root, evidence_doc)
     for har_path in har_files:
         findings.extend(_scan_har(har_path))
     for trace_path in trace_files:
@@ -168,7 +166,9 @@ def _discover_artifacts(
 def _extract_paths_from_evidence(text: str, repo_root: Path) -> list[Path]:
     """Extract file paths mentioned in evidence doc Command/Result fields."""
     paths: list[Path] = []
-    for m in re.finditer(r"[\w/.\-]+\.(?:har|zip|spec\.ts|test\.ts|spec\.js|test\.js|py|ts)", text):
+    for m in re.finditer(
+        r"[\w/.\-]+\.(?:har|zip|spec\.ts|test\.ts|spec\.js|test\.js|py|ts)", text
+    ):
         candidate = m.group(0)
         full = repo_root / candidate
         if full.is_file():
@@ -233,9 +233,7 @@ def _scan_har(path: Path) -> list[str]:
 
         status = response.get("status")
         if status == 0:
-            findings.append(
-                f"HAR entry {i}: {method} {url} has mock response status 0"
-            )
+            findings.append(f"HAR entry {i}: {method} {url} has mock response status 0")
 
         headers = response.get("headers", [])
         if isinstance(headers, list):
@@ -264,9 +262,7 @@ def _scan_playwright_trace(path: Path) -> list[str]:
     findings: list[str] = []
     try:
         with zipfile.ZipFile(path, "r") as zf:
-            trace_names = [
-                n for n in zf.namelist() if n.endswith("trace.trace")
-            ]
+            trace_names = [n for n in zf.namelist() if n.endswith("trace.trace")]
             if not trace_names:
                 return findings
             raw = zf.read(trace_names[0])

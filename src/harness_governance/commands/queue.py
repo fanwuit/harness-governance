@@ -67,14 +67,18 @@ def _echo_items(ctx: click.Context, items) -> None:
         import json
 
         click.echo(
-            json.dumps([item.model_dump() for item in items], indent=2, ensure_ascii=False)
+            json.dumps(
+                [item.model_dump() for item in items], indent=2, ensure_ascii=False
+            )
         )
         return
     if not items:
         click.echo("queue empty")
         return
     for item in items:
-        status = item.status or ("active" if item.active else "ready" if item.ready else "-")
+        status = item.status or (
+            "active" if item.active else "ready" if item.ready else "-"
+        )
         layer = item.layer.value if item.layer else "-"
         role = item.role or "-"
         session = item.session_id or "-"
@@ -269,7 +273,8 @@ def queue_finish_cmd(
             i
             for i in items
             if item_id in {i.id, i.session_id, i.change_id}
-            or i.raw.lower().startswith("[active]") and item_id in i.raw
+            or i.raw.lower().startswith("[active]")
+            and item_id in i.raw
         ),
         None,
     )

@@ -16,11 +16,7 @@ from .session import load_session
 
 
 def is_trivial_queue_item(item: QueueItem) -> bool:
-    text = " ".join(
-        part
-        for part in (item.change_kind or "", item.raw)
-        if part
-    ).lower()
+    text = " ".join(part for part in (item.change_kind or "", item.raw) if part).lower()
     return "trivial-safe-change" in text or "trivial" in text
 
 
@@ -191,9 +187,8 @@ def implementation_gate_failures(project_root: Path, session_id: str) -> list[st
 
     failures: list[str] = []
     is_implementation = (
-        (item.layer is not None and item.layer.value == "implementation")
-        or item.role == "implementer"
-    )
+        item.layer is not None and item.layer.value == "implementation"
+    ) or item.role == "implementer"
     if is_implementation:
         if not item.test_plan:
             failures.append("Implementation queue item must declare TestPlan.")
@@ -206,8 +201,7 @@ def implementation_gate_failures(project_root: Path, session_id: str) -> list[st
     missing_roles = missing_render_roles(project_root, item, session_id)
     if missing_roles:
         failures.append(
-            "Missing runner render records for role plan: "
-            + ", ".join(missing_roles)
+            "Missing runner render records for role plan: " + ", ".join(missing_roles)
         )
     failures.extend(capability_tier_failures(project_root, item, session_id))
 
@@ -217,9 +211,7 @@ def implementation_gate_failures(project_root: Path, session_id: str) -> list[st
         baseline=_session_git_status_baseline(project_root, session_id),
     )
     if outside:
-        failures.append(
-            "Changed files outside owner allowlist: " + ", ".join(outside)
-        )
+        failures.append("Changed files outside owner allowlist: " + ", ".join(outside))
 
     return failures
 
@@ -234,14 +226,10 @@ def changed_files_outside_owner_allowlist(
     if not allowlist:
         return []
     baseline_paths = {
-        path.replace("\\", "/").strip()
-        for path in baseline
-        if path.strip()
+        path.replace("\\", "/").strip() for path in baseline if path.strip()
     }
     changed = [
-        path
-        for path in git_changed_files(project_root)
-        if path not in baseline_paths
+        path for path in git_changed_files(project_root) if path not in baseline_paths
     ]
     return [path for path in changed if not _path_allowed(path, allowlist)]
 
@@ -270,7 +258,9 @@ def git_changed_files(project_root: Path) -> list[str]:
     return changed
 
 
-def _session_git_status_baseline(project_root: Path, session_id: str) -> tuple[str, ...]:
+def _session_git_status_baseline(
+    project_root: Path, session_id: str
+) -> tuple[str, ...]:
     try:
         session = load_session(project_root, session_id)
     except (FileNotFoundError, OSError, ValueError):
@@ -322,9 +312,7 @@ def finish_gate_failures(
         baseline=_session_git_status_baseline(project_root, session_id),
     )
     if outside:
-        failures.append(
-            "Changed files outside owner allowlist: " + ", ".join(outside)
-        )
+        failures.append("Changed files outside owner allowlist: " + ", ".join(outside))
     return failures
 
 
@@ -375,8 +363,7 @@ def native_handoff_gate_failures(project_root: Path, session_id: str) -> list[st
         completions = [
             r
             for r in lifecycle
-            if r.get("event") == "completed"
-            and r.get("requestId") == request_id
+            if r.get("event") == "completed" and r.get("requestId") == request_id
         ]
         if not completions:
             failures.append(f"Missing parse-result completion record for role {role}.")

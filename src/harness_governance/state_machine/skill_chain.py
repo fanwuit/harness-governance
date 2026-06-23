@@ -512,9 +512,7 @@ def _gate_hook_capability_tier(session, project_root: Path) -> list[str]:
         return []
 
     failures: list[str] = []
-    needs_verifier: list[SkillInvocation] = [
-        r for r in records if r.verifier_required
-    ]
+    needs_verifier: list[SkillInvocation] = [r for r in records if r.verifier_required]
     if not needs_verifier:
         return []
 

@@ -584,13 +584,9 @@ def init_cmd(
                 )[ref_tier]
             ).resolve()
             if ref_target.exists() and not force:
-                disk_ver = extract_skill_version(
-                    ref_target.read_text(encoding="utf-8")
-                )
+                disk_ver = extract_skill_version(ref_target.read_text(encoding="utf-8"))
                 if template_ver and disk_ver == template_ver:
-                    notes.append(
-                        f"skill up-to-date (v{template_ver}): {ref_target}"
-                    )
+                    notes.append(f"skill up-to-date (v{template_ver}): {ref_target}")
                 else:
                     notes.append(
                         bilingual(

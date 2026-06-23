@@ -99,9 +99,11 @@ class VariableExtractor:
         variables.verification_commands = inline.get(
             "verification command", ""
         ) or inline.get("verificationcommand", "")
-        variables.verification_commands = variables.verification_commands or inline.get(
-            "verification commands", ""
-        ) or inline.get("verificationcommands", "")
+        variables.verification_commands = (
+            variables.verification_commands
+            or inline.get("verification commands", "")
+            or inline.get("verificationcommands", "")
+        )
         variables.done_when = inline.get("done when", "") or inline.get("donewhen", "")
 
         # --- From the task packet (if change_id is set) ---

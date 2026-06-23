@@ -113,14 +113,21 @@ def _native_route(project_root: Path, role: str):
 
 
 def _required_prompt_failures(role: str, variables) -> list[str]:
-    if role not in {"reviewer", "reviewer-verifier", "verifier", "fact-finder-reviewer"}:
+    if role not in {
+        "reviewer",
+        "reviewer-verifier",
+        "verifier",
+        "fact-finder-reviewer",
+    }:
         return []
     required = {
         "FORBIDDEN_SCOPE": variables.forbidden_scope,
         "VERIFICATION_COMMANDS": variables.verification_commands,
         "DONE_WHEN": variables.done_when,
     }
-    return [name for name, value in required.items() if not value or is_not_found(value)]
+    return [
+        name for name, value in required.items() if not value or is_not_found(value)
+    ]
 
 
 @click.group("runner")
@@ -259,6 +266,7 @@ def runner_start_cmd(
             )
         return
 
+
 @runner_group.command("dispatch")
 @click.option(
     "--role",
@@ -361,6 +369,7 @@ def runner_dispatch_cmd(
         )
     )
     return
+
 
 __all__ = [
     "runner_group",
@@ -548,7 +557,9 @@ def runner_render_cmd(
     type=click.Path(dir_okay=False, path_type=Path),
 )
 @click.option("--queue", "queue_item_id", required=True, help="Queue item id.")
-@click.option("--session-id", "session_id", required=True, help="Governance session id.")
+@click.option(
+    "--session-id", "session_id", required=True, help="Governance session id."
+)
 @click.pass_context
 def runner_prepare_native_cmd(
     ctx: click.Context,
@@ -718,7 +729,9 @@ def runner_record_native_spawn_cmd(
     help="Round index for the log entry.",
 )
 @click.option("--session-id", "session_id", default=None, help="Governance session id.")
-@click.option("--request-id", "request_id", default=None, help="Native handoff request id.")
+@click.option(
+    "--request-id", "request_id", default=None, help="Native handoff request id."
+)
 @click.option("--agent-id", "agent_id", default=None, help="Native platform agent id.")
 @click.pass_context
 def runner_parse_result_cmd(
@@ -799,4 +812,3 @@ def runner_parse_result_cmd(
             }
         )
     click.echo(_json.dumps(payload, indent=2, ensure_ascii=False))
-

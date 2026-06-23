@@ -25,17 +25,19 @@ class TestDiscoverDeclarations:
         agent_dir = tmp_path / ".agents"
         agent_dir.mkdir()
         (agent_dir / "tiers.json").write_text(
-            json.dumps({
-                "platform": "opencode",
-                "adapters": [
-                    {
-                        "role": "implementer",
-                        "required_tier": "execution",
-                        "adapter": "subagent",
-                        "model_label": "deepseek-v4-flash",
-                    }
-                ],
-            }),
+            json.dumps(
+                {
+                    "platform": "opencode",
+                    "adapters": [
+                        {
+                            "role": "implementer",
+                            "required_tier": "execution",
+                            "adapter": "subagent",
+                            "model_label": "deepseek-v4-flash",
+                        }
+                    ],
+                }
+            ),
             encoding="utf-8",
         )
         decls = discover_declarations(tmp_path)
@@ -48,10 +50,12 @@ class TestDiscoverDeclarations:
         for d in (".claude", ".agents", ".opencode"):
             (tmp_path / d).mkdir()
             (tmp_path / d / "tiers.json").write_text(
-                json.dumps({
-                    "platform": d.lstrip("."),
-                    "adapters": [],
-                }),
+                json.dumps(
+                    {
+                        "platform": d.lstrip("."),
+                        "adapters": [],
+                    }
+                ),
                 encoding="utf-8",
             )
         decls = discover_declarations(tmp_path)
@@ -60,9 +64,7 @@ class TestDiscoverDeclarations:
     def test_skip_invalid_json(self, tmp_path: Path) -> None:
         agent_dir = tmp_path / ".agents"
         agent_dir.mkdir()
-        (agent_dir / "tiers.json").write_text(
-            "not valid json", encoding="utf-8"
-        )
+        (agent_dir / "tiers.json").write_text("not valid json", encoding="utf-8")
         decls = discover_declarations(tmp_path)
         assert decls == []
 
@@ -80,9 +82,7 @@ class TestResolveAdapterFromDeclarations:
                 ),
             ),
         )
-        result = resolve_adapter_from_declarations(
-            "implementer", "execution", [decl]
-        )
+        result = resolve_adapter_from_declarations("implementer", "execution", [decl])
         assert result is not None
         assert result["adapter"] == "subagent"
         assert result["model_label"] == "deepseek-v4-flash"
@@ -99,9 +99,7 @@ class TestResolveAdapterFromDeclarations:
                 ),
             ),
         )
-        result = resolve_adapter_from_declarations(
-            "planner", "strong", [decl]
-        )
+        result = resolve_adapter_from_declarations("planner", "strong", [decl])
         assert result is None
 
     def test_empty_declarations(self) -> None:
@@ -130,9 +128,7 @@ class TestResolveAdapterFromDeclarations:
                 ),
             ),
         )
-        result = resolve_adapter_from_declarations(
-            "implementer", "execution", [d1, d2]
-        )
+        result = resolve_adapter_from_declarations("implementer", "execution", [d1, d2])
         assert result is not None
         assert result["adapter"] == "claude-agent"
         assert result["platform"] == "claude-code"

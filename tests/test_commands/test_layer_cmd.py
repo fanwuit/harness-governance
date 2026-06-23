@@ -73,7 +73,14 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         assert "idea" in result.output.lower() or "advanced" in result.output.lower()
@@ -153,7 +160,11 @@ class TestLayerAdvance:
             ],
         )
         assert second.exit_code == 0, second.output
-        assert "1 answer" in second.output or "1 answer(s)" in second.output or "1 条" in second.output
+        assert (
+            "1 answer" in second.output
+            or "1 answer(s)" in second.output
+            or "1 条" in second.output
+        )
 
         state = load_session(tmp_path, session_id)
         idea_answers = [qa for qa in state.layer_qa if qa["layer"] == "idea"]
@@ -467,7 +478,14 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0
         assert "already" in result.output.lower() or "已在" in result.output
@@ -485,7 +503,15 @@ class TestLayerAdvance:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
@@ -514,7 +540,15 @@ class TestLayerAdvance:
         sid = _seed_session(tmp_path)
         runner = CliRunner()
         runner.invoke(
-            cli, ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"]
+            cli,
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         # Verify the session file was updated with the transition.
         from harness_governance.session import load_session
@@ -659,7 +693,9 @@ class TestLayerAdvanceConfirmed:
         )
         assert result.exit_code == 0, result.output
 
-    def test_advance_without_confirmed_still_works_for_light(self, tmp_path: Path) -> None:
+    def test_advance_without_confirmed_still_works_for_light(
+        self, tmp_path: Path
+    ) -> None:
         """--confirmed not required for light-tier governance."""
         _seed_session(tmp_path, rigor_tier="light")
         runner = CliRunner()
@@ -726,12 +762,22 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code != 0, (
             f"Gate should have blocked advance, got: {result.output}"
         )
-        assert "0/4 问题已答" in result.output or "Questions answered: 0/4" in result.output
+        assert (
+            "0/4 问题已答" in result.output
+            or "Questions answered: 0/4" in result.output
+        )
         assert "Red flags we do not accept" in result.output
         assert "Required actions" in result.output
         assert "harness layer guide intake-orientation" in result.output
@@ -743,7 +789,14 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code == 0, result.output
         # Verify lock file was written for the passed layer.
@@ -811,7 +864,15 @@ class TestLayerAdvanceGateEnforcement:
         runner = CliRunner()
         result = runner.invoke(
             cli,
-            ["--project-root", str(tmp_path), "--json", "layer", "advance", "idea", "--confirmed"],
+            [
+                "--project-root",
+                str(tmp_path),
+                "--json",
+                "layer",
+                "advance",
+                "idea",
+                "--confirmed",
+            ],
         )
         assert result.exit_code != 0
         data = json.loads(result.output)

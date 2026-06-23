@@ -258,7 +258,9 @@ def test_init_next_md_examples_do_not_validate_as_real_queue(tmp_repo: Path) -> 
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init"])
     assert result.exit_code == 0, result.output
 
-    validate = runner.invoke(cli, ["--project-root", str(tmp_repo), "queue", "validate"])
+    validate = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "queue", "validate"]
+    )
     assert validate.exit_code == 0, validate.output
     assert "Example" not in validate.output
 
@@ -311,12 +313,15 @@ def test_init_creates_state_contract_test_scaffold(tmp_repo: Path) -> None:
 
 def test_init_creates_tiers_json(tmp_repo: Path) -> None:
     runner = CliRunner()
-    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode"])
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode"]
+    )
     assert result.exit_code == 0, result.output
 
     tiers = tmp_repo / ".opencode" / "tiers.json"
     assert tiers.is_file()
     import json
+
     data = json.loads(tiers.read_text(encoding="utf-8"))
     assert "platform" in data
     assert len(data["adapters"]) > 0
@@ -327,12 +332,17 @@ def test_init_tiers_json_respects_platform(tmp_repo: Path) -> None:
     """codex platform writes to .agents/, opencode writes to .opencode/."""
     runner = CliRunner()
 
-    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "codex"])
+    result = runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "init", "--platform", "codex"]
+    )
     assert result.exit_code == 0
     assert (tmp_repo / ".agents" / "tiers.json").is_file()
 
     # Re-init with different platform
-    result = runner.invoke(cli, ["--project-root", str(tmp_repo), "init", "--platform", "opencode", "--force"])
+    result = runner.invoke(
+        cli,
+        ["--project-root", str(tmp_repo), "init", "--platform", "opencode", "--force"],
+    )
     assert result.exit_code == 0
     assert (tmp_repo / ".opencode" / "tiers.json").is_file()
 

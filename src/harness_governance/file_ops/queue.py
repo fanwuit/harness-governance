@@ -211,15 +211,11 @@ def _entry_to_item(raw: str) -> QueueItem:
             change_kind = value.strip() or None
         elif key == "dependson":
             depends_on = tuple(
-                part.strip()
-                for part in re.split(r"[,;]", value)
-                if part.strip()
+                part.strip() for part in re.split(r"[,;]", value) if part.strip()
             )
         elif key == "ownerfiles":
             owner_files = tuple(
-                part.strip()
-                for part in re.split(r"[,;]", value)
-                if part.strip()
+                part.strip() for part in re.split(r"[,;]", value) if part.strip()
             )
         elif key == "roleplan":
             role_plan = tuple(
@@ -309,7 +305,9 @@ def append_governed_queue_item(
     )
     queue_path.parent.mkdir(parents=True, exist_ok=True)
     separator = "\n\n" if existing.strip() else ""
-    queue_path.write_text(existing.rstrip() + separator + entry + "\n", encoding="utf-8")
+    queue_path.write_text(
+        existing.rstrip() + separator + entry + "\n", encoding="utf-8"
+    )
     return True
 
 

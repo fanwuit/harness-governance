@@ -292,9 +292,15 @@ def classify(
     # hard governed override (public contract, external side-effect,
     # unclear risk) applies.
     is_question_or_read_only = agent_operation in ("question", "read_only")
-    no_writes = agent_writes_files is False or (agent_writes_files is None and not has_file_changes)
+    no_writes = agent_writes_files is False or (
+        agent_writes_files is None and not has_file_changes
+    )
     if is_question_or_read_only and no_writes:
-        if not is_public_contract and not has_external_side_effect and not is_unclear_or_high_risk:
+        if (
+            not is_public_contract
+            and not has_external_side_effect
+            and not is_unclear_or_high_risk
+        ):
             logger.info("classified as fast-path (question/read-only, no writes)")
             return RoutingDecision(
                 path=RoutingPath.FAST_PATH,

@@ -59,9 +59,7 @@ def load_queue_policy(project_root: Path) -> QueuePolicy:
         for entry in raw:
             if not isinstance(entry, list):
                 raise ValueError("forbidden_owner_overlap entries must be arrays")
-            normalized = tuple(
-                str(path).strip() for path in entry if str(path).strip()
-            )
+            normalized = tuple(str(path).strip() for path in entry if str(path).strip())
             if normalized:
                 result.append(normalized)
         return tuple(result)
@@ -76,4 +74,3 @@ def load_queue_policy(project_root: Path) -> QueuePolicy:
 
 
 __all__ = ["QueuePolicy", "load_queue_policy"]
-

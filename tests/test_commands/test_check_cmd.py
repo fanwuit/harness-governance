@@ -67,7 +67,9 @@ def test_check_packets_cli(tmp_repo: Path) -> None:
     runner.invoke(cli, ["--project-root", str(tmp_repo), "packet", "init", "x"])
     result = runner.invoke(cli, ["--project-root", str(tmp_repo), "check", "packets"])
     assert result.exit_code == 1
-    assert ("packets" in result.output and "failed" in result.output) or "packets 检查未通过" in result.output
+    assert (
+        "packets" in result.output and "failed" in result.output
+    ) or "packets 检查未通过" in result.output
 
 
 def test_check_queue_requires_scheduler_file(tmp_repo: Path) -> None:
@@ -587,7 +589,9 @@ def test_check_subagent_separation_cli_and_check_all(tmp_repo: Path) -> None:
         ["--project-root", str(tmp_repo), "check", "subagent-separation"],
     )
     assert result.exit_code == 1
-    assert ("subagent-separation" in result.output and "failed" in result.output) or "subagent-separation 检查未通过" in result.output
+    assert (
+        "subagent-separation" in result.output and "failed" in result.output
+    ) or "subagent-separation 检查未通过" in result.output
 
     all_result = runner.invoke(
         cli,
@@ -613,7 +617,9 @@ def test_check_user_evidence_cli(tmp_repo: Path) -> None:
     )
 
     assert result.exit_code == 1
-    assert ("user-evidence" in result.output and "failed" in result.output) or "user-evidence 检查未通过" in result.output
+    assert (
+        "user-evidence" in result.output and "failed" in result.output
+    ) or "user-evidence 检查未通过" in result.output
 
 
 def test_check_all_includes_user_evidence(tmp_repo: Path) -> None:

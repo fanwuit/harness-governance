@@ -60,15 +60,17 @@ def _item_by_id(items: list[QueueItem]) -> dict[str, QueueItem]:
 
 def _is_implementation_item(item: QueueItem) -> bool:
     return (
-        (item.layer is not None and item.layer.value == "implementation")
-        or item.role == "implementer"
-    )
+        item.layer is not None and item.layer.value == "implementation"
+    ) or item.role == "implementer"
 
 
 def _policy_expected_role(item: QueueItem, policy) -> str | None:
     if item.layer and item.layer.value in policy.role_required_by_layer:
         return policy.role_required_by_layer[item.layer.value]
-    if item.change_kind and item.change_kind.lower() in policy.role_required_by_change_kind:
+    if (
+        item.change_kind
+        and item.change_kind.lower() in policy.role_required_by_change_kind
+    ):
         return policy.role_required_by_change_kind[item.change_kind.lower()]
     return None
 
@@ -129,8 +131,7 @@ def validate_queue(repo_root: Path) -> CheckResult:
                     target=target,
                     level="error",
                     message=(
-                        f"Structured queue item with role={item.role} "
-                        "must declare id."
+                        f"Structured queue item with role={item.role} must declare id."
                     ),
                 )
             )
@@ -153,9 +154,7 @@ def validate_queue(repo_root: Path) -> CheckResult:
                         check="queue",
                         target=target,
                         level="error",
-                        message=(
-                            "Implementation queue item must declare RolePlan."
-                        ),
+                        message=("Implementation queue item must declare RolePlan."),
                     )
                 )
             if not item.test_plan:
@@ -164,9 +163,7 @@ def validate_queue(repo_root: Path) -> CheckResult:
                         check="queue",
                         target=target,
                         level="error",
-                        message=(
-                            "Implementation queue item must declare TestPlan."
-                        ),
+                        message=("Implementation queue item must declare TestPlan."),
                     )
                 )
             if not (item.failing_test_evidence or item.tdd_not_applicable):
@@ -208,9 +205,7 @@ def validate_queue(repo_root: Path) -> CheckResult:
                         check="queue",
                         target=target,
                         level="error",
-                        message=(
-                            f"Verification must include preset {preset!r}."
-                        ),
+                        message=(f"Verification must include preset {preset!r}."),
                     )
                 )
         else:
@@ -252,9 +247,7 @@ def validate_queue(repo_root: Path) -> CheckResult:
         if item.gate_id:
             dep_items = [item_by_id.get(dep_id) for dep_id in item.depends_on]
             dep_gate_ids = {
-                dep.gate_id.lower()
-                for dep in dep_items
-                if dep and dep.gate_id
+                dep.gate_id.lower() for dep in dep_items if dep and dep.gate_id
             }
             for parent_gate, children in policy.child_gate_ordering.items():
                 if item.gate_id.lower() not in children:
@@ -326,7 +319,9 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
 
         deps = [by_id.get(dep_id) for dep_id in reviewer.depends_on]
         missing = [
-            dep_id for dep_id, dep in zip(reviewer.depends_on, deps, strict=False) if dep is None
+            dep_id
+            for dep_id, dep in zip(reviewer.depends_on, deps, strict=False)
+            if dep is None
         ]
         for dep_id in missing:
             findings.append(
@@ -392,9 +387,7 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
                     check="role-isolation",
                     target=target,
                     level="error",
-                    message=(
-                        f"Queue role must be {expected_role!r} for this gate."
-                    ),
+                    message=(f"Queue role must be {expected_role!r} for this gate."),
                 )
             )
 
@@ -403,8 +396,7 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
         if _has_waiver(item):
             continue
         has_review = any(
-            reviewer.role == "reviewer-verifier"
-            and target in reviewer.depends_on
+            reviewer.role == "reviewer-verifier" and target in reviewer.depends_on
             for reviewer in reviewers
         )
         if not has_review:
@@ -427,9 +419,7 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
                         check="role-isolation",
                         target=target,
                         level="error",
-                        message=(
-                            f"Verification must include preset {preset!r}."
-                        ),
+                        message=(f"Verification must include preset {preset!r}."),
                     )
                 )
 
@@ -446,8 +436,7 @@ def check_role_isolation(repo_root: Path) -> CheckResult:
                     target=target,
                     level="error",
                     message=(
-                        "Done queue items must record evidence or verification "
-                        "content."
+                        "Done queue items must record evidence or verification content."
                     ),
                 )
             )

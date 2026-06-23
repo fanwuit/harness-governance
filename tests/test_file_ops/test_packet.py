@@ -204,7 +204,9 @@ def test_check_packet_flags_incomplete_test_plan(tmp_repo: Path) -> None:
     errors, _ = check_packet(packet_dir(tmp_repo, "bad-tests"), project_root=tmp_repo)
 
     assert any("test owner" in err.lower() for err in errors)
-    assert any("test files" in err.lower() or "blocked reason" in err.lower() for err in errors)
+    assert any(
+        "test files" in err.lower() or "blocked reason" in err.lower() for err in errors
+    )
 
 
 def test_check_packet_requires_test_writer_for_done_packet(tmp_repo: Path) -> None:

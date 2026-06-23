@@ -147,9 +147,7 @@ def close_task(
                 ),
                 handoff_from=matched_item.session_id or task_id,
             )
-            click.echo(
-                f"Generated reviewer-verifier queue item: {review_id}"
-            )
+            click.echo(f"Generated reviewer-verifier queue item: {review_id}")
     return target
 
 
@@ -313,9 +311,7 @@ def auto_close_active_tasks(
                 ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
                 save_session(
                     project_root,
-                    session.model_copy(
-                        update={"status": "closed", "closed_at": ts}
-                    ),
+                    session.model_copy(update={"status": "closed", "closed_at": ts}),
                 )
             mark_queue_item_done(
                 cfg.queue_file,
@@ -357,9 +353,7 @@ def review_auto_close_cmd(ctx: click.Context, dry_run: bool) -> None:
         click.echo(bilingual("review.auto_close.none"))
         return
 
-    click.echo(
-        bilingual("review.auto_close.summary", active=active, closed=closed)
-    )
+    click.echo(bilingual("review.auto_close.summary", active=active, closed=closed))
 
 
 __all__ = [

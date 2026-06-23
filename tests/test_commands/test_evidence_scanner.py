@@ -40,9 +40,7 @@ MVP complete.
 def _make_har(repo_root: Path, entries: list[dict]) -> Path:
     har_path = repo_root / "test-results" / "save.har"
     har_path.parent.mkdir(parents=True, exist_ok=True)
-    har_path.write_text(
-        json.dumps({"log": {"entries": entries}}), encoding="utf-8"
-    )
+    har_path.write_text(json.dumps({"log": {"entries": entries}}), encoding="utf-8")
     return har_path
 
 
@@ -101,8 +99,11 @@ def test_har_mock_response(tmp_repo: Path) -> None:
         tmp_repo,
         [
             {
-                "request": {"method": "POST", "url": "/api/save",
-                             "postData": {"text": "title=hello"}},
+                "request": {
+                    "method": "POST",
+                    "url": "/api/save",
+                    "postData": {"text": "title=hello"},
+                },
                 "response": {"status": 0, "headers": []},
             }
         ],
@@ -120,13 +121,17 @@ def test_trace_forbidden_selector(tmp_repo: Path) -> None:
     _make_trace_zip(
         tmp_repo,
         [
-            {"type": "action", "apiName": "page.click",
-             "params": {"selector": "[data-test-only=\"save\"]"}},
+            {
+                "type": "action",
+                "apiName": "page.click",
+                "params": {"selector": '[data-test-only="save"]'},
+            },
         ],
     )
     findings = scan_evidence_artifacts(tmp_repo, evidence)
-    assert any("selector" in f.lower() or "data-test-only" in f.lower()
-               for f in findings)
+    assert any(
+        "selector" in f.lower() or "data-test-only" in f.lower() for f in findings
+    )
 
 
 # --- C5: Trace non-user first navigation -----------------------------------
@@ -138,14 +143,18 @@ def test_trace_non_user_first_nav(tmp_repo: Path) -> None:
     _make_trace_zip(
         tmp_repo,
         [
-            {"type": "action", "apiName": "page.goto",
-             "params": {"url": "http://localhost:3000/test-fixture"}},
+            {
+                "type": "action",
+                "apiName": "page.goto",
+                "params": {"url": "http://localhost:3000/test-fixture"},
+            },
         ],
     )
     findings = scan_evidence_artifacts(tmp_repo, evidence)
-    assert any("fixture" in f.lower() or "non-user" in f.lower()
-               or "navigation" in f.lower()
-               for f in findings)
+    assert any(
+        "fixture" in f.lower() or "non-user" in f.lower() or "navigation" in f.lower()
+        for f in findings
+    )
 
 
 # --- C6: Test source forbidden selector ------------------------------------
@@ -160,8 +169,7 @@ def test_test_source_forbidden_selector(tmp_repo: Path) -> None:
         'test("save", () => { page.click(".lifecycle-actions button:first()"); });',
     )
     findings = scan_evidence_artifacts(tmp_repo, evidence)
-    assert any("selector" in f.lower() or "lifecycle" in f.lower()
-               for f in findings)
+    assert any("selector" in f.lower() or "lifecycle" in f.lower() for f in findings)
 
 
 # --- C7: Malformed artifact graceful skip ----------------------------------
@@ -219,13 +227,15 @@ def test_har_valid_payload_no_finding(tmp_repo: Path) -> None:
         tmp_repo,
         [
             {
-                "request": {"method": "POST", "url": "/api/save",
-                             "postData": {"text": "title=hello"}},
+                "request": {
+                    "method": "POST",
+                    "url": "/api/save",
+                    "postData": {"text": "title=hello"},
+                },
                 "response": {"status": 200, "headers": []},
             }
         ],
     )
     findings = scan_evidence_artifacts(tmp_repo, evidence)
-    assert not any("postData" in f.lower() or "payload" in f.lower()
-                   for f in findings)
+    assert not any("postData" in f.lower() or "payload" in f.lower() for f in findings)
     assert not any("mock" in f.lower() for f in findings)

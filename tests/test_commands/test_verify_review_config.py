@@ -114,7 +114,10 @@ def test_verify_local_release_runs_release_steps(
         ["--project-root", str(tmp_repo), "verify", "local", "--release"],
     )
     assert result.exit_code == 0, result.output
-    assert "verify local --release: 通过" in result.output or "verify local --release: passed" in result.output
+    assert (
+        "verify local --release: 通过" in result.output
+        or "verify local --release: passed" in result.output
+    )
 
 
 def test_verify_local_release_is_self_repo_only(tmp_repo: Path) -> None:
@@ -144,7 +147,10 @@ def test_verify_local_release_fails_on_step(
         ["--project-root", str(tmp_repo), "verify", "local", "--release"],
     )
     assert result.exit_code == 1, result.output
-    assert "verify local --release: 失败" in result.output or "verify local --release: failed" in result.output
+    assert (
+        "verify local --release: 失败" in result.output
+        or "verify local --release: failed" in result.output
+    )
 
 
 def test_review_close_writes_checkpoint(tmp_repo: Path) -> None:
@@ -512,16 +518,17 @@ def test_finish_generates_review_queue_after_implementation(tmp_repo: Path) -> N
     assert "- Role: reviewer-verifier" in queue
     assert "- Layer: verification" in queue
     assert "- DependsOn: task-1" in queue
-    assert "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier" in queue
+    assert (
+        "- RolePlan: planner -> contract-test-writer -> implementer -> reviewer-verifier"
+        in queue
+    )
     assert "- SessionId: review-task-1" in queue
     assert "- Verification: harness check all --no-auto-close" in queue
 
 
 def test_status_warns_active_queue_item_can_be_finished(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Finish reminder\n"
-        "- Session: task-1\n"
-        "- Layer: implementation\n",
+        "[active] Finish reminder\n- Session: task-1\n- Layer: implementation\n",
         encoding="utf-8",
     )
     runner = CliRunner()
@@ -596,8 +603,7 @@ def test_auto_close_no_active_tasks(tmp_repo: Path) -> None:
 
 def test_auto_close_no_matching_session(tmp_repo: Path) -> None:
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Orphan task\n"
-        "- Session: no-such-session\n",
+        "[active] Orphan task\n- Session: no-such-session\n",
         encoding="utf-8",
     )
     runner = CliRunner()
@@ -612,27 +618,29 @@ def test_auto_close_no_matching_session(tmp_repo: Path) -> None:
 def test_auto_close_session_already_closed(tmp_repo: Path) -> None:
     _seed_active_session(tmp_repo, "task-closed", HarnessLayer.IMPLEMENTATION)
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Closed session task\n"
-        "- Session: task-closed\n",
+        "[active] Closed session task\n- Session: task-closed\n",
         encoding="utf-8",
     )
     runner = CliRunner()
     # Manually close the session first
-    runner.invoke(cli, ["--project-root", str(tmp_repo), "review", "close", "task-closed"])
+    runner.invoke(
+        cli, ["--project-root", str(tmp_repo), "review", "close", "task-closed"]
+    )
     # Now auto-close should pick it up
     result = runner.invoke(
         cli,
         ["--project-root", str(tmp_repo), "review", "auto-close"],
     )
     assert result.exit_code == 0, result.output
-    assert "[done] Closed session task" in (tmp_repo / "NEXT.md").read_text(encoding="utf-8")
+    assert "[done] Closed session task" in (tmp_repo / "NEXT.md").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_auto_close_review_next_and_clean_tree(tmp_repo: Path, monkeypatch) -> None:
     _seed_active_session(tmp_repo, "task-review", HarnessLayer.REVIEW_NEXT)
     (tmp_repo / "NEXT.md").write_text(
-        "[active] REVIEW_NEXT task\n"
-        "- Session: task-review\n",
+        "[active] REVIEW_NEXT task\n- Session: task-review\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(
@@ -652,8 +660,7 @@ def test_auto_close_review_next_and_clean_tree(tmp_repo: Path, monkeypatch) -> N
 def test_auto_close_dry_run_does_not_modify(tmp_repo: Path, monkeypatch) -> None:
     _seed_active_session(tmp_repo, "task-dry", HarnessLayer.REVIEW_NEXT)
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Dry-run task\n"
-        "- Session: task-dry\n",
+        "[active] Dry-run task\n- Session: task-dry\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(
@@ -673,8 +680,7 @@ def test_auto_close_dry_run_does_not_modify(tmp_repo: Path, monkeypatch) -> None
 def test_auto_close_dirty_tree_skips(tmp_repo: Path, monkeypatch) -> None:
     _seed_active_session(tmp_repo, "task-dirty", HarnessLayer.REVIEW_NEXT)
     (tmp_repo / "NEXT.md").write_text(
-        "[active] Dirty tree task\n"
-        "- Session: task-dirty\n",
+        "[active] Dirty tree task\n- Session: task-dirty\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(

@@ -82,9 +82,7 @@ def init_spec(project_root: Path, description: str, slug: str | None = None) -> 
 
     target = specs_dir / f"{slug}.md"
     if target.exists():
-        raise FileExistsError(
-            bilingual("spec.exists", path=str(target))
-        )
+        raise FileExistsError(bilingual("spec.exists", path=str(target)))
 
     content = _render_template(description, slug)
     target.write_text(content, encoding="utf-8")
@@ -152,7 +150,9 @@ def upgrade_spec(
     contract_delta = sections.get("contract_delta", "").strip() or "TBD"
     tasks = _normalise_tasks(sections.get("tasks", ""), title)
     verification = sections.get("verification", "").strip() or "TBD"
-    upgrade_notes = sections.get("upgrade_notes", "").strip() or "Promoted from spec quick."
+    upgrade_notes = (
+        sections.get("upgrade_notes", "").strip() or "Promoted from spec quick."
+    )
 
     (target / "proposal.md").write_text(
         _render_proposal(packet_id, title, goal, scope, upgrade_notes, rel_source),
