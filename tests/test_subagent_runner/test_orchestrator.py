@@ -6,9 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness_governance.models.schemas import CapabilityTier
 from harness_governance.runner.orchestrator import OrchestratorPromptBuilder
-from harness_governance.state_machine.capability_routing import resolve_required_tier
 
 
 @pytest.fixture
