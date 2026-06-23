@@ -74,7 +74,7 @@ def record_render(
     if model_label:
         record["modelLabel"] = model_label
     if verifier_required is not None:
-        record["verifierRequired"] = str(verifier_required)
+        record["verifierRequired"] = verifier_required  # type: ignore[assignment]
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     return path
